@@ -86,6 +86,12 @@ class DecisionOutput(BaseModel):
         description="Whether this action requires explicit user approval"
     )
 
+    # v4.0.1: Extracted context for session updates
+    extracted_context: Optional[Dict[str, Any]] = Field(
+        default=None,
+        description="Context extracted from conversation. Include any of: topic, audience, duration, purpose, tone. Also include boolean flags: has_topic, has_audience, has_duration, has_purpose if you detect these from the user's message."
+    )
+
     class Config:
         extra = "allow"
 

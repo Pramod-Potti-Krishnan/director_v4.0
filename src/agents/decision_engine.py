@@ -158,6 +158,23 @@ You must return a structured decision with:
 - tool_calls: Tools to invoke (if action_type is invoke_tools)
 - reasoning: Why you chose this action
 - confidence: How confident you are (0.0-1.0)
+- extracted_context: IMPORTANT! Extract and return any new information from the user's message:
+  - topic: The presentation topic (if mentioned)
+  - audience: The target audience (if mentioned)
+  - duration: Duration in minutes (if mentioned, e.g., "10 minutes" -> 10)
+  - purpose: The goal (inform, persuade, inspire, teach, etc.)
+  - tone: Desired style (professional, casual, inspiring, etc.)
+  - has_topic: true if user provided a topic
+  - has_audience: true if user mentioned who the audience is
+  - has_duration: true if user specified duration/length
+  - has_purpose: true if user stated the goal/purpose
+
+## CRITICAL RULES FOR CONTEXT EXTRACTION
+1. When user says "make your assumptions" or similar, set has_audience=true, has_duration=true, has_purpose=true
+2. When user provides ANY topic, set has_topic=true and extract the topic
+3. Don't keep asking questions if user has provided enough context
+4. After 1-2 rounds of questions, proceed to propose_plan if you have a topic
+5. If user says "just create something" or "make assumptions", proceed without more questions
 """
 
     def _get_tools_summary(self) -> str:

@@ -99,36 +99,40 @@ class SessionManagerV4:
         self,
         session_id: str,
         user_id: str,
-        flags: Dict[str, bool]
+        fields: Dict[str, Any]
     ) -> None:
         """
-        Update progress flags.
+        Update session fields (progress flags, topic, audience, etc.).
+
+        v4.0.1: Updated to support any field type, not just booleans.
 
         Args:
             session_id: Session ID
             user_id: User ID
-            flags: Dict of flag_name -> value
+            fields: Dict of field_name -> value (can be bool, str, int, etc.)
         """
         session = await self.get_or_create(session_id, user_id)
 
-        # Update flags
-        for flag, value in flags.items():
-            if hasattr(session, flag):
-                setattr(session, flag, value)
+        # Update fields
+        for field, value in fields.items():
+            if hasattr(session, field):
+                setattr(session, field, value)
+            else:
+                logger.warning(f"Unknown session field: {field}")
 
         session.updated_at = datetime.utcnow()
 
         # Update in Supabase
         try:
-            updates = {**flags, 'updated_at': session.updated_at.isoformat()}
+            updates = {**fields, 'updated_at': session.updated_at.isoformat()}
             await self.supabase.table(self.table_name).update(updates).eq('id', session_id).eq('user_id', user_id).execute()
-            logger.info(f"Updated progress flags for session {session_id}: {flags}")
+            logger.info(f"Updated session {session_id}: {list(fields.keys())}")
 
             # Clear cache
             self._clear_cache(user_id, session_id)
 
         except Exception as e:
-            logger.error(f"Error updating progress flags: {type(e).__name__}: {str(e)}")
+            logger.error(f"Error updating session fields: {type(e).__name__}: {str(e)}")
             traceback.print_exc()
 
     async def set_context(

@@ -286,6 +286,14 @@ class WebSocketHandlerV4:
             session: Current session
             decision: DecisionOutput from engine
         """
+        # v4.0.1: Always extract and update context from any decision
+        # This ensures topic/audience/duration/purpose are captured
+        # regardless of which action the AI decides to take
+        await self._update_session_from_response(session, decision)
+
+        # Refresh session after update to get latest flags
+        session = await self.session_manager.get_or_create(session.id, session.user_id)
+
         action = decision.action_type
 
         if action == ActionType.RESPOND:
@@ -316,10 +324,7 @@ class WebSocketHandlerV4:
     async def _handle_respond(self, websocket: WebSocket, session: SessionV4, decision):
         """Handle RESPOND action - send conversational response."""
         response_text = decision.response_text or "I understand. How can I help you further?"
-
-        # Update session based on context detected
-        await self._update_session_from_response(session, decision)
-
+        # Context extraction is done in _execute_decision before this is called
         await self._send_chat(websocket, session, response_text)
 
     async def _handle_ask_questions(self, websocket: WebSocket, session: SessionV4, decision):
@@ -460,9 +465,54 @@ Would you like me to proceed with this plan, or would you like to make any chang
         await self._send_chat(websocket, session, message)
 
     async def _update_session_from_response(self, session: SessionV4, decision):
-        """Update session based on information extracted from response."""
-        # This would be enhanced to extract topic, audience, etc. from conversation
-        pass
+        """Update session based on information extracted from AI decision.
+
+        v4.0.1: The Decision Engine now extracts context (topic, audience, etc.)
+        from user messages and returns them in decision.extracted_context.
+        """
+        extracted = getattr(decision, 'extracted_context', None)
+        if not extracted:
+            return
+
+        updates = {}
+
+        # Extract key session data
+        if extracted.get('topic'):
+            updates['topic'] = extracted['topic']
+            updates['has_topic'] = True
+            # Also set as initial_request if not set
+            if not session.initial_request:
+                updates['initial_request'] = extracted['topic']
+
+        if extracted.get('audience'):
+            updates['audience'] = extracted['audience']
+            updates['has_audience'] = True
+
+        if extracted.get('duration'):
+            try:
+                updates['duration'] = int(extracted['duration'])
+                updates['has_duration'] = True
+            except (ValueError, TypeError):
+                pass
+
+        if extracted.get('purpose'):
+            updates['purpose'] = extracted['purpose']
+            updates['has_purpose'] = True
+
+        if extracted.get('tone'):
+            updates['tone'] = extracted['tone']
+
+        # Also accept explicit boolean flags from the AI
+        for flag in ['has_topic', 'has_audience', 'has_duration', 'has_purpose']:
+            if extracted.get(flag) is True and flag not in updates:
+                updates[flag] = True
+
+        # Update session if we have changes
+        if updates:
+            logger.info(f"Updating session with extracted context: {list(updates.keys())}")
+            await self.session_manager.update_progress(
+                session.id, session.user_id, updates
+            )
 
     async def _send_greeting(self, websocket: WebSocket, session: SessionV4):
         """Send initial greeting message."""
