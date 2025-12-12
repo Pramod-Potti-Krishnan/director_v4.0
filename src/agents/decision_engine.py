@@ -481,8 +481,14 @@ class StrawmanGenerator:
     def _get_system_prompt(self) -> str:
         return """You are a presentation structure expert. Create well-organized presentation outlines (strawmans).
 
+## CRITICAL: TOPIC-SPECIFIC CONTENT
+You MUST create slides specifically about the provided topic. Every slide title and topic point must relate to the actual topic.
+- If the topic is "Elephants", create slides about elephants (their biology, habitats, conservation, etc.)
+- If the topic is "Machine Learning", create slides about ML concepts, applications, etc.
+- NEVER create generic slides like "Section 1" or "Key Points" - always make them topic-specific!
+
 ## GUIDELINES
-- Start with a title slide (hero)
+- Start with a title slide (hero) using the EXACT TOPIC as the title
 - Include section dividers for major topic changes
 - End with a closing slide (hero)
 - 2-3 minutes per slide is typical
@@ -496,12 +502,13 @@ class StrawmanGenerator:
 
 ## OUTPUT
 Create a complete Strawman with slide definitions including:
-- slide_id (unique identifier)
-- slide_number (position)
-- title (concise)
+- slide_id (unique identifier - use UUIDs)
+- slide_number (position starting from 1)
+- title (topic-specific, never generic)
 - layout (L01 for simple, L02 for two-column, etc.)
-- topics (key points)
+- topics (3-5 specific key points related to the slide title)
 - is_hero (true for title/section/closing)
+- hero_type (title_slide, section_divider, or closing_slide for hero slides)
 """
 
     async def generate(
@@ -513,19 +520,36 @@ Create a complete Strawman with slide definitions including:
         additional_context: Optional[Dict[str, Any]] = None
     ) -> Strawman:
         """Generate a strawman for the given topic."""
+        logger.info(f"StrawmanGenerator.generate() called with topic='{topic}'")
+
         if not self.agent:
+            logger.warning("Agent not initialized, using fallback")
             return self._fallback_strawman(topic, duration)
+
+        # Calculate approximate slide count
+        slide_count = max(5, min(15, duration // 2 + 2))
 
         prompt = f"""Create a presentation outline for:
 
-Topic: {topic}
-Target Audience: {audience}
-Duration: {duration} minutes
-Purpose: {purpose}
+## TOPIC (VERY IMPORTANT)
+**{topic}**
+
+This presentation MUST be about "{topic}". Every slide title and every topic point must relate to {topic}.
+
+## CONTEXT
+- Target Audience: {audience}
+- Duration: {duration} minutes (approximately {slide_count} slides)
+- Purpose: {purpose}
+
+## REQUIREMENTS
+1. Title slide: Use "{topic}" as the exact title
+2. Content slides: Each must have a title specifically about {topic}
+3. Closing slide: Summary and thank you
+4. Include 3-5 topic points per slide, all related to {topic}
 
 Additional Context: {json.dumps(additional_context or {})}
 
-Generate a complete strawman with appropriate number of slides for the duration.
+Generate a complete strawman with {slide_count} slides about {topic}.
 """
 
         try:
@@ -541,11 +565,32 @@ Generate a complete strawman with appropriate number of slides for the duration.
             return self._fallback_strawman(topic, duration)
 
     def _fallback_strawman(self, topic: str, duration: int) -> Strawman:
-        """Generate a basic fallback strawman."""
+        """Generate a basic fallback strawman with topic-specific content.
+
+        v4.0.4: Improved to generate topic-specific slide titles and points
+        instead of generic "Section 1", "Section 2" placeholders.
+        """
         import uuid
+
+        logger.info(f"Generating fallback strawman for topic: {topic}")
 
         # Estimate slide count (roughly 2 min per slide)
         slide_count = max(5, min(15, duration // 2 + 2))
+
+        # Generate topic-specific section titles
+        # These are generic but at least reference the topic
+        section_titles = [
+            f"Introduction to {topic}",
+            f"Key Aspects of {topic}",
+            f"Understanding {topic}",
+            f"Details About {topic}",
+            f"Exploring {topic}",
+            f"Deep Dive: {topic}",
+            f"Important Points About {topic}",
+            f"{topic} in Practice",
+            f"Case Studies: {topic}",
+            f"Future of {topic}",
+        ]
 
         slides = [
             StrawmanSlide(
@@ -553,30 +598,37 @@ Generate a complete strawman with appropriate number of slides for the duration.
                 slide_number=1,
                 title=topic,
                 layout="H1",
-                topics=["Introduction", "Overview"],
+                topics=[f"Welcome to this presentation about {topic}", f"Overview of {topic}"],
                 is_hero=True,
                 hero_type="title_slide"
             )
         ]
 
-        # Add content slides
-        for i in range(2, slide_count):
+        # Add content slides with topic-specific titles
+        content_count = slide_count - 2  # Minus title and closing
+        for i in range(content_count):
+            section_idx = i % len(section_titles)
             slides.append(StrawmanSlide(
                 slide_id=str(uuid.uuid4()),
-                slide_number=i,
-                title=f"Section {i - 1}",
+                slide_number=i + 2,
+                title=section_titles[section_idx],
                 layout="L01",
-                topics=[f"Key point {j}" for j in range(1, 4)],
-                is_hero=False
+                topics=[
+                    f"Key point about {topic}",
+                    f"Important information regarding {topic}",
+                    f"Details on this aspect of {topic}"
+                ],
+                is_hero=False,
+                notes=f"Content slide {i + 1} about {topic}"
             ))
 
         # Add closing slide
         slides.append(StrawmanSlide(
             slide_id=str(uuid.uuid4()),
             slide_number=slide_count,
-            title="Thank You",
+            title=f"Thank You - {topic}",
             layout="H3",
-            topics=["Summary", "Questions"],
+            topics=[f"Summary of {topic}", "Questions and Discussion"],
             is_hero=True,
             hero_type="closing_slide"
         ))
@@ -584,5 +636,5 @@ Generate a complete strawman with appropriate number of slides for the duration.
         return Strawman(
             title=topic,
             slides=slides,
-            metadata={"generated": "fallback", "duration": duration}
+            metadata={"generated": "fallback", "duration": duration, "topic": topic}
         )

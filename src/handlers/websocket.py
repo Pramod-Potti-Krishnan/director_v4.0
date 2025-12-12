@@ -29,7 +29,8 @@ from src.models.websocket_messages import (
     create_status_update,
     create_slide_update,
     create_sync_response,
-    create_presentation_url
+    create_presentation_url,
+    create_action_request  # v4.0.4: For strawman approval buttons
 )
 
 logger = logging.getLogger(__name__)
@@ -366,9 +367,13 @@ Would you like me to proceed with this plan, or would you like to make any chang
         # Send status
         await self._send_status(websocket, session, "Generating presentation outline...")
 
+        # v4.0.4: Get topic, prioritizing session.topic, then initial_request
+        topic = session.topic or session.initial_request or "Untitled"
+        logger.info(f"Generating strawman for topic: {topic}")
+
         # Generate strawman
         strawman = await self.strawman_generator.generate(
-            topic=session.topic or session.initial_request or "Untitled",
+            topic=topic,
             audience=session.audience or "general",
             duration=session.duration or 15,
             purpose=session.purpose or "inform"
@@ -380,16 +385,39 @@ Would you like me to proceed with this plan, or would you like to make any chang
             session.id, session.user_id, strawman_dict
         )
 
+        # Refresh session to get updated strawman flag
+        session = await self.session_manager.get_or_create(session.id, session.user_id)
+
         # Send slide update
         await self._send_slide_update(websocket, session, strawman_dict)
 
-        # Send follow-up message
+        # Send follow-up message (like v3.4)
         await self._send_chat(
             websocket, session,
-            f"I've created an outline with {len(strawman.slides)} slides. "
-            "Take a look and let me know if you'd like any changes, "
-            "or say 'generate' when you're ready to create the actual content."
+            f"I've created an outline with {len(strawman.slides)} slides for **{topic}**. "
+            "Review the structural outline above. You can request changes or approve it to proceed."
         )
+
+        # v4.0.4: Send action request for user to approve or refine (like v3.4)
+        action_msg = create_action_request(
+            session_id=session.id,
+            prompt_text="Does this outline look good, or would you like to make changes?",
+            actions=[
+                {
+                    "label": "Looks perfect!",
+                    "value": "accept_strawman",
+                    "primary": True,
+                    "requires_input": False
+                },
+                {
+                    "label": "Make some changes",
+                    "value": "request_refinement",
+                    "primary": False,
+                    "requires_input": True
+                }
+            ]
+        )
+        await websocket.send_json(action_msg.model_dump(mode='json'))
 
     async def _handle_refine_strawman(self, websocket: WebSocket, session: SessionV4, decision):
         """Handle REFINE_STRAWMAN action - modify existing outline."""
@@ -541,7 +569,13 @@ Would you like me to proceed with this plan, or would you like to make any chang
         await websocket.send_json(status_msg.model_dump(mode='json'))
 
     async def _send_slide_update(self, websocket: WebSocket, session: SessionV4, strawman: Dict):
-        """Send slide update with strawman."""
+        """Send slide update with strawman.
+
+        v4.0.4: Enhanced to include all fields expected by frontend (matching v3.4 format).
+        """
+        # v4.0.4: Get topic from strawman or session
+        topic = strawman.get('title') or session.topic or session.initial_request or 'Untitled'
+
         # Convert strawman to slides format expected by frontend (SlideData model)
         slides = []
         for idx, slide in enumerate(strawman.get('slides', [])):
@@ -554,21 +588,32 @@ Would you like me to proceed with this plan, or would you like to make any chang
             else:
                 slide_type = 'content'
 
+            # Build narrative - prefer notes, then generate from title/topic
+            slide_title = slide.get('title', f'Slide {idx + 1}')
+            narrative = slide.get('notes', '')
+            if not narrative:
+                narrative = f"Key content about {slide_title}"
+
             slides.append({
                 'slide_id': slide.get('slide_id', f'slide_{idx+1}'),
                 'slide_number': slide.get('slide_number', idx + 1),
                 'slide_type': slide_type,
-                'title': slide.get('title', f'Slide {idx + 1}'),
-                'narrative': slide.get('notes', '') or f"Key content for {slide.get('title', 'this slide')}",
+                'title': slide_title,
+                'narrative': narrative,
                 'key_points': slide.get('topics', []),
+                'analytics_needed': None,
+                'visuals_needed': None,
+                'diagrams_needed': None,
                 'structure_preference': slide.get('layout', 'L01')
             })
+
+        logger.info(f"Sending slide_update with {len(slides)} slides for topic: {topic}")
 
         slide_msg = create_slide_update(
             session_id=session.id,
             operation="full_update",
             metadata={
-                'main_title': strawman.get('title', 'Untitled'),
+                'main_title': topic,  # v4.0.4: Use topic as main_title
                 'slide_count': len(slides),
                 'overall_theme': 'professional',
                 'design_suggestions': '',
