@@ -232,7 +232,8 @@ You must return a structured decision with:
                     lambda: self.agent.run(prompt),
                     operation_name="Decision Engine"
                 )
-                decision = result.data
+                # Pydantic-AI 1.0+: use .output instead of .data
+                decision = result.output
 
                 # Validate and adjust decision based on rules
                 decision = self._validate_decision(decision, context)
@@ -516,7 +517,8 @@ Generate a complete strawman with appropriate number of slides for the duration.
                 lambda: self.agent.run(prompt),
                 operation_name="Strawman Generator"
             )
-            return result.data
+            # Pydantic-AI 1.0+: use .output instead of .data
+            return result.output
         except Exception as e:
             logger.error(f"Strawman generation failed: {e}")
             return self._fallback_strawman(topic, duration)
