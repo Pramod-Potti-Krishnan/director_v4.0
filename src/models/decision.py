@@ -174,22 +174,26 @@ class ApprovalDetectionResult(BaseModel):
 
 class StrawmanSlide(BaseModel):
     """A single slide in the strawman."""
+    # v4.0.3: Removed ge=1 constraint to fix Gemini schema complexity error
     slide_id: str = Field(..., description="Unique slide identifier")
-    slide_number: int = Field(..., ge=1, description="Position in presentation")
+    slide_number: int = Field(..., description="Position in presentation (1-based)")
     title: str = Field(..., description="Slide title")
     layout: str = Field(default="L01", description="Layout template ID")
     topics: List[str] = Field(default_factory=list, description="Key topics/points")
-    variant_id: Optional[str] = Field(None, description="Content variant for generation")
-    notes: Optional[str] = Field(None, description="Speaker notes or generation hints")
+    variant_id: Optional[str] = Field(default=None, description="Content variant for generation")
+    notes: Optional[str] = Field(default=None, description="Speaker notes or generation hints")
     is_hero: bool = Field(default=False, description="Whether this is a hero slide")
-    hero_type: Optional[str] = Field(None, description="title_slide, section_divider, or closing_slide")
+    hero_type: Optional[str] = Field(default=None, description="title_slide, section_divider, or closing_slide")
 
 
 class Strawman(BaseModel):
     """Complete strawman (presentation outline)."""
+    # v4.0.3: Removed min_length/max_length constraints to fix Gemini schema complexity error
+    # Validation should be done in code if needed (2-30 slides recommended)
     title: str = Field(..., description="Presentation title")
-    slides: List[StrawmanSlide] = Field(..., min_length=2, max_length=30)
-    metadata: Dict[str, Any] = Field(default_factory=dict)
+    slides: List[StrawmanSlide] = Field(..., description="List of slides (2-30 recommended)")
+    # v4.0.3: Made metadata optional to avoid additionalProperties issues with Gemini
+    metadata: Optional[Dict[str, Any]] = Field(default=None, description="Optional metadata")
 
     @property
     def slide_count(self) -> int:

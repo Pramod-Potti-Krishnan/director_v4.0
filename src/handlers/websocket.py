@@ -542,24 +542,40 @@ Would you like me to proceed with this plan, or would you like to make any chang
 
     async def _send_slide_update(self, websocket: WebSocket, session: SessionV4, strawman: Dict):
         """Send slide update with strawman."""
-        # Convert strawman to slides format expected by frontend
+        # Convert strawman to slides format expected by frontend (SlideData model)
         slides = []
-        for slide in strawman.get('slides', []):
+        for idx, slide in enumerate(strawman.get('slides', [])):
+            # Determine slide type based on hero_type or layout
+            hero_type = slide.get('hero_type')
+            if hero_type:
+                slide_type = hero_type  # title_slide, section_divider, closing_slide
+            elif slide.get('is_hero'):
+                slide_type = 'hero'
+            else:
+                slide_type = 'content'
+
             slides.append({
-                'slide_id': slide.get('slide_id'),
-                'title': slide.get('title'),
-                'topics': slide.get('topics', []),
-                'layout': slide.get('layout', 'L01'),
-                'is_hero': slide.get('is_hero', False)
+                'slide_id': slide.get('slide_id', f'slide_{idx+1}'),
+                'slide_number': slide.get('slide_number', idx + 1),
+                'slide_type': slide_type,
+                'title': slide.get('title', f'Slide {idx + 1}'),
+                'narrative': slide.get('notes', '') or f"Key content for {slide.get('title', 'this slide')}",
+                'key_points': slide.get('topics', []),
+                'structure_preference': slide.get('layout', 'L01')
             })
 
         slide_msg = create_slide_update(
             session_id=session.id,
-            slides=slides,
+            operation="full_update",
             metadata={
                 'main_title': strawman.get('title', 'Untitled'),
-                'slide_count': len(slides)
-            }
+                'slide_count': len(slides),
+                'overall_theme': 'professional',
+                'design_suggestions': '',
+                'target_audience': session.audience or 'general',
+                'presentation_duration': session.duration or 15
+            },
+            slides=slides
         )
         await websocket.send_json(slide_msg.model_dump(mode='json'))
 
