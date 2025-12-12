@@ -47,7 +47,7 @@ class DecisionEngine:
     def __init__(
         self,
         tool_registry: Optional[ToolRegistry] = None,
-        model_name: str = "gemini-2.0-flash-exp"
+        model_name: str = "gemini-2.5-flash"
     ):
         """
         Initialize the Decision Engine.
@@ -443,7 +443,7 @@ class StrawmanGenerator:
     Uses AI to create slide structure based on topic and context.
     """
 
-    def __init__(self, model_name: str = "gemini-2.0-flash-exp"):
+    def __init__(self, model_name: str = "gemini-2.5-flash"):
         self.model_name = model_name
         self._init_agent()
 

@@ -38,10 +38,10 @@ class Settings(BaseSettings):
     # Note: Model names should NOT include 'google-vertex:' prefix (added automatically by code)
 
     # v4.0: Decision Engine model - the main AI that decides what action to take
-    GCP_MODEL_DECISION: str = Field("gemini-2.0-flash-exp", env="GCP_MODEL_DECISION")
+    GCP_MODEL_DECISION: str = Field("gemini-2.5-flash", env="GCP_MODEL_DECISION")
 
     # Strawman generation (complex, detailed presentation outline)
-    GCP_MODEL_STRAWMAN: str = Field("gemini-2.0-flash-exp", env="GCP_MODEL_STRAWMAN")
+    GCP_MODEL_STRAWMAN: str = Field("gemini-2.5-flash", env="GCP_MODEL_STRAWMAN")
 
     # Legacy v3.x model settings (kept for backward compatibility)
     GCP_MODEL_GREETING: str = Field("gemini-1.5-flash", env="GCP_MODEL_GREETING")
