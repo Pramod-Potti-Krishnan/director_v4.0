@@ -20,6 +20,8 @@ from src.models.decision import (
 )
 from src.models.session import SessionV4
 from src.utils.session_manager import SessionManagerV4
+from src.utils.deck_builder_client import DeckBuilderClient  # v4.0.5: Preview generation
+from src.utils.strawman_transformer import StrawmanTransformer  # v4.0.5: Transform for deck-builder
 from src.tools.registry import register_all_tools, ToolCall
 from src.storage.supabase import get_supabase_client
 from src.models.websocket_messages import (
@@ -76,6 +78,14 @@ class WebSocketHandlerV4:
             model_name=strawman_model
         )
         logger.info(f"Strawman Generator initialized with model: {strawman_model}")
+
+        # v4.0.5: Initialize Deck Builder Client for preview generation
+        self.deck_builder_client = DeckBuilderClient(
+            api_url=self.settings.DECK_BUILDER_API_URL,
+            timeout=self.settings.DECK_BUILDER_TIMEOUT
+        )
+        self.strawman_transformer = StrawmanTransformer()
+        logger.info(f"Deck Builder Client initialized: {self.settings.DECK_BUILDER_API_URL}")
 
         # Connection tracking
         self.active_connections: Dict[str, WebSocket] = {}
@@ -385,18 +395,49 @@ Would you like me to proceed with this plan, or would you like to make any chang
             session.id, session.user_id, strawman_dict
         )
 
+        # v4.0.5: Create preview presentation with deck-builder
+        preview_url = None
+        preview_presentation_id = None
+        try:
+            logger.info("Creating preview presentation with deck-builder...")
+
+            # Transform strawman to deck-builder format
+            api_payload = self.strawman_transformer.transform(strawman_dict, topic)
+
+            # Call deck-builder API
+            api_response = await self.deck_builder_client.create_presentation(api_payload)
+            preview_url = self.deck_builder_client.get_full_url(api_response['url'])
+            preview_presentation_id = api_response['id']
+
+            logger.info(f"Preview created: {preview_url} (id: {preview_presentation_id})")
+
+        except Exception as e:
+            logger.error(f"Failed to create preview with deck-builder: {e}")
+            # Continue without preview - frontend will show skeletons
+
         # Refresh session to get updated strawman flag
         session = await self.session_manager.get_or_create(session.id, session.user_id)
 
-        # Send slide update
-        await self._send_slide_update(websocket, session, strawman_dict)
+        # Send slide update (with preview_url if available)
+        await self._send_slide_update(
+            websocket, session, strawman_dict,
+            preview_url=preview_url,
+            preview_presentation_id=preview_presentation_id
+        )
 
         # Send follow-up message (like v3.4)
-        await self._send_chat(
-            websocket, session,
-            f"I've created an outline with {len(strawman.slides)} slides for **{topic}**. "
-            "Review the structural outline above. You can request changes or approve it to proceed."
-        )
+        if preview_url:
+            await self._send_chat(
+                websocket, session,
+                f"I've created an outline with {len(strawman.slides)} slides for **{topic}**. "
+                "Review the structural outline in the preview. You can request changes or approve it to proceed."
+            )
+        else:
+            await self._send_chat(
+                websocket, session,
+                f"I've created an outline with {len(strawman.slides)} slides for **{topic}**. "
+                "Review the structure and approve it to proceed."
+            )
 
         # v4.0.4: Send action request for user to approve or refine (like v3.4)
         action_msg = create_action_request(
@@ -568,10 +609,18 @@ Would you like me to proceed with this plan, or would you like to make any chang
         status_msg = create_status_update(session.id, status, message)
         await websocket.send_json(status_msg.model_dump(mode='json'))
 
-    async def _send_slide_update(self, websocket: WebSocket, session: SessionV4, strawman: Dict):
+    async def _send_slide_update(
+        self,
+        websocket: WebSocket,
+        session: SessionV4,
+        strawman: Dict,
+        preview_url: Optional[str] = None,
+        preview_presentation_id: Optional[str] = None
+    ):
         """Send slide update with strawman.
 
         v4.0.4: Enhanced to include all fields expected by frontend (matching v3.4 format).
+        v4.0.5: Added preview_url and preview_presentation_id for right panel rendering.
         """
         # v4.0.4: Get topic from strawman or session
         topic = strawman.get('title') or session.topic or session.initial_request or 'Untitled'
@@ -607,7 +656,7 @@ Would you like me to proceed with this plan, or would you like to make any chang
                 'structure_preference': slide.get('layout', 'L01')
             })
 
-        logger.info(f"Sending slide_update with {len(slides)} slides for topic: {topic}")
+        logger.info(f"Sending slide_update with {len(slides)} slides for topic: {topic}, preview_url: {preview_url}")
 
         slide_msg = create_slide_update(
             session_id=session.id,
@@ -618,7 +667,9 @@ Would you like me to proceed with this plan, or would you like to make any chang
                 'overall_theme': 'professional',
                 'design_suggestions': '',
                 'target_audience': session.audience or 'general',
-                'presentation_duration': session.duration or 15
+                'presentation_duration': session.duration or 15,
+                'preview_url': preview_url,  # v4.0.5: For right panel rendering
+                'preview_presentation_id': preview_presentation_id  # v4.0.5: For tracking
             },
             slides=slides
         )

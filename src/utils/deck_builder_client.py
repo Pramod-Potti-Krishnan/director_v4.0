@@ -2,12 +2,14 @@
 Deck-Builder API Client.
 
 HTTP client for creating presentations via deck-builder API.
+
+v4.0.5: Copied from v3.4 to enable preview generation during strawman phase.
 """
+import logging
 import httpx
 from typing import Dict, Any, Optional
-from src.utils.logger import setup_logger
 
-logger = setup_logger(__name__)
+logger = logging.getLogger(__name__)
 
 
 class DeckBuilderClient:
