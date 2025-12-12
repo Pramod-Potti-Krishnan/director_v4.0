@@ -1,0 +1,1096 @@
+{
+  "$schema": "./schemas/unified_registry_schema.json",
+  "version": "2.1.0",
+  "last_updated": "2025-12-01",
+  "total_services": 3,
+  "total_variants": 87,
+
+  "services": {
+    "illustrator_service_v1.0": {
+      "enabled": true,
+      "base_url": "http://localhost:8000",
+      "service_type": "llm_generated",
+      "endpoint_pattern": "per_variant",
+      "timeout": 60,
+
+      "variants": {
+        "pyramid": {
+          "variant_id": "pyramid",
+          "display_name": "Pyramid (Hierarchical)",
+          "description": "Multi-level hierarchical structure from foundation to peak",
+          "status": "production",
+          "endpoint": "/v1.0/pyramid/generate",
+          "layout_id": "L25",
+
+          "classification": {
+            "priority": 4,
+            "keywords": [
+              "pyramid", "hierarchical", "hierarchy", "organizational structure",
+              "levels", "tier", "tiers", "tiered", "layered", "layers",
+              "foundation to top", "base to peak", "top to bottom",
+              "organizational chart", "org chart", "reporting structure",
+              "escalation", "progression", "maslow", "food pyramid",
+              "pyramid structure", "pyramid model", "pyramid framework",
+              "from foundation", "building blocks", "level 1", "level 2",
+              "3 levels", "4 levels", "5 levels", "6 levels",
+              "three tiers", "four tiers", "five tiers", "six tiers"
+            ]
+          },
+
+          "llm_guidance": {
+            "use_cases": [
+              "Organizational hierarchies (CEO → Directors → Managers → Staff)",
+              "Skill development pathways (Foundation → Intermediate → Advanced → Expert)",
+              "Priority frameworks (Critical → Important → Nice-to-have)",
+              "Maslow's hierarchy of needs",
+              "Strategic frameworks (Vision → Strategy → Tactics → Execution)"
+            ],
+            "best_for": "Showing multi-level structures from foundation to top",
+            "avoid_when": "Less than 3 or more than 6 levels needed",
+            "examples": [
+              {
+                "title": "Organizational Structure",
+                "key_points": [
+                  "Vision & Strategic Direction",
+                  "Department Leadership",
+                  "Team Management",
+                  "Execution & Operations"
+                ]
+              }
+            ]
+          },
+
+          "parameters": {
+            "count_field": "num_levels",
+            "count_range": {"min": 3, "max": 6},
+            "optimal_count": 4,
+            "element_name": "levels",
+            "required_fields": ["num_levels", "topic"]
+          },
+
+          "service_specific": {
+            "illustrator": {
+              "generation_type": "llm_powered",
+              "llm_model": "gemini-2.5-flash-lite",
+              "character_constraints": true,
+              "supports_target_points": true,
+              "supports_context": true
+            }
+          }
+        },
+
+        "funnel": {
+          "variant_id": "funnel",
+          "display_name": "Funnel (Conversion)",
+          "description": "Multi-stage funnel showing progressive filtering or conversion",
+          "status": "production",
+          "endpoint": "/v1.0/funnel/generate",
+          "layout_id": "L25",
+
+          "classification": {
+            "priority": 5,
+            "keywords": [
+              "funnel", "sales funnel", "conversion funnel", "marketing funnel",
+              "customer funnel", "pipeline", "sales pipeline", "lead pipeline",
+              "awareness", "consideration", "decision", "conversion",
+              "tofu", "mofu", "bofu",
+              "lead generation", "qualification", "nurturing", "closing",
+              "conversion rate", "conversion optimization", "drop-off",
+              "customer journey", "buyer journey", "purchase journey",
+              "stages of buying", "sales process", "conversion process",
+              "funnel metrics", "funnel analysis", "funnel optimization",
+              "conversion tracking", "stage conversion", "funnel drop-off",
+              "inverted funnel", "hourglass funnel", "bowtie funnel",
+              "4-stage funnel", "5-stage funnel", "multi-stage funnel",
+              "lead to customer", "prospect to sale", "awareness to purchase",
+              "from lead to close", "acquisition funnel", "retention funnel",
+              "narrowing", "filtering", "progressive", "step-by-step reduction"
+            ]
+          },
+
+          "llm_guidance": {
+            "use_cases": [
+              "Sales pipelines (Leads → Qualified → Proposals → Closed)",
+              "Marketing funnels (TOFU → MOFU → BOFU → Customers)",
+              "Customer journey mapping (Awareness → Consideration → Decision)",
+              "Conversion optimization processes",
+              "Lead qualification stages"
+            ],
+            "best_for": "Showing volume reduction through stages",
+            "avoid_when": "Stages don't have decreasing quantities",
+            "examples": [
+              {
+                "title": "Sales Conversion Funnel",
+                "key_points": [
+                  "Website Visitors (10,000)",
+                  "Qualified Leads (1,000)",
+                  "Sales Opportunities (100)",
+                  "Closed Deals (25)"
+                ]
+              }
+            ]
+          },
+
+          "parameters": {
+            "count_field": "num_stages",
+            "count_range": {"min": 3, "max": 5},
+            "optimal_count": 4,
+            "element_name": "stages",
+            "required_fields": ["num_stages", "topic"]
+          },
+
+          "service_specific": {
+            "illustrator": {
+              "generation_type": "llm_powered",
+              "llm_model": "gemini-2.5-flash-lite",
+              "character_constraints": true,
+              "supports_target_points": true,
+              "supports_context": true
+            }
+          }
+        },
+
+        "concentric_circles": {
+          "variant_id": "concentric_circles",
+          "display_name": "Concentric Circles",
+          "description": "Nested circular layers showing core-to-periphery relationships",
+          "status": "production",
+          "endpoint": "/v1.0/concentric_circles/generate",
+          "layout_id": "L25",
+
+          "classification": {
+            "priority": 6,
+            "keywords": [
+              "concentric", "concentric circles", "nested circles", "circular layers",
+              "rings", "orbital", "radial", "ripple effect", "ripples",
+              "inner circle", "outer circle", "core and periphery",
+              "center outward", "from center", "expanding circles",
+              "layered circles", "multiple circles", "circular zones",
+              "influence zones", "zones of influence", "reach layers",
+              "impact radius", "sphere of influence", "concentric zones",
+              "proximity circles", "distance from core",
+              "stakeholder map", "stakeholder circles", "influence mapping",
+              "target audience layers", "customer segments",
+              "market reach", "market penetration", "market layers",
+              "engagement levels", "user segmentation circles",
+              "core competency", "core capabilities", "extended capabilities",
+              "core team", "extended team", "partner network",
+              "bull's eye", "bullseye", "target circles", "dartboard",
+              "onion layers", "layered approach", "nested structure",
+              "radiating", "emanating", "outward expansion"
+            ]
+          },
+
+          "llm_guidance": {
+            "use_cases": [
+              "Stakeholder influence maps (Core Team → Department → Company → Partners)",
+              "Market reach strategy (Primary → Secondary → Tertiary Markets)",
+              "Organizational proximity (Executive → Management → Team → Contractors)",
+              "Customer segmentation (VIP → Active → Occasional → Potential)",
+              "Impact zones (Direct → Indirect → Ripple → Long-term)"
+            ],
+            "best_for": "Showing relationships from core to periphery",
+            "avoid_when": "Hierarchy or progression is more important than proximity",
+            "examples": [
+              {
+                "title": "Stakeholder Influence Map",
+                "key_points": [
+                  "Core Team (Direct Control)",
+                  "Department Leads (High Influence)",
+                  "Company-wide Teams (Moderate Influence)",
+                  "External Partners (Low Influence)"
+                ]
+              }
+            ]
+          },
+
+          "parameters": {
+            "count_field": "num_circles",
+            "count_range": {"min": 3, "max": 5},
+            "optimal_count": 4,
+            "element_name": "circles",
+            "required_fields": ["num_circles", "topic"]
+          },
+
+          "service_specific": {
+            "illustrator": {
+              "generation_type": "llm_powered",
+              "llm_model": "gemini-2.5-flash-lite",
+              "character_constraints": true,
+              "supports_target_points": true,
+              "supports_context": true
+            }
+          }
+        }
+      }
+    },
+
+    "text_service_v1.2": {
+      "enabled": true,
+      "base_url": "https://web-production-5daf.up.railway.app",
+      "service_type": "template_based",
+      "endpoint_pattern": "single",
+      "timeout": 60,
+      "default_endpoint": "/v1.2/generate",
+
+      "variants": {
+        "matrix_2x2": {
+          "variant_id": "matrix_2x2",
+          "display_name": "2x2 Matrix",
+          "description": "Four-quadrant strategic framework matrix",
+          "status": "production",
+          "layout_id": "L25",
+          "slide_type": "matrix",
+
+          "classification": {
+            "priority": 7,
+            "keywords": [
+              "matrix", "quadrant", "2x2", "2 x 2", "four quadrants",
+              "pros vs cons", "pros and cons", "benefits vs drawbacks",
+              "trade-offs", "trade offs", "strengths weaknesses",
+              "swot", "swot analysis", "strategic framework",
+              "comparing", "comparison matrix", "eisenhower matrix",
+              "bcg matrix", "ansoff matrix", "four-box"
+            ]
+          },
+
+          "llm_guidance": {
+            "use_cases": [
+              "SWOT analysis (Strengths, Weaknesses, Opportunities, Threats)",
+              "Eisenhower Matrix (Urgent/Important)",
+              "BCG Matrix (Stars, Cash Cows, Question Marks, Dogs)",
+              "Decision frameworks with two dimensions"
+            ],
+            "best_for": "Strategic frameworks with two axes",
+            "avoid_when": "More than 4 categories needed"
+          },
+
+          "required_fields": ["variant_id", "title"],
+          "optional_fields": ["subtitle", "key_points"]
+        },
+
+        "matrix_2x3": {
+          "variant_id": "matrix_2x3",
+          "display_name": "2x3 Matrix",
+          "description": "Six-box matrix with 2 columns and 3 rows",
+          "status": "production",
+          "layout_id": "L25",
+          "slide_type": "matrix",
+
+          "llm_guidance": {
+            "use_cases": [
+              "Expanded frameworks with 6 categories",
+              "Before/During/After comparisons",
+              "Three-phase analysis with two dimensions"
+            ],
+            "best_for": "Structured content with 6 distinct categories",
+            "avoid_when": "Simple 4-quadrant analysis is sufficient"
+          },
+
+          "required_fields": ["variant_id", "title"],
+          "optional_fields": ["subtitle", "key_points"]
+        },
+
+        "grid_2x3": {
+          "variant_id": "grid_2x3",
+          "display_name": "2x3 Grid (Centered Icons)",
+          "description": "Centered grid with 6 icon cards (35% extended)",
+          "status": "production",
+          "layout_id": "L25",
+          "slide_type": "grid",
+
+          "llm_guidance": {
+            "use_cases": [
+              "Feature highlights with icons",
+              "Service offerings",
+              "Key capabilities"
+            ],
+            "best_for": "Visual icon-based content with 6 items"
+          },
+
+          "required_fields": ["variant_id", "title"],
+          "optional_fields": ["subtitle", "key_points"]
+        },
+
+        "grid_3x2": {
+          "variant_id": "grid_3x2",
+          "display_name": "3x2 Grid (Centered Icons)",
+          "description": "Centered grid with 6 icon cards (35% extended)",
+          "status": "production",
+          "layout_id": "L25",
+          "slide_type": "grid",
+
+          "llm_guidance": {
+            "use_cases": [
+              "Process steps with icons",
+              "Team capabilities",
+              "Product features"
+            ],
+            "best_for": "Horizontal layout with 6 items"
+          },
+
+          "required_fields": ["variant_id", "title"],
+          "optional_fields": ["subtitle", "key_points"]
+        },
+
+        "grid_2x2_centered": {
+          "variant_id": "grid_2x2_centered",
+          "display_name": "2x2 Grid (Centered Icons)",
+          "description": "Centered grid with 4 icon cards (70% extended)",
+          "status": "production",
+          "layout_id": "L25",
+          "slide_type": "grid",
+
+          "llm_guidance": {
+            "use_cases": [
+              "Core capabilities",
+              "Key features",
+              "Strategic pillars"
+            ],
+            "best_for": "4-item content with prominent icons"
+          },
+
+          "required_fields": ["variant_id", "title"],
+          "optional_fields": ["subtitle", "key_points"]
+        },
+
+        "grid_2x3_left": {
+          "variant_id": "grid_2x3_left",
+          "display_name": "2x3 Grid (Left-Aligned)",
+          "description": "Left-aligned grid with 6 icon cards",
+          "status": "production",
+          "layout_id": "L25",
+          "slide_type": "grid",
+
+          "llm_guidance": {
+            "use_cases": [
+              "Feature lists",
+              "Capabilities overview",
+              "Service offerings"
+            ],
+            "best_for": "Traditional left-aligned 6-item grid"
+          },
+
+          "required_fields": ["variant_id", "title"],
+          "optional_fields": ["subtitle", "key_points"]
+        },
+
+        "grid_3x2_left": {
+          "variant_id": "grid_3x2_left",
+          "display_name": "3x2 Grid (Left-Aligned)",
+          "description": "Left-aligned grid with 6 icon cards",
+          "status": "production",
+          "layout_id": "L25",
+          "slide_type": "grid",
+
+          "llm_guidance": {
+            "use_cases": [
+              "Process steps",
+              "Team capabilities",
+              "Product features"
+            ],
+            "best_for": "Horizontal layout for 6 items"
+          },
+
+          "required_fields": ["variant_id", "title"],
+          "optional_fields": ["subtitle", "key_points"]
+        },
+
+        "grid_2x2_left": {
+          "variant_id": "grid_2x2_left",
+          "display_name": "2x2 Grid (Left-Aligned)",
+          "description": "Left-aligned grid with 4 icon cards",
+          "status": "production",
+          "layout_id": "L25",
+          "slide_type": "grid",
+
+          "llm_guidance": {
+            "use_cases": [
+              "Core values",
+              "Key differentiators",
+              "Main benefits"
+            ],
+            "best_for": "4-item left-aligned content"
+          },
+
+          "required_fields": ["variant_id", "title"],
+          "optional_fields": ["subtitle", "key_points"]
+        },
+
+        "grid_2x3_numbered": {
+          "variant_id": "grid_2x3_numbered",
+          "display_name": "2x3 Numbered Grid",
+          "description": "Numbered grid with 6 cards (auto-generated numbers 1-6)",
+          "status": "production",
+          "layout_id": "L25",
+          "slide_type": "grid",
+
+          "llm_guidance": {
+            "use_cases": [
+              "Numbered steps",
+              "Prioritized items",
+              "Ranked features"
+            ],
+            "best_for": "Sequential or ranked 6-item content"
+          },
+
+          "required_fields": ["variant_id", "title"],
+          "optional_fields": ["subtitle", "key_points"]
+        },
+
+        "grid_3x2_numbered": {
+          "variant_id": "grid_3x2_numbered",
+          "display_name": "3x2 Numbered Grid",
+          "description": "Numbered grid with 6 cards (auto-generated numbers 1-6)",
+          "status": "production",
+          "layout_id": "L25",
+          "slide_type": "grid",
+
+          "llm_guidance": {
+            "use_cases": [
+              "Sequential processes",
+              "Implementation phases",
+              "Action items"
+            ],
+            "best_for": "Horizontal numbered 6-item layout"
+          },
+
+          "required_fields": ["variant_id", "title"],
+          "optional_fields": ["subtitle", "key_points"]
+        },
+
+        "grid_2x2_numbered": {
+          "variant_id": "grid_2x2_numbered",
+          "display_name": "2x2 Numbered Grid",
+          "description": "Numbered grid with 4 cards (auto-generated numbers 1-4)",
+          "status": "production",
+          "layout_id": "L25",
+          "slide_type": "grid",
+
+          "llm_guidance": {
+            "use_cases": [
+              "Four-step processes",
+              "Core pillars",
+              "Key phases"
+            ],
+            "best_for": "Sequential 4-item content"
+          },
+
+          "required_fields": ["variant_id", "title"],
+          "optional_fields": ["subtitle", "key_points"]
+        },
+
+        "comparison_2col": {
+          "variant_id": "comparison_2col",
+          "display_name": "2-Column Comparison",
+          "description": "Side-by-side comparison of two options or scenarios",
+          "status": "production",
+          "layout_id": "L25",
+          "slide_type": "comparison",
+
+          "classification": {
+            "priority": 8,
+            "keywords": [
+              "compare", "comparison", "versus", "vs", "vs.", "v.s.",
+              "option a", "option b", "option c", "alternative",
+              "choose between", "differences between", "which option",
+              "side by side", "side-by-side", "compare and contrast",
+              "tier 1", "tier 2", "tier 3", "plan comparison",
+              "before and after", "old vs new", "current vs proposed"
+            ]
+          },
+
+          "llm_guidance": {
+            "use_cases": [
+              "Comparing two products or services",
+              "Before vs After scenarios",
+              "Option A vs Option B decisions",
+              "Pros and Cons analysis"
+            ],
+            "best_for": "Presenting clear trade-offs between two alternatives",
+            "avoid_when": "More than two options (use comparison_3col or comparison_4col)"
+          },
+
+          "required_fields": ["variant_id", "title"],
+          "optional_fields": ["subtitle", "key_points", "tone", "audience"]
+        },
+
+        "comparison_3col": {
+          "variant_id": "comparison_3col",
+          "display_name": "3-Column Comparison",
+          "description": "Three-way comparison with headers and bullet lists",
+          "status": "production",
+          "layout_id": "L25",
+          "slide_type": "comparison",
+
+          "llm_guidance": {
+            "use_cases": [
+              "Product tier comparison",
+              "Three-option evaluation",
+              "Competitive analysis"
+            ],
+            "best_for": "Comparing three alternatives side by side"
+          },
+
+          "required_fields": ["variant_id", "title"],
+          "optional_fields": ["subtitle", "key_points"]
+        },
+
+        "comparison_4col": {
+          "variant_id": "comparison_4col",
+          "display_name": "4-Column Comparison",
+          "description": "Four-way comparison with headers and bullet lists",
+          "status": "production",
+          "layout_id": "L25",
+          "slide_type": "comparison",
+
+          "llm_guidance": {
+            "use_cases": [
+              "Pricing tier comparison",
+              "Four-option evaluation",
+              "Competitive analysis matrix"
+            ],
+            "best_for": "Comparing four alternatives"
+          },
+
+          "required_fields": ["variant_id", "title"],
+          "optional_fields": ["subtitle", "key_points"]
+        },
+
+        "sequential_3col": {
+          "variant_id": "sequential_3col",
+          "display_name": "3-Step Sequential",
+          "description": "Three numbered steps with titles and paragraphs",
+          "status": "production",
+          "layout_id": "L25",
+          "slide_type": "sequential",
+
+          "llm_guidance": {
+            "use_cases": [
+              "Three-phase process",
+              "Implementation timeline",
+              "Step-by-step guide"
+            ],
+            "best_for": "Simple processes with 3 distinct steps"
+          },
+
+          "required_fields": ["variant_id", "title"],
+          "optional_fields": ["subtitle", "key_points"]
+        },
+
+        "sequential_4col": {
+          "variant_id": "sequential_4col",
+          "display_name": "4-Step Sequential",
+          "description": "Four numbered steps with titles and paragraphs",
+          "status": "production",
+          "layout_id": "L25",
+          "slide_type": "sequential",
+
+          "llm_guidance": {
+            "use_cases": [
+              "Four-phase project plan",
+              "Quarterly breakdown",
+              "Implementation roadmap"
+            ],
+            "best_for": "Processes with 4 distinct phases"
+          },
+
+          "required_fields": ["variant_id", "title"],
+          "optional_fields": ["subtitle", "key_points"]
+        },
+
+        "sequential_5col": {
+          "variant_id": "sequential_5col",
+          "display_name": "5-Step Sequential",
+          "description": "Five numbered steps with titles and paragraphs",
+          "status": "production",
+          "layout_id": "L25",
+          "slide_type": "sequential",
+
+          "llm_guidance": {
+            "use_cases": [
+              "Five-phase methodology",
+              "Detailed process flow",
+              "Extended timeline"
+            ],
+            "best_for": "Complex processes with 5 steps"
+          },
+
+          "required_fields": ["variant_id", "title"],
+          "optional_fields": ["subtitle", "key_points"]
+        },
+
+        "asymmetric_8_4_3section": {
+          "variant_id": "asymmetric_8_4_3section",
+          "display_name": "Asymmetric (3 Sections + Sidebar)",
+          "description": "3 colored sections (4 bullets each) + sidebar with 7 items",
+          "status": "production",
+          "layout_id": "L25",
+          "slide_type": "asymmetric",
+
+          "llm_guidance": {
+            "use_cases": [
+              "Strategic overview with key takeaways",
+              "Implementation plan with milestones"
+            ],
+            "best_for": "Main content with supplementary sidebar"
+          },
+
+          "required_fields": ["variant_id", "title"],
+          "optional_fields": ["subtitle", "key_points"]
+        },
+
+        "asymmetric_8_4_4section": {
+          "variant_id": "asymmetric_8_4_4section",
+          "display_name": "Asymmetric (4 Sections + Sidebar)",
+          "description": "4 colored sections (2 bullets each) + sidebar with 7 items",
+          "status": "production",
+          "layout_id": "L25",
+          "slide_type": "asymmetric",
+
+          "llm_guidance": {
+            "use_cases": [
+              "Quarterly review with highlights",
+              "Department overview with key metrics"
+            ],
+            "best_for": "Multi-section content with sidebar highlights"
+          },
+
+          "required_fields": ["variant_id", "title"],
+          "optional_fields": ["subtitle", "key_points"]
+        },
+
+        "asymmetric_8_4_5section": {
+          "variant_id": "asymmetric_8_4_5section",
+          "display_name": "Asymmetric (5 Sections + Sidebar)",
+          "description": "5 colored sections (2 bullets each) + sidebar with 7 items",
+          "status": "production",
+          "layout_id": "L25",
+          "slide_type": "asymmetric",
+
+          "llm_guidance": {
+            "use_cases": [
+              "Five-pillar strategy",
+              "Comprehensive overview",
+              "Multi-department summary"
+            ],
+            "best_for": "Complex content with 5 sections and sidebar"
+          },
+
+          "required_fields": ["variant_id", "title"],
+          "optional_fields": ["subtitle", "key_points"]
+        },
+
+        "hybrid_top_2x2": {
+          "variant_id": "hybrid_top_2x2",
+          "display_name": "Hybrid (Grid Top + Text Bottom)",
+          "description": "2x2 grid on top + text content box at bottom",
+          "status": "production",
+          "layout_id": "L25",
+          "slide_type": "hybrid",
+
+          "llm_guidance": {
+            "use_cases": [
+              "Key points with summary",
+              "Features with call-to-action"
+            ],
+            "best_for": "Combining structured grid with narrative text"
+          },
+
+          "required_fields": ["variant_id", "title"],
+          "optional_fields": ["subtitle", "key_points"]
+        },
+
+        "hybrid_left_2x2": {
+          "variant_id": "hybrid_left_2x2",
+          "display_name": "Hybrid (Grid Left + Text Right)",
+          "description": "2x2 grid on left + text content box on right",
+          "status": "production",
+          "layout_id": "L25",
+          "slide_type": "hybrid",
+
+          "llm_guidance": {
+            "use_cases": [
+              "Features with detailed explanation",
+              "Capabilities with context"
+            ],
+            "best_for": "Side-by-side grid and text layout"
+          },
+
+          "required_fields": ["variant_id", "title"],
+          "optional_fields": ["subtitle", "key_points"]
+        },
+
+        "metrics_3col": {
+          "variant_id": "metrics_3col",
+          "display_name": "3 Metric Cards",
+          "description": "3 metric cards in a row + insights box",
+          "status": "production",
+          "layout_id": "L25",
+          "slide_type": "metrics",
+
+          "llm_guidance": {
+            "use_cases": [
+              "Key performance indicators",
+              "Core metrics",
+              "Executive dashboard"
+            ],
+            "best_for": "Highlighting 3 important numbers"
+          },
+
+          "required_fields": ["variant_id", "title"],
+          "optional_fields": ["subtitle", "key_points"]
+        },
+
+        "metrics_4col": {
+          "variant_id": "metrics_4col",
+          "display_name": "4 Metric Cards",
+          "description": "4 metric cards in a row + insights box",
+          "status": "production",
+          "layout_id": "L25",
+          "slide_type": "metrics",
+
+          "llm_guidance": {
+            "use_cases": [
+              "Quarterly metrics",
+              "Department KPIs",
+              "Performance snapshot"
+            ],
+            "best_for": "Displaying 4 key metrics"
+          },
+
+          "required_fields": ["variant_id", "title"],
+          "optional_fields": ["subtitle", "key_points"]
+        },
+
+        "metrics_3x2_grid": {
+          "variant_id": "metrics_3x2_grid",
+          "display_name": "6 Metric Cards (3x2 Grid)",
+          "description": "3x2 grid with 6 metric cards",
+          "status": "production",
+          "layout_id": "L25",
+          "slide_type": "metrics",
+
+          "llm_guidance": {
+            "use_cases": [
+              "Dashboard-style KPI display",
+              "Performance metrics",
+              "Quarterly results"
+            ],
+            "best_for": "Comprehensive metrics display"
+          },
+
+          "required_fields": ["variant_id", "title"],
+          "optional_fields": ["subtitle", "key_points"]
+        },
+
+        "metrics_2x2_grid": {
+          "variant_id": "metrics_2x2_grid",
+          "display_name": "4 Large Metric Cards (2x2 Grid)",
+          "description": "2x2 grid with 4 large metric cards",
+          "status": "production",
+          "layout_id": "L25",
+          "slide_type": "metrics",
+
+          "llm_guidance": {
+            "use_cases": [
+              "Key highlights",
+              "Executive summary metrics",
+              "Quarterly scorecard"
+            ],
+            "best_for": "Prominent display of 4 key numbers"
+          },
+
+          "required_fields": ["variant_id", "title"],
+          "optional_fields": ["subtitle", "key_points"]
+        },
+
+        "impact_quote": {
+          "variant_id": "impact_quote",
+          "display_name": "Impact Quote",
+          "description": "Large centered quote with attribution",
+          "status": "production",
+          "layout_id": "L25",
+          "slide_type": "impact_quote",
+
+          "llm_guidance": {
+            "use_cases": [
+              "Customer testimonial",
+              "Key insight",
+              "Impactful statement"
+            ],
+            "best_for": "Highlighting a powerful quote or insight"
+          },
+
+          "required_fields": ["variant_id", "title"],
+          "optional_fields": ["subtitle", "key_points"]
+        },
+
+        "table_2col": {
+          "variant_id": "table_2col",
+          "display_name": "2-Column Table",
+          "description": "2-column table (category + 1 data column), 5 rows",
+          "status": "production",
+          "layout_id": "L25",
+          "slide_type": "table",
+
+          "llm_guidance": {
+            "use_cases": [
+              "Feature descriptions",
+              "Definitions",
+              "Key-value pairs"
+            ],
+            "best_for": "Simple tabular data"
+          },
+
+          "required_fields": ["variant_id", "title"],
+          "optional_fields": ["subtitle", "key_points"]
+        },
+
+        "table_3col": {
+          "variant_id": "table_3col",
+          "display_name": "3-Column Table",
+          "description": "3-column table (category + 2 data columns), 5 rows",
+          "status": "production",
+          "layout_id": "L25",
+          "slide_type": "table",
+
+          "llm_guidance": {
+            "use_cases": [
+              "Comparison tables",
+              "Feature matrices",
+              "Status tracking"
+            ],
+            "best_for": "Tabular data with 3 columns"
+          },
+
+          "required_fields": ["variant_id", "title"],
+          "optional_fields": ["subtitle", "key_points"]
+        },
+
+        "table_4col": {
+          "variant_id": "table_4col",
+          "display_name": "4-Column Table",
+          "description": "4-column table (category + 3 data columns), 5 rows",
+          "status": "production",
+          "layout_id": "L25",
+          "slide_type": "table",
+
+          "llm_guidance": {
+            "use_cases": [
+              "Multi-dimensional comparison",
+              "Feature matrix",
+              "Pricing tiers"
+            ],
+            "best_for": "Tabular data with 4 columns"
+          },
+
+          "required_fields": ["variant_id", "title"],
+          "optional_fields": ["subtitle", "key_points"]
+        },
+
+        "table_5col": {
+          "variant_id": "table_5col",
+          "display_name": "5-Column Table",
+          "description": "5-column table (category + 4 data columns), 5 rows",
+          "status": "production",
+          "layout_id": "L25",
+          "slide_type": "table",
+
+          "llm_guidance": {
+            "use_cases": [
+              "Multi-dimensional comparison",
+              "Feature matrix",
+              "Pricing tiers",
+              "Timeline with phases"
+            ],
+            "best_for": "Complex tabular data with 5 columns"
+          },
+
+          "required_fields": ["variant_id", "title"],
+          "optional_fields": ["subtitle", "key_points"]
+        },
+
+        "single_column_3section": {
+          "variant_id": "single_column_3section",
+          "display_name": "Single Column (3 Sections)",
+          "description": "3 vertical sections with 4 bullets each",
+          "status": "production",
+          "layout_id": "L25",
+          "slide_type": "single_column",
+
+          "llm_guidance": {
+            "use_cases": [
+              "Detailed narrative",
+              "Key themes",
+              "Structured content"
+            ],
+            "best_for": "Vertical content with 3 sections"
+          },
+
+          "required_fields": ["variant_id", "title"],
+          "optional_fields": ["subtitle", "key_points"]
+        },
+
+        "single_column_4section": {
+          "variant_id": "single_column_4section",
+          "display_name": "Single Column (4 Sections)",
+          "description": "4 vertical sections with 3 bullets each",
+          "status": "production",
+          "layout_id": "L25",
+          "slide_type": "single_column",
+
+          "llm_guidance": {
+            "use_cases": [
+              "Extended narrative",
+              "Multiple themes",
+              "Detailed breakdown"
+            ],
+            "best_for": "Vertical content with 4 sections"
+          },
+
+          "required_fields": ["variant_id", "title"],
+          "optional_fields": ["subtitle", "key_points"]
+        },
+
+        "single_column_5section": {
+          "variant_id": "single_column_5section",
+          "display_name": "Single Column (5 Sections)",
+          "description": "5 vertical sections with 2 bullets each",
+          "status": "production",
+          "layout_id": "L25",
+          "slide_type": "single_column",
+
+          "llm_guidance": {
+            "use_cases": [
+              "Comprehensive overview",
+              "Five key areas",
+              "Dense content"
+            ],
+            "best_for": "Vertical content with 5 sections"
+          },
+
+          "required_fields": ["variant_id", "title"],
+          "optional_fields": ["subtitle", "key_points"]
+        }
+      }
+    },
+
+    "analytics_service_v3": {
+      "enabled": true,
+      "base_url": "http://localhost:8006",
+      "service_type": "data_visualization",
+      "endpoint_pattern": "typed",
+      "timeout": 60,
+      "endpoints": {
+        "chartjs": "/analytics/v3/chartjs/generate",
+        "d3": "/analytics/v3/d3/generate"
+      },
+
+      "variants": {
+        "pie_chart": {
+          "variant_id": "pie_chart",
+          "display_name": "Pie Chart",
+          "description": "Circular chart showing proportions of a whole",
+          "status": "production",
+          "layout_id": "L25",
+
+          "classification": {
+            "priority": 2,
+            "keywords": [
+              "pie chart", "pie", "proportion", "percentage", "percent",
+              "share", "distribution", "breakdown", "composition",
+              "market share", "budget allocation", "donut chart",
+              "revenue breakdown", "parts of whole"
+            ]
+          },
+
+          "llm_guidance": {
+            "use_cases": [
+              "Market share distribution",
+              "Budget allocation by department",
+              "Revenue breakdown by product",
+              "Time allocation across activities"
+            ],
+            "best_for": "Showing parts of a whole (percentages)",
+            "avoid_when": "More than 8-10 categories"
+          },
+
+          "data_requirements": {
+            "structure": "label_value_pairs",
+            "min_items": 2,
+            "max_items": 12,
+            "value_type": "numeric",
+            "supports_percentages": true
+          },
+
+          "service_specific": {
+            "analytics": {
+              "library": "chartjs",
+              "chart_type": "pie",
+              "endpoint_key": "chartjs",
+              "supports_custom_colors": true,
+              "supports_data_labels": true
+            }
+          }
+        },
+
+        "bar_chart": {
+          "variant_id": "bar_chart",
+          "display_name": "Bar Chart",
+          "description": "Vertical or horizontal bars comparing categories",
+          "status": "production",
+          "layout_id": "L25",
+
+          "classification": {
+            "priority": 2,
+            "keywords": [
+              "bar chart", "bar", "bars", "column chart", "columns",
+              "comparison", "compare categories", "categorical data",
+              "revenue by region", "sales by product", "vertical bars",
+              "horizontal bars"
+            ]
+          },
+
+          "llm_guidance": {
+            "use_cases": [
+              "Comparing values across categories",
+              "Sales by region or product",
+              "Survey results comparison",
+              "Performance metrics by team"
+            ],
+            "best_for": "Comparing discrete categories",
+            "avoid_when": "Time series data (use line chart)"
+          },
+
+          "data_requirements": {
+            "structure": "label_value_pairs",
+            "min_items": 2,
+            "max_items": 20,
+            "value_type": "numeric"
+          },
+
+          "service_specific": {
+            "analytics": {
+              "library": "chartjs",
+              "chart_type": "bar",
+              "endpoint_key": "chartjs",
+              "supports_horizontal": true,
+              "supports_stacked": true
+            }
+          }
+        }
+      }
+    }
+  },
+
+  "classification_priority_order": [
+    "pie_chart",
+    "bar_chart",
+    "pyramid",
+    "funnel",
+    "concentric_circles",
+    "matrix_2x2",
+    "comparison_2col"
+  ]
+}

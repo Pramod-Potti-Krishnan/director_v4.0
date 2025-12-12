@@ -1,0 +1,604 @@
+{
+  "version": "1.0.0",
+  "description": "MCP-style tool definitions for Director Agent v4.0",
+  "tools": {
+    "conversation.respond": {
+      "tool_id": "conversation.respond",
+      "display_name": "Respond Conversationally",
+      "description": "Generate a natural conversational response to the user. Use for greetings, acknowledgments, clarifications, and general conversation that doesn't require tools.",
+      "cost_tier": "low",
+      "requires_context": [],
+      "input_schema": {
+        "type": "object",
+        "required": ["intent"],
+        "properties": {
+          "intent": {
+            "type": "string",
+            "description": "The intent of the response (greeting, acknowledgment, clarification, etc.)"
+          },
+          "tone": {
+            "type": "string",
+            "enum": ["professional", "friendly", "encouraging"],
+            "default": "professional",
+            "description": "Tone of the response"
+          }
+        }
+      },
+      "output_schema": {
+        "type": "object",
+        "properties": {
+          "response_text": {"type": "string"}
+        }
+      }
+    },
+
+    "conversation.ask_questions": {
+      "tool_id": "conversation.ask_questions",
+      "display_name": "Ask Clarifying Questions",
+      "description": "Generate intelligent clarifying questions to gather information needed for presentation creation. Use when topic is vague or missing critical details like audience, duration, or purpose.",
+      "cost_tier": "low",
+      "requires_context": [],
+      "input_schema": {
+        "type": "object",
+        "required": ["topic"],
+        "properties": {
+          "topic": {
+            "type": "string",
+            "description": "The user's stated topic or request"
+          },
+          "missing_info": {
+            "type": "array",
+            "items": {"type": "string"},
+            "description": "Categories of missing information (audience, duration, purpose, tone, etc.)"
+          },
+          "context": {
+            "type": "string",
+            "description": "Additional context from conversation"
+          }
+        }
+      },
+      "output_schema": {
+        "type": "object",
+        "properties": {
+          "questions": {
+            "type": "array",
+            "items": {"type": "string"},
+            "minItems": 3,
+            "maxItems": 5
+          },
+          "intro_text": {"type": "string"}
+        }
+      }
+    },
+
+    "conversation.propose_plan": {
+      "tool_id": "conversation.propose_plan",
+      "display_name": "Propose Presentation Plan",
+      "description": "Generate a high-level presentation plan with proposed slide count and key assumptions. Use after gathering enough context about the presentation needs.",
+      "cost_tier": "low",
+      "requires_context": ["initial_request"],
+      "input_schema": {
+        "type": "object",
+        "required": ["topic", "audience", "purpose"],
+        "properties": {
+          "topic": {
+            "type": "string",
+            "description": "Presentation topic"
+          },
+          "audience": {
+            "type": "string",
+            "description": "Target audience"
+          },
+          "purpose": {
+            "type": "string",
+            "description": "Goal of the presentation"
+          },
+          "duration": {
+            "type": "integer",
+            "description": "Expected duration in minutes"
+          },
+          "tone": {
+            "type": "string",
+            "description": "Desired tone/style"
+          }
+        }
+      },
+      "output_schema": {
+        "type": "object",
+        "properties": {
+          "summary": {"type": "string"},
+          "proposed_slide_count": {"type": "integer"},
+          "key_assumptions": {
+            "type": "array",
+            "items": {"type": "string"}
+          },
+          "structure_overview": {"type": "string"}
+        }
+      }
+    },
+
+    "strawman.generate": {
+      "tool_id": "strawman.generate",
+      "display_name": "Generate Presentation Strawman",
+      "description": "Generate a detailed slide-by-slide presentation outline (strawman) with titles, narratives, key points, and layout assignments. Use after plan is approved.",
+      "cost_tier": "medium",
+      "requires_context": ["plan_approved"],
+      "input_schema": {
+        "type": "object",
+        "required": ["topic", "slide_count"],
+        "properties": {
+          "topic": {"type": "string"},
+          "slide_count": {"type": "integer", "minimum": 2, "maximum": 30},
+          "audience": {"type": "string"},
+          "purpose": {"type": "string"},
+          "duration": {"type": "integer"},
+          "tone": {"type": "string"},
+          "structure_preference": {"type": "string"}
+        }
+      },
+      "output_schema": {
+        "type": "object",
+        "properties": {
+          "strawman": {"$ref": "#/definitions/PresentationStrawman"},
+          "preview_url": {"type": "string"}
+        }
+      }
+    },
+
+    "strawman.refine": {
+      "tool_id": "strawman.refine",
+      "display_name": "Refine Presentation Strawman",
+      "description": "Modify an existing strawman based on user feedback. Make targeted changes rather than regenerating everything.",
+      "cost_tier": "medium",
+      "requires_context": ["strawman"],
+      "input_schema": {
+        "type": "object",
+        "required": ["feedback"],
+        "properties": {
+          "feedback": {
+            "type": "string",
+            "description": "User's refinement request"
+          },
+          "affected_slides": {
+            "type": "array",
+            "items": {"type": "integer"},
+            "description": "Slide numbers to modify (if specific)"
+          },
+          "operation": {
+            "type": "string",
+            "enum": ["modify", "add", "remove", "reorder"],
+            "description": "Type of refinement operation"
+          }
+        }
+      },
+      "output_schema": {
+        "type": "object",
+        "properties": {
+          "strawman": {"$ref": "#/definitions/PresentationStrawman"},
+          "changes_made": {
+            "type": "array",
+            "items": {"type": "string"}
+          }
+        }
+      }
+    },
+
+    "text.generate_content": {
+      "tool_id": "text.generate_content",
+      "display_name": "Generate Slide Content",
+      "description": "Generate HTML content for a slide using Text Service v1.2. Use after strawman is approved to populate slides with professional content.",
+      "cost_tier": "high",
+      "requires_context": ["strawman"],
+      "input_schema": {
+        "type": "object",
+        "required": ["variant_id", "title"],
+        "properties": {
+          "variant_id": {
+            "type": "string",
+            "description": "Text Service variant ID (e.g., 'comparison_2col', 'metrics_3col')"
+          },
+          "title": {
+            "type": "string",
+            "maxLength": 50,
+            "description": "Slide title"
+          },
+          "subtitle": {
+            "type": "string",
+            "maxLength": 90,
+            "description": "Optional subtitle"
+          },
+          "key_points": {
+            "type": "array",
+            "items": {"type": "string"},
+            "description": "Key points to include"
+          },
+          "narrative": {
+            "type": "string",
+            "description": "Slide narrative for context"
+          },
+          "tone": {
+            "type": "string",
+            "default": "professional"
+          },
+          "audience": {
+            "type": "string"
+          }
+        }
+      },
+      "output_schema": {
+        "type": "object",
+        "properties": {
+          "html_content": {"type": "string"},
+          "variant_id": {"type": "string"},
+          "success": {"type": "boolean"}
+        }
+      }
+    },
+
+    "text.generate_hero_title": {
+      "tool_id": "text.generate_hero_title",
+      "display_name": "Generate Title Slide",
+      "description": "Generate a title/hero slide with optional AI-generated background image.",
+      "cost_tier": "high",
+      "requires_context": ["strawman"],
+      "input_schema": {
+        "type": "object",
+        "required": ["title"],
+        "properties": {
+          "title": {"type": "string", "maxLength": 50},
+          "subtitle": {"type": "string", "maxLength": 90},
+          "visual_style": {
+            "type": "string",
+            "enum": ["professional", "illustrated", "kids"],
+            "default": "professional"
+          },
+          "use_image_background": {
+            "type": "boolean",
+            "default": true
+          }
+        }
+      },
+      "output_schema": {
+        "type": "object",
+        "properties": {
+          "html_content": {"type": "string"},
+          "image_url": {"type": "string"},
+          "success": {"type": "boolean"}
+        }
+      }
+    },
+
+    "text.generate_hero_section": {
+      "tool_id": "text.generate_hero_section",
+      "display_name": "Generate Section Divider",
+      "description": "Generate a section divider slide with optional AI-generated background image.",
+      "cost_tier": "high",
+      "requires_context": ["strawman"],
+      "input_schema": {
+        "type": "object",
+        "required": ["title"],
+        "properties": {
+          "title": {"type": "string", "maxLength": 50},
+          "subtitle": {"type": "string", "maxLength": 90},
+          "visual_style": {
+            "type": "string",
+            "enum": ["professional", "illustrated", "kids"],
+            "default": "professional"
+          },
+          "use_image_background": {
+            "type": "boolean",
+            "default": false
+          }
+        }
+      },
+      "output_schema": {
+        "type": "object",
+        "properties": {
+          "html_content": {"type": "string"},
+          "image_url": {"type": "string"},
+          "success": {"type": "boolean"}
+        }
+      }
+    },
+
+    "text.generate_hero_closing": {
+      "tool_id": "text.generate_hero_closing",
+      "display_name": "Generate Closing Slide",
+      "description": "Generate a closing/thank you slide with optional AI-generated background image.",
+      "cost_tier": "high",
+      "requires_context": ["strawman"],
+      "input_schema": {
+        "type": "object",
+        "required": ["title"],
+        "properties": {
+          "title": {"type": "string", "maxLength": 50},
+          "subtitle": {"type": "string", "maxLength": 90},
+          "visual_style": {
+            "type": "string",
+            "enum": ["professional", "illustrated", "kids"],
+            "default": "professional"
+          },
+          "use_image_background": {
+            "type": "boolean",
+            "default": true
+          }
+        }
+      },
+      "output_schema": {
+        "type": "object",
+        "properties": {
+          "html_content": {"type": "string"},
+          "image_url": {"type": "string"},
+          "success": {"type": "boolean"}
+        }
+      }
+    },
+
+    "illustrator.generate_pyramid": {
+      "tool_id": "illustrator.generate_pyramid",
+      "display_name": "Generate Pyramid Visualization",
+      "description": "Create a multi-level pyramid diagram showing hierarchy, priorities, or progression. Use for organizational structures, skill paths, or frameworks like Maslow's hierarchy.",
+      "cost_tier": "medium",
+      "requires_context": ["strawman"],
+      "input_schema": {
+        "type": "object",
+        "required": ["num_levels", "topic"],
+        "properties": {
+          "num_levels": {
+            "type": "integer",
+            "minimum": 3,
+            "maximum": 6,
+            "description": "Number of pyramid levels"
+          },
+          "topic": {
+            "type": "string",
+            "description": "Pyramid topic/title"
+          },
+          "target_points": {
+            "type": "array",
+            "items": {"type": "string"},
+            "description": "Labels for each level (bottom to top)"
+          },
+          "tone": {
+            "type": "string",
+            "default": "professional"
+          }
+        }
+      },
+      "output_schema": {
+        "type": "object",
+        "properties": {
+          "html_content": {"type": "string"},
+          "generated_content": {"type": "object"},
+          "success": {"type": "boolean"}
+        }
+      }
+    },
+
+    "illustrator.generate_funnel": {
+      "tool_id": "illustrator.generate_funnel",
+      "display_name": "Generate Funnel Visualization",
+      "description": "Create a funnel diagram showing stages or conversion flow. Use for sales pipelines, marketing funnels, or process flows.",
+      "cost_tier": "medium",
+      "requires_context": ["strawman"],
+      "input_schema": {
+        "type": "object",
+        "required": ["num_stages", "topic"],
+        "properties": {
+          "num_stages": {
+            "type": "integer",
+            "minimum": 3,
+            "maximum": 5,
+            "description": "Number of funnel stages"
+          },
+          "topic": {
+            "type": "string",
+            "description": "Funnel topic/title"
+          },
+          "target_points": {
+            "type": "array",
+            "items": {"type": "string"},
+            "description": "Labels for each stage (top to bottom)"
+          },
+          "tone": {
+            "type": "string",
+            "default": "professional"
+          }
+        }
+      },
+      "output_schema": {
+        "type": "object",
+        "properties": {
+          "html_content": {"type": "string"},
+          "generated_content": {"type": "object"},
+          "success": {"type": "boolean"}
+        }
+      }
+    },
+
+    "illustrator.generate_concentric": {
+      "tool_id": "illustrator.generate_concentric",
+      "display_name": "Generate Concentric Circles",
+      "description": "Create concentric circles diagram showing layers of influence, stakeholders, or nested concepts.",
+      "cost_tier": "medium",
+      "requires_context": ["strawman"],
+      "input_schema": {
+        "type": "object",
+        "required": ["num_circles", "topic"],
+        "properties": {
+          "num_circles": {
+            "type": "integer",
+            "minimum": 3,
+            "maximum": 5,
+            "description": "Number of circles"
+          },
+          "topic": {
+            "type": "string",
+            "description": "Diagram topic/title"
+          },
+          "target_points": {
+            "type": "array",
+            "items": {"type": "string"},
+            "description": "Labels for each circle (center to outer)"
+          },
+          "tone": {
+            "type": "string",
+            "default": "professional"
+          }
+        }
+      },
+      "output_schema": {
+        "type": "object",
+        "properties": {
+          "html_content": {"type": "string"},
+          "generated_content": {"type": "object"},
+          "success": {"type": "boolean"}
+        }
+      }
+    },
+
+    "analytics.generate_chart": {
+      "tool_id": "analytics.generate_chart",
+      "display_name": "Generate Chart",
+      "description": "Generate a Chart.js or D3.js visualization for data presentation. Supports 18 chart types including line, bar, pie, scatter, treemap, and more.",
+      "cost_tier": "high",
+      "requires_context": ["strawman"],
+      "input_schema": {
+        "type": "object",
+        "required": ["chart_type", "narrative"],
+        "properties": {
+          "chart_type": {
+            "type": "string",
+            "enum": [
+              "line", "bar_vertical", "bar_horizontal", "pie", "doughnut",
+              "scatter", "bubble", "radar", "polar_area", "area",
+              "bar_grouped", "bar_stacked", "area_stacked", "mixed",
+              "d3_treemap", "d3_sunburst", "d3_choropleth_usa", "d3_sankey"
+            ],
+            "description": "Type of chart to generate"
+          },
+          "narrative": {
+            "type": "string",
+            "description": "Description of what the chart should show"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "label": {"type": "string"},
+                "value": {"type": "number"}
+              }
+            },
+            "description": "Data points (optional - synthetic data generated if not provided)"
+          },
+          "layout": {
+            "type": "string",
+            "enum": ["L01", "L02", "L03"],
+            "default": "L02",
+            "description": "Layout: L01 (single chart), L02 (chart + observations), L03 (two charts)"
+          }
+        }
+      },
+      "output_schema": {
+        "type": "object",
+        "properties": {
+          "html_content": {"type": "string"},
+          "observations": {"type": "string"},
+          "success": {"type": "boolean"}
+        }
+      }
+    },
+
+    "deck.create_presentation": {
+      "tool_id": "deck.create_presentation",
+      "display_name": "Create Presentation",
+      "description": "Create the final presentation in Deck Builder by assembling all generated slides. Use only after all slide content has been generated.",
+      "cost_tier": "medium",
+      "requires_context": ["strawman", "generated_content"],
+      "input_schema": {
+        "type": "object",
+        "required": ["presentation"],
+        "properties": {
+          "presentation": {
+            "type": "object",
+            "description": "Complete presentation with all generated slide content"
+          }
+        }
+      },
+      "output_schema": {
+        "type": "object",
+        "properties": {
+          "url": {"type": "string"},
+          "presentation_id": {"type": "string"},
+          "slide_count": {"type": "integer"},
+          "success": {"type": "boolean"}
+        }
+      }
+    },
+
+    "deck.get_preview_url": {
+      "tool_id": "deck.get_preview_url",
+      "display_name": "Get Preview URL",
+      "description": "Generate a preview URL for the strawman before content generation.",
+      "cost_tier": "medium",
+      "requires_context": ["strawman"],
+      "input_schema": {
+        "type": "object",
+        "required": ["strawman"],
+        "properties": {
+          "strawman": {
+            "type": "object",
+            "description": "Presentation strawman to preview"
+          }
+        }
+      },
+      "output_schema": {
+        "type": "object",
+        "properties": {
+          "preview_url": {"type": "string"},
+          "presentation_id": {"type": "string"},
+          "success": {"type": "boolean"}
+        }
+      }
+    }
+  },
+
+  "definitions": {
+    "PresentationStrawman": {
+      "type": "object",
+      "required": ["main_title", "slides"],
+      "properties": {
+        "main_title": {"type": "string"},
+        "overall_theme": {"type": "string"},
+        "target_audience": {"type": "string"},
+        "presentation_duration": {"type": "integer"},
+        "design_suggestions": {"type": "string"},
+        "slides": {
+          "type": "array",
+          "items": {"$ref": "#/definitions/Slide"}
+        }
+      }
+    },
+    "Slide": {
+      "type": "object",
+      "required": ["slide_number", "slide_id", "title", "narrative"],
+      "properties": {
+        "slide_number": {"type": "integer"},
+        "slide_id": {"type": "string"},
+        "title": {"type": "string"},
+        "slide_type": {"type": "string"},
+        "slide_type_classification": {"type": "string"},
+        "narrative": {"type": "string"},
+        "key_points": {
+          "type": "array",
+          "items": {"type": "string"}
+        },
+        "layout_id": {"type": "string"},
+        "variant_id": {"type": "string"},
+        "visual_style": {"type": "string"},
+        "use_image_background": {"type": "boolean"}
+      }
+    }
+  }
+}

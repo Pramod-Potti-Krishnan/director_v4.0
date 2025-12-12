@@ -1,0 +1,285 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://deckster.ai/schemas/unified-variant-registry.json",
+  "title": "Unified Variant Registry Schema",
+  "description": "Schema for unified variant registry across all content generation services (Text, Illustrator, Analytics)",
+  "type": "object",
+  "required": ["version", "last_updated", "services"],
+  "properties": {
+    "version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$",
+      "description": "Semantic version of the registry format"
+    },
+    "last_updated": {
+      "type": "string",
+      "format": "date",
+      "description": "Date of last registry update (YYYY-MM-DD)"
+    },
+    "total_services": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Total number of registered services"
+    },
+    "total_variants": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Total number of variants across all services"
+    },
+    "services": {
+      "type": "object",
+      "description": "Map of service_name to ServiceConfig",
+      "patternProperties": {
+        "^[a-z_]+_v\\d+\\.\\d+$": {
+          "$ref": "#/definitions/ServiceConfig"
+        }
+      },
+      "additionalProperties": false
+    },
+    "classification_priority_order": {
+      "type": "array",
+      "description": "Global priority order for slide classification",
+      "items": {
+        "type": "string"
+      },
+      "uniqueItems": true
+    }
+  },
+  "definitions": {
+    "ServiceConfig": {
+      "type": "object",
+      "required": ["enabled", "base_url", "service_type", "endpoint_pattern", "variants"],
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "Whether this service is currently enabled"
+        },
+        "base_url": {
+          "type": "string",
+          "format": "uri",
+          "description": "Base URL for the service API"
+        },
+        "service_type": {
+          "type": "string",
+          "enum": ["template_based", "llm_generated", "data_visualization"],
+          "description": "Type of content generation"
+        },
+        "endpoint_pattern": {
+          "type": "string",
+          "enum": ["single", "per_variant", "typed"],
+          "description": "How endpoints are structured"
+        },
+        "timeout": {
+          "type": "integer",
+          "minimum": 10,
+          "maximum": 300,
+          "default": 60,
+          "description": "Request timeout in seconds"
+        },
+        "default_endpoint": {
+          "type": "string",
+          "description": "Default endpoint (for single pattern)"
+        },
+        "endpoints": {
+          "type": "object",
+          "description": "Named endpoints (for typed pattern)",
+          "patternProperties": {
+            "^[a-z_]+$": {
+              "type": "string"
+            }
+          }
+        },
+        "variants": {
+          "type": "object",
+          "description": "Map of variant_id to VariantConfig",
+          "patternProperties": {
+            "^[a-z_]+$": {
+              "$ref": "#/definitions/VariantConfig"
+            }
+          },
+          "minProperties": 1
+        }
+      }
+    },
+    "VariantConfig": {
+      "type": "object",
+      "required": ["variant_id", "display_name", "classification"],
+      "properties": {
+        "variant_id": {
+          "type": "string",
+          "pattern": "^[a-z_]+$",
+          "description": "Unique identifier for the variant"
+        },
+        "display_name": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 100,
+          "description": "Human-readable variant name"
+        },
+        "description": {
+          "type": "string",
+          "maxLength": 500,
+          "description": "Brief description of the variant"
+        },
+        "status": {
+          "type": "string",
+          "enum": ["production", "beta", "deprecated", "disabled"],
+          "default": "production"
+        },
+        "layout_id": {
+          "type": "string",
+          "pattern": "^L\\d+$",
+          "description": "Layout ID (e.g., L25, L29)"
+        },
+        "endpoint": {
+          "type": "string",
+          "description": "Endpoint path (for per_variant pattern)"
+        },
+        "classification": {
+          "$ref": "#/definitions/Classification"
+        },
+        "llm_guidance": {
+          "$ref": "#/definitions/LLMGuidance"
+        },
+        "parameters": {
+          "$ref": "#/definitions/Parameters"
+        },
+        "data_requirements": {
+          "$ref": "#/definitions/DataRequirements"
+        },
+        "required_fields": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Required request fields"
+        },
+        "optional_fields": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Optional request fields"
+        },
+        "service_specific": {
+          "type": "object",
+          "description": "Service-specific configuration"
+        }
+      }
+    },
+    "Classification": {
+      "type": "object",
+      "required": ["priority", "keywords"],
+      "properties": {
+        "priority": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100,
+          "description": "Classification priority (lower = higher priority)"
+        },
+        "keywords": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 2
+          },
+          "minItems": 5,
+          "maxItems": 200,
+          "uniqueItems": true,
+          "description": "Keywords for slide classification"
+        }
+      }
+    },
+    "LLMGuidance": {
+      "type": "object",
+      "properties": {
+        "use_cases": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "description": "When to use this variant"
+        },
+        "best_for": {
+          "type": "string",
+          "description": "What this variant excels at"
+        },
+        "avoid_when": {
+          "type": "string",
+          "description": "When NOT to use this variant"
+        },
+        "examples": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "title": {"type": "string"},
+              "key_points": {
+                "type": "array",
+                "items": {"type": "string"}
+              }
+            }
+          }
+        }
+      }
+    },
+    "Parameters": {
+      "type": "object",
+      "description": "Variant-specific parameters (for Illustrator variants)",
+      "properties": {
+        "count_field": {
+          "type": "string",
+          "description": "Field name for element count (e.g., num_levels)"
+        },
+        "count_range": {
+          "type": "object",
+          "properties": {
+            "min": {"type": "integer", "minimum": 1},
+            "max": {"type": "integer", "minimum": 1}
+          },
+          "required": ["min", "max"]
+        },
+        "optimal_count": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Recommended element count"
+        },
+        "element_name": {
+          "type": "string",
+          "description": "Name of elements (e.g., 'levels', 'stages')"
+        }
+      }
+    },
+    "DataRequirements": {
+      "type": "object",
+      "description": "Data requirements (for Analytics variants)",
+      "properties": {
+        "structure": {
+          "type": "string",
+          "enum": ["label_value_pairs", "time_series", "multi_series", "hierarchical", "network"],
+          "description": "Required data structure"
+        },
+        "min_items": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Minimum data points"
+        },
+        "max_items": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Maximum data points"
+        },
+        "value_type": {
+          "type": "string",
+          "enum": ["numeric", "categorical", "mixed"],
+          "description": "Type of values"
+        },
+        "supports_percentages": {
+          "type": "boolean",
+          "description": "Whether percentage values are supported"
+        }
+      }
+    }
+  }
+}

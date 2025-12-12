@@ -1,0 +1,257 @@
+{
+  "version": "1.0-mvp",
+  "description": "MVP layout specifications for deck-builder API integration (8 essential layouts)",
+  "layouts": {
+    "L01": {
+      "slide_id": "L01",
+      "slide_type_main": "Title",
+      "slide_sub_type": "Opening",
+      "best_use_case": "First slide, cover page, presentation intro",
+      "content_fields": {
+        "main_title": {
+          "type": "string",
+          "max_chars": 60,
+          "max_lines": 2,
+          "required": true
+        },
+        "subtitle": {
+          "type": "string",
+          "max_chars": 100,
+          "max_lines": 3,
+          "required": false
+        },
+        "presenter_name": {
+          "type": "string",
+          "max_chars": 40,
+          "max_lines": 3,
+          "required": false
+        },
+        "organization": {
+          "type": "string",
+          "max_chars": 50,
+          "max_lines": 3,
+          "required": false
+        },
+        "date": {
+          "type": "string",
+          "max_chars": 20,
+          "max_lines": 1,
+          "required": false
+        }
+      }
+    },
+    "L02": {
+      "slide_id": "L02",
+      "slide_type_main": "Section",
+      "slide_sub_type": "Divider",
+      "best_use_case": "Section transitions, chapter breaks",
+      "content_fields": {
+        "section_title": {
+          "type": "string",
+          "max_chars": 40,
+          "max_lines": 2,
+          "required": true
+        }
+      }
+    },
+    "L03": {
+      "slide_id": "L03",
+      "slide_type_main": "Conclusion",
+      "slide_sub_type": "Closing",
+      "best_use_case": "Final slide, thank you, contact info",
+      "content_fields": {
+        "closing_message": {
+          "type": "string",
+          "max_chars": 50,
+          "max_lines": 2,
+          "required": true
+        },
+        "subtitle": {
+          "type": "string",
+          "max_chars": 80,
+          "max_lines": 3,
+          "required": false
+        },
+        "contact_email": {
+          "type": "string",
+          "max_chars": 100,
+          "max_lines": 1,
+          "required": false
+        },
+        "website": {
+          "type": "string",
+          "max_chars": 50,
+          "max_lines": 1,
+          "required": false
+        },
+        "social_media": {
+          "type": "string",
+          "max_chars": 80,
+          "max_lines": 3,
+          "required": false
+        }
+      }
+    },
+    "L04": {
+      "slide_id": "L04",
+      "slide_type_main": "Content",
+      "slide_sub_type": "Text+Summary",
+      "best_use_case": "In-depth explanations, detailed narratives with summary",
+      "content_fields": {
+        "slide_title": {
+          "type": "string",
+          "max_chars": 60,
+          "max_lines": 1,
+          "required": true
+        },
+        "subtitle": {
+          "type": "string",
+          "max_chars": 80,
+          "max_lines": 1,
+          "required": false
+        },
+        "main_text_content": {
+          "type": "string",
+          "max_chars": 1200,
+          "max_lines": 15,
+          "required": true
+        },
+        "summary": {
+          "type": "string",
+          "max_chars": 200,
+          "max_lines": 3,
+          "required": false
+        }
+      }
+    },
+    "L05": {
+      "slide_id": "L05",
+      "slide_type_main": "Content",
+      "slide_sub_type": "List",
+      "best_use_case": "Bullet points, key takeaways, feature lists",
+      "content_fields": {
+        "slide_title": {
+          "type": "string",
+          "max_chars": 60,
+          "max_lines": 1,
+          "required": true
+        },
+        "subtitle": {
+          "type": "string",
+          "max_chars": 80,
+          "max_lines": 1,
+          "required": false
+        },
+        "bullets": {
+          "type": "array",
+          "max_items": 8,
+          "max_chars_per_item": 100,
+          "max_lines_per_item": 2,
+          "required": true
+        }
+      }
+    },
+    "L06": {
+      "slide_id": "L06",
+      "slide_type_main": "Content",
+      "slide_sub_type": "Numbered-List",
+      "best_use_case": "Sequential processes, step-by-step instructions, rankings",
+      "content_fields": {
+        "slide_title": {
+          "type": "string",
+          "max_chars": 60,
+          "max_lines": 1,
+          "required": true
+        },
+        "subtitle": {
+          "type": "string",
+          "max_chars": 80,
+          "max_lines": 1,
+          "required": false
+        },
+        "numbered_items": {
+          "type": "array_of_objects",
+          "max_items": 6,
+          "item_structure": {
+            "title": {
+              "type": "string",
+              "max_chars": 40
+            },
+            "description": {
+              "type": "string",
+              "max_chars": 150
+            }
+          },
+          "required": true
+        }
+      }
+    },
+    "L10": {
+      "slide_id": "L10",
+      "slide_type_main": "Content",
+      "slide_sub_type": "Image-Left+Text-Right",
+      "best_use_case": "Image-dominant slides with supporting text (60/40 split)",
+      "content_fields": {
+        "slide_title": {
+          "type": "string",
+          "max_chars": 60,
+          "max_lines": 1,
+          "required": true
+        },
+        "subtitle": {
+          "type": "string",
+          "max_chars": 80,
+          "max_lines": 1,
+          "required": false
+        },
+        "image": {
+          "type": "image_url",
+          "required": true
+        },
+        "text_content": {
+          "type": "string",
+          "max_chars": 600,
+          "max_lines": 15,
+          "required": true
+        }
+      }
+    },
+    "L17": {
+      "slide_id": "L17",
+      "slide_type_main": "Content",
+      "slide_sub_type": "Chart+Insights",
+      "best_use_case": "Data visualization with key insights and interpretation",
+      "content_fields": {
+        "slide_title": {
+          "type": "string",
+          "max_chars": 60,
+          "max_lines": 1,
+          "required": true
+        },
+        "subtitle": {
+          "type": "string",
+          "max_chars": 80,
+          "max_lines": 1,
+          "required": false
+        },
+        "chart_url": {
+          "type": "image_url",
+          "required": true
+        },
+        "key_insights": {
+          "type": "array",
+          "max_items": 6,
+          "max_chars_per_item": 100,
+          "max_lines_per_item": 2,
+          "required": true
+        },
+        "summary": {
+          "type": "string",
+          "max_chars": 200,
+          "max_lines": 2,
+          "required": false
+        }
+      }
+    }
+  }
+}

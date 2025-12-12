@@ -1,0 +1,197 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "version": "3.0-v7.5.1",
+  "description": "v7.5.1 layout system with L02 Analytics layout added for Analytics Service integration. Core layouts: L29 (Hero), L25 (Content), L02 (Analytics Charts).",
+  "layouts": {
+    "L02": {
+      "layout_id": "L02",
+      "name": "Analytics Chart Layout",
+      "slide_type_main": "Analytics",
+      "slide_subtype": "Chart with Observations",
+      "best_use_case": "Analytics slides with charts and data visualizations. Two-column layout with chart (1260×720px) on left and observations/insights (540×720px) on right. Optimized for Chart.js visualizations from Analytics Service v3.",
+      "best_for_keywords": [
+        "analytics",
+        "chart",
+        "data",
+        "visualization",
+        "graph",
+        "metrics",
+        "statistics",
+        "trends",
+        "insights",
+        "observations",
+        "revenue",
+        "growth",
+        "performance"
+      ],
+      "content_schema": {
+        "slide_title": {
+          "type": "string",
+          "max_chars": 60,
+          "max_lines": 2,
+          "required": true,
+          "description": "Slide title - layout_builder formats as plain text",
+          "format_type": "plain_text",
+          "format_owner": "layout_builder",
+          "validation_threshold": "strict",
+          "expected_structure": "Plain text only, no HTML"
+        },
+        "element_1": {
+          "type": "string",
+          "max_chars": 100,
+          "max_lines": 2,
+          "required": false,
+          "description": "Subtitle area - layout_builder formats as plain text",
+          "format_type": "plain_text",
+          "format_owner": "layout_builder",
+          "validation_threshold": "strict",
+          "expected_structure": "Plain text only, no HTML"
+        },
+        "element_3": {
+          "type": "string",
+          "required": true,
+          "description": "Chart/diagram area (1260×720px, 21 grids wide). Analytics Service v3 provides Chart.js HTML with inline scripts. Layout Builder v7.5.1 supports HTML auto-detection and rendering.",
+          "format_type": "html",
+          "format_owner": "analytics_service",
+          "validation_threshold": "permissive",
+          "expected_structure": "Chart.js HTML with canvas and script tags, or diagram HTML. Dimensions: 1260×720px."
+        },
+        "element_2": {
+          "type": "string",
+          "required": true,
+          "description": "Observations/insights area (540×720px, 9 grids wide). Analytics Service v3 provides formatted HTML with observations. Layout Builder v7.5.1 supports both HTML and plain text with auto-detection.",
+          "format_type": "html_or_plain_text",
+          "format_owner": "analytics_service",
+          "validation_threshold": "permissive",
+          "expected_structure": "HTML with styled observations or plain text. Dimensions: 540×720px. Supports scrolling for long content."
+        },
+        "presentation_name": {
+          "type": "string",
+          "max_chars": 40,
+          "required": false,
+          "description": "Presentation name for footer (left side) - layout_builder formats",
+          "format_type": "plain_text",
+          "format_owner": "layout_builder",
+          "validation_threshold": "strict",
+          "expected_structure": "Plain text only"
+        },
+        "company_logo": {
+          "type": "string",
+          "max_chars": 10,
+          "required": false,
+          "description": "Company logo/emoji for footer (right side) - layout_builder formats",
+          "format_type": "plain_text",
+          "format_owner": "layout_builder",
+          "validation_threshold": "strict",
+          "expected_structure": "Plain text or emoji"
+        }
+      }
+    },
+    "L29": {
+      "layout_id": "L29",
+      "name": "Full-Bleed Hero",
+      "slide_type_main": "Hero",
+      "slide_subtype": "Full Screen",
+      "best_use_case": "Opening slides, closing slides, section dividers, and any slide requiring maximum visual impact. Spans entire viewport (1920×1080) with no margins or borders. Ideal for dramatic statements, large visuals, or creating powerful transitions between sections.",
+      "best_for_keywords": [
+        "hero",
+        "opening",
+        "closing",
+        "impact",
+        "visual",
+        "full-screen",
+        "section divider",
+        "title",
+        "dramatic",
+        "transition"
+      ],
+      "content_schema": {
+        "hero_content": {
+          "type": "string",
+          "required": true,
+          "description": "Full HTML content for hero slide. Text Service has complete creative control over styling, layout, and formatting. Viewport: 1920×1080px.",
+          "format_type": "html",
+          "format_owner": "text_service",
+          "validation_threshold": "permissive",
+          "expected_structure": "Any valid HTML - complete creative freedom"
+        }
+      }
+    },
+    "L25": {
+      "layout_id": "L25",
+      "name": "Main Content Shell",
+      "slide_type_main": "Content",
+      "slide_subtype": "Standard",
+      "best_use_case": "All content slides including text, bullet points, analytics, tables, diagrams, charts, and mixed content. Provides structured layout with title/subtitle area (rows 2-3) and large rich content area (rows 5-16, ~1800×720px) where Text Service has full creative control. Includes optional footer with presentation name and logo.",
+      "best_for_keywords": [
+        "content",
+        "text",
+        "bullets",
+        "analytics",
+        "tables",
+        "diagrams",
+        "data",
+        "charts",
+        "graphs",
+        "analysis",
+        "findings",
+        "recommendations",
+        "details",
+        "explanation"
+      ],
+      "content_schema": {
+        "slide_title": {
+          "type": "string",
+          "max_chars": 60,
+          "max_lines": 2,
+          "required": true,
+          "description": "Slide title - layout_builder formats as plain text",
+          "format_type": "plain_text",
+          "format_owner": "layout_builder",
+          "validation_threshold": "strict",
+          "expected_structure": "Plain text only, no HTML"
+        },
+        "subtitle": {
+          "type": "string",
+          "max_chars": 100,
+          "max_lines": 2,
+          "required": false,
+          "description": "Optional subtitle - layout_builder formats as plain text",
+          "format_type": "plain_text",
+          "format_owner": "layout_builder",
+          "validation_threshold": "strict",
+          "expected_structure": "Plain text only, no HTML"
+        },
+        "rich_content": {
+          "type": "string",
+          "required": true,
+          "description": "Main content area (1800×720px). Text Service owns formatting and has complete creative control. Can contain any HTML including lists, tables, charts, diagrams, mixed content.",
+          "format_type": "html",
+          "format_owner": "text_service",
+          "validation_threshold": "permissive",
+          "expected_structure": "Any valid HTML - complete creative freedom within content area"
+        },
+        "presentation_name": {
+          "type": "string",
+          "max_chars": 40,
+          "required": false,
+          "description": "Presentation name for footer (left side) - layout_builder formats",
+          "format_type": "plain_text",
+          "format_owner": "layout_builder",
+          "validation_threshold": "strict",
+          "expected_structure": "Plain text only"
+        },
+        "company_logo": {
+          "type": "string",
+          "max_chars": 10,
+          "required": false,
+          "description": "Company logo/emoji for footer (right side, 2×1 grid) - layout_builder formats",
+          "format_type": "plain_text",
+          "format_owner": "layout_builder",
+          "validation_threshold": "strict",
+          "expected_structure": "Plain text or emoji"
+        }
+      }
+    }
+  }
+}

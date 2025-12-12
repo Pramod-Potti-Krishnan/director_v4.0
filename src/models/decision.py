@@ -1,0 +1,206 @@
+"""
+Decision Models for Director Agent v4.0
+
+Defines the output types and structures used by the Decision Engine
+for AI-driven action selection.
+"""
+
+from typing import Dict, Any, Optional, List, Literal
+from pydantic import BaseModel, Field
+from enum import Enum
+
+
+class ActionType(str, Enum):
+    """Types of actions the Decision Engine can take."""
+    RESPOND = "respond"                    # Conversational response
+    ASK_QUESTIONS = "ask_questions"        # Need more information
+    PROPOSE_PLAN = "propose_plan"          # Propose presentation structure
+    GENERATE_STRAWMAN = "generate_strawman"  # Generate slide outline
+    REFINE_STRAWMAN = "refine_strawman"    # Modify existing strawman
+    INVOKE_TOOLS = "invoke_tools"          # Call content generation tools
+    COMPLETE = "complete"                  # Presentation finished
+
+
+class ToolCallRequest(BaseModel):
+    """A request to invoke a tool."""
+    tool_id: str = Field(..., description="The tool identifier to invoke")
+    parameters: Dict[str, Any] = Field(default_factory=dict, description="Tool parameters")
+    slide_id: Optional[str] = Field(None, description="Target slide ID if applicable")
+    priority: int = Field(default=0, description="Execution priority (higher = first)")
+
+    class Config:
+        extra = "allow"
+
+
+class DecisionOutput(BaseModel):
+    """
+    Output from the Decision Engine.
+
+    This is what the AI returns when analyzing context and deciding
+    what action to take.
+    """
+    action_type: ActionType = Field(
+        ...,
+        description="The type of action to take"
+    )
+
+    response_text: Optional[str] = Field(
+        None,
+        description="Text response to send to user (for respond, ask_questions actions)"
+    )
+
+    questions: Optional[List[str]] = Field(
+        None,
+        description="Clarifying questions to ask (for ask_questions action)"
+    )
+
+    tool_calls: Optional[List[ToolCallRequest]] = Field(
+        None,
+        description="Tools to invoke (for invoke_tools action)"
+    )
+
+    strawman_data: Optional[Dict[str, Any]] = Field(
+        None,
+        description="Strawman data for generate_strawman/refine_strawman actions"
+    )
+
+    plan_data: Optional[Dict[str, Any]] = Field(
+        None,
+        description="Plan data for propose_plan action"
+    )
+
+    reasoning: str = Field(
+        ...,
+        description="Explanation of why this action was chosen (for debugging)"
+    )
+
+    confidence: float = Field(
+        ...,
+        ge=0.0,
+        le=1.0,
+        description="Confidence in the decision (0.0-1.0)"
+    )
+
+    requires_approval: bool = Field(
+        default=False,
+        description="Whether this action requires explicit user approval"
+    )
+
+    class Config:
+        extra = "allow"
+
+
+class ConversationTurn(BaseModel):
+    """A single turn in the conversation."""
+    role: Literal["user", "assistant", "system"]
+    content: str
+    timestamp: Optional[str] = None
+    metadata: Optional[Dict[str, Any]] = None
+
+
+class DecisionContext(BaseModel):
+    """
+    Context provided to the Decision Engine for making decisions.
+
+    Contains all relevant information about the current session state.
+    """
+    # User input
+    user_message: str = Field(..., description="The current user message")
+
+    # Conversation history
+    conversation_history: List[ConversationTurn] = Field(
+        default_factory=list,
+        description="Previous conversation turns"
+    )
+
+    # Session state flags
+    has_topic: bool = Field(default=False, description="User has provided a topic")
+    has_audience: bool = Field(default=False, description="Audience is defined")
+    has_duration: bool = Field(default=False, description="Duration is specified")
+    has_purpose: bool = Field(default=False, description="Purpose/goal is clear")
+    has_plan: bool = Field(default=False, description="Plan has been proposed and accepted")
+    has_strawman: bool = Field(default=False, description="Strawman has been generated")
+    has_explicit_approval: bool = Field(default=False, description="User explicitly approved generation")
+    has_content: bool = Field(default=False, description="Content has been generated")
+    is_complete: bool = Field(default=False, description="Presentation is complete")
+
+    # Session data
+    initial_request: Optional[str] = Field(None, description="Original user request")
+    topic: Optional[str] = Field(None, description="Presentation topic")
+    audience: Optional[str] = Field(None, description="Target audience")
+    duration: Optional[int] = Field(None, description="Duration in minutes")
+    purpose: Optional[str] = Field(None, description="Presentation goal")
+    tone: Optional[str] = Field(None, description="Desired tone/style")
+
+    # Strawman data
+    strawman: Optional[Dict[str, Any]] = Field(None, description="Current strawman")
+    generated_slides: Optional[List[Dict[str, Any]]] = Field(None, description="Generated slide content")
+
+    # Presentation data
+    presentation_id: Optional[str] = Field(None, description="Deck builder presentation ID")
+    preview_url: Optional[str] = Field(None, description="Preview URL")
+
+    class Config:
+        extra = "allow"
+
+
+class ApprovalDetectionResult(BaseModel):
+    """Result of detecting user approval from message."""
+    is_explicit_approval: bool = Field(
+        ...,
+        description="True if user explicitly approved generation"
+    )
+    is_soft_approval: bool = Field(
+        default=False,
+        description="True if user gave soft approval (needs confirmation)"
+    )
+    confidence: float = Field(
+        ...,
+        ge=0.0,
+        le=1.0,
+        description="Confidence in approval detection"
+    )
+    matched_phrase: Optional[str] = Field(
+        None,
+        description="The phrase that triggered approval detection"
+    )
+
+
+class StrawmanSlide(BaseModel):
+    """A single slide in the strawman."""
+    slide_id: str = Field(..., description="Unique slide identifier")
+    slide_number: int = Field(..., ge=1, description="Position in presentation")
+    title: str = Field(..., description="Slide title")
+    layout: str = Field(default="L01", description="Layout template ID")
+    topics: List[str] = Field(default_factory=list, description="Key topics/points")
+    variant_id: Optional[str] = Field(None, description="Content variant for generation")
+    notes: Optional[str] = Field(None, description="Speaker notes or generation hints")
+    is_hero: bool = Field(default=False, description="Whether this is a hero slide")
+    hero_type: Optional[str] = Field(None, description="title_slide, section_divider, or closing_slide")
+
+
+class Strawman(BaseModel):
+    """Complete strawman (presentation outline)."""
+    title: str = Field(..., description="Presentation title")
+    slides: List[StrawmanSlide] = Field(..., min_length=2, max_length=30)
+    metadata: Dict[str, Any] = Field(default_factory=dict)
+
+    @property
+    def slide_count(self) -> int:
+        return len(self.slides)
+
+    def get_slide(self, slide_id: str) -> Optional[StrawmanSlide]:
+        """Get a slide by ID."""
+        for slide in self.slides:
+            if slide.slide_id == slide_id:
+                return slide
+        return None
+
+
+class PresentationPlan(BaseModel):
+    """High-level presentation plan (before strawman)."""
+    summary: str = Field(..., description="Brief summary of the presentation")
+    proposed_slide_count: int = Field(..., ge=2, le=30)
+    key_assumptions: List[str] = Field(default_factory=list)
+    structure_overview: str = Field(..., description="High-level structure description")
+    estimated_duration: Optional[int] = Field(None, description="Estimated duration in minutes")

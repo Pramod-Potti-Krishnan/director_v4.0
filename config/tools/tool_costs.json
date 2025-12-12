@@ -1,0 +1,172 @@
+{
+  "version": "1.0.0",
+  "description": "Cost tier definitions and guardrails for Director Agent v4.0",
+
+  "cost_tiers": {
+    "low": {
+      "description": "Cheap operations, can call freely based on context",
+      "max_calls_per_session": -1,
+      "requires_approval": false,
+      "confidence_threshold": 0.5,
+      "tools": [
+        "conversation.respond",
+        "conversation.ask_questions",
+        "conversation.propose_plan"
+      ]
+    },
+    "medium": {
+      "description": "Moderate cost, call with purpose after prerequisites met",
+      "max_calls_per_session": 50,
+      "requires_approval": false,
+      "confidence_threshold": 0.7,
+      "tools": [
+        "strawman.generate",
+        "strawman.refine",
+        "illustrator.generate_pyramid",
+        "illustrator.generate_funnel",
+        "illustrator.generate_concentric",
+        "deck.create_presentation",
+        "deck.get_preview_url"
+      ]
+    },
+    "high": {
+      "description": "Expensive operations, require explicit user approval",
+      "max_calls_per_session": 100,
+      "requires_approval": true,
+      "confidence_threshold": 0.95,
+      "tools": [
+        "text.generate_content",
+        "text.generate_hero_title",
+        "text.generate_hero_section",
+        "text.generate_hero_closing",
+        "analytics.generate_chart"
+      ]
+    }
+  },
+
+  "guardrails": {
+    "require_plan_before_strawman": true,
+    "require_strawman_before_content": true,
+    "require_user_approval_before_generation": true,
+    "max_regenerations_per_slide": 3,
+    "max_slides_per_presentation": 30,
+    "min_slides_per_presentation": 2,
+    "max_clarifying_questions": 5,
+    "min_clarifying_questions": 3
+  },
+
+  "approval_phrases": {
+    "explicit_approval": [
+      "generate",
+      "generate the slides",
+      "generate the presentation",
+      "create it",
+      "create the presentation",
+      "proceed",
+      "go ahead",
+      "looks good, generate",
+      "yes, make it",
+      "build it",
+      "let's do it",
+      "make the slides",
+      "make the presentation"
+    ],
+    "not_approval": [
+      "looks good",
+      "yes",
+      "ok",
+      "okay",
+      "sounds good",
+      "that works",
+      "fine",
+      "sure"
+    ],
+    "confirmation_prompt": "Ready to generate the actual slide content? This will create the presentation."
+  },
+
+  "prerequisites": {
+    "strawman.generate": {
+      "required_context": ["initial_request"],
+      "required_flags": [],
+      "description": "Need topic and basic context"
+    },
+    "strawman.refine": {
+      "required_context": ["strawman"],
+      "required_flags": ["has_strawman"],
+      "description": "Need existing strawman to refine"
+    },
+    "text.generate_content": {
+      "required_context": ["strawman"],
+      "required_flags": ["has_strawman"],
+      "requires_approval": true,
+      "description": "Need approved strawman and explicit approval"
+    },
+    "text.generate_hero_title": {
+      "required_context": ["strawman"],
+      "required_flags": ["has_strawman"],
+      "requires_approval": true,
+      "description": "Need approved strawman and explicit approval"
+    },
+    "text.generate_hero_section": {
+      "required_context": ["strawman"],
+      "required_flags": ["has_strawman"],
+      "requires_approval": true,
+      "description": "Need approved strawman and explicit approval"
+    },
+    "text.generate_hero_closing": {
+      "required_context": ["strawman"],
+      "required_flags": ["has_strawman"],
+      "requires_approval": true,
+      "description": "Need approved strawman and explicit approval"
+    },
+    "analytics.generate_chart": {
+      "required_context": ["strawman"],
+      "required_flags": ["has_strawman"],
+      "requires_approval": true,
+      "description": "Need approved strawman and explicit approval"
+    },
+    "illustrator.generate_pyramid": {
+      "required_context": ["strawman"],
+      "required_flags": ["has_strawman"],
+      "requires_approval": false,
+      "description": "Need strawman context"
+    },
+    "illustrator.generate_funnel": {
+      "required_context": ["strawman"],
+      "required_flags": ["has_strawman"],
+      "requires_approval": false,
+      "description": "Need strawman context"
+    },
+    "illustrator.generate_concentric": {
+      "required_context": ["strawman"],
+      "required_flags": ["has_strawman"],
+      "requires_approval": false,
+      "description": "Need strawman context"
+    },
+    "deck.create_presentation": {
+      "required_context": ["strawman", "generated_content"],
+      "required_flags": ["has_strawman", "has_content"],
+      "requires_approval": false,
+      "description": "Need generated content"
+    },
+    "deck.get_preview_url": {
+      "required_context": ["strawman"],
+      "required_flags": ["has_strawman"],
+      "requires_approval": false,
+      "description": "Need strawman to preview"
+    }
+  },
+
+  "rate_limits": {
+    "max_tool_calls_per_message": 20,
+    "max_high_cost_calls_per_message": 15,
+    "delay_between_batches_ms": 100
+  },
+
+  "monitoring": {
+    "log_all_tool_calls": true,
+    "track_cost_per_session": true,
+    "alert_on_threshold_breach": true,
+    "threshold_alert_percentage": 80
+  }
+}

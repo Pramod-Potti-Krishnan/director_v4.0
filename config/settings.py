@@ -1,0 +1,211 @@
+"""
+Settings configuration for Deckster.
+"""
+import os
+from typing import Optional
+from pydantic_settings import BaseSettings
+from pydantic import Field
+
+
+class Settings(BaseSettings):
+    """Application settings."""
+    
+    # App settings
+    APP_ENV: str = Field("development", env="APP_ENV")
+    DEBUG: bool = Field(True, env="DEBUG")
+    LOG_LEVEL: str = Field("DEBUG", env="LOG_LEVEL")
+    
+    # API settings
+    API_ENABLED: bool = Field(True, env="API_ENABLED")
+    API_HOST: str = Field("0.0.0.0", env="API_HOST")
+    API_PORT: int = Field(8000, env="PORT")
+    
+    # Supabase settings
+    SUPABASE_URL: Optional[str] = Field(None, env="SUPABASE_URL")
+    SUPABASE_ANON_KEY: Optional[str] = Field(None, env="SUPABASE_ANON_KEY")
+    SUPABASE_SERVICE_KEY: Optional[str] = Field(None, env="SUPABASE_SERVICE_KEY")
+
+    # v3.3: Google Cloud Platform (Vertex AI) with Application Default Credentials
+    GCP_ENABLED: bool = Field(True, env="GCP_ENABLED")
+    GCP_PROJECT_ID: str = Field("deckster-xyz", env="GCP_PROJECT_ID")
+    GCP_LOCATION: str = Field("us-central1", env="GCP_LOCATION")
+    # GCP_SERVICE_ACCOUNT_JSON is only used in production (Railway)
+    # For local development, use: gcloud auth application-default login
+    GCP_SERVICE_ACCOUNT_JSON: Optional[str] = Field(None, env="GCP_SERVICE_ACCOUNT_JSON")
+
+    # v3.3: Granular AI Model Configuration (Gemini via Vertex AI Only)
+    # Each stage uses its own configurable model for maximum cost/performance optimization
+    # Note: Model names should NOT include 'google-vertex:' prefix (added automatically by code)
+
+    # Stage 1: Greeting generation (simple, short response)
+    GCP_MODEL_GREETING: str = Field("gemini-1.5-flash", env="GCP_MODEL_GREETING")
+
+    # Stage 2: Clarifying questions (structured JSON output)
+    GCP_MODEL_QUESTIONS: str = Field("gemini-1.5-flash", env="GCP_MODEL_QUESTIONS")
+
+    # Stage 3: Confirmation plan (structured JSON output)
+    GCP_MODEL_PLAN: str = Field("gemini-1.5-flash", env="GCP_MODEL_PLAN")
+
+    # Stage 4: Strawman generation (complex, detailed presentation outline)
+    GCP_MODEL_STRAWMAN: str = Field("gemini-2.0-flash-exp", env="GCP_MODEL_STRAWMAN")
+
+    # Stage 5: Strawman refinement (complex, detailed modifications)
+    GCP_MODEL_REFINE: str = Field("gemini-2.0-flash-exp", env="GCP_MODEL_REFINE")
+
+    # Intent classification router (fast, high-volume classification)
+    GCP_MODEL_ROUTER: str = Field("gemini-1.5-flash", env="GCP_MODEL_ROUTER")
+    
+    # Logging
+    LOGFIRE_TOKEN: Optional[str] = Field(None, env="LOGFIRE_TOKEN")
+    
+    # Streamlined WebSocket Protocol
+    USE_STREAMLINED_PROTOCOL: bool = Field(
+        default=True,
+        description="Enable streamlined WebSocket message protocol"
+    )
+    
+    STREAMLINED_PROTOCOL_PERCENTAGE: int = Field(
+        default=100,
+        ge=0,
+        le=100,
+        description="Percentage of sessions to use streamlined protocol (0-100)"
+    )
+    
+    # Layout Architect Settings (Phase 2)
+    LAYOUT_ARCHITECT_MODEL: str = Field("gemini-2.5-flash-lite-preview-06-17", env="LAYOUT_ARCHITECT_MODEL")
+    LAYOUT_ARCHITECT_TEMPERATURE: float = Field(0.7, env="LAYOUT_ARCHITECT_TEMPERATURE")
+    LAYOUT_GRID_WIDTH: int = Field(160, env="LAYOUT_GRID_WIDTH")
+    LAYOUT_GRID_HEIGHT: int = Field(90, env="LAYOUT_GRID_HEIGHT")
+    LAYOUT_MARGIN: int = Field(8, env="LAYOUT_MARGIN")
+    LAYOUT_GUTTER: int = Field(4, env="LAYOUT_GUTTER")
+    LAYOUT_WHITE_SPACE_MIN: float = Field(0.3, env="LAYOUT_WHITE_SPACE_MIN")
+    LAYOUT_WHITE_SPACE_MAX: float = Field(0.5, env="LAYOUT_WHITE_SPACE_MAX")
+    
+    # Three-Agent Layout Architect Configuration (Phase 2 - New Architecture)
+    THEME_AGENT_MODEL: str = Field("gemini-2.5-flash-lite-preview-06-17", env="THEME_AGENT_MODEL")
+    STRUCTURE_AGENT_MODEL: str = Field("gemini-2.5-flash-lite-preview-06-17", env="STRUCTURE_AGENT_MODEL")
+    LAYOUT_ENGINE_MODEL: str = Field("gemini-2.5-flash-lite-preview-06-17", env="LAYOUT_ENGINE_MODEL")
+    
+    # Phase 2B Content-Driven Architecture Configuration
+    USE_PHASE_2B_ARCHITECTURE: bool = Field(True, env="USE_PHASE_2B_ARCHITECTURE")
+    CONTENT_AGENT_MODEL: str = Field("gemini-2.5-flash-lite-preview-06-17", env="CONTENT_AGENT_MODEL")
+    USE_LEGACY_WORKFLOW: bool = Field(False, env="USE_LEGACY_WORKFLOW")
+
+    # v2.0: Deck-Builder Integration
+    # v3.4: Updated for v7.5-main (port 8504)
+    DECK_BUILDER_ENABLED: bool = Field(True, env="DECK_BUILDER_ENABLED")
+    DECK_BUILDER_API_URL: str = Field("http://localhost:8504", env="DECK_BUILDER_API_URL")
+    DECK_BUILDER_TIMEOUT: int = Field(30, env="DECK_BUILDER_TIMEOUT")
+
+    # v3.1: Text Service Integration (Stage 6 - Content Generation)
+    # v3.4-v1.2: Updated to Text Service v1.2 with 34 platinum variants
+    TEXT_SERVICE_ENABLED: bool = Field(True, env="TEXT_SERVICE_ENABLED")
+    TEXT_SERVICE_URL: str = Field(
+        "https://web-production-5daf.up.railway.app",  # v1.2 Railway deployment
+        env="TEXT_SERVICE_URL"
+    )
+    TEXT_SERVICE_VERSION: str = Field("1.2", env="TEXT_SERVICE_VERSION")
+    TEXT_SERVICE_TIMEOUT: int = Field(300, env="TEXT_SERVICE_TIMEOUT")  # Increased for v1.2
+    TEXT_SERVICE_VALIDATE_COUNTS: bool = Field(True, env="TEXT_SERVICE_VALIDATE_COUNTS")
+    TEXT_SERVICE_PARALLEL_MODE: bool = Field(True, env="TEXT_SERVICE_PARALLEL_MODE")
+
+    # v3.4: Rate Limiting & 429 Error Prevention (Stage 6)
+    # Prevents Vertex AI quota exhaustion by controlling API call frequency
+    RATE_LIMIT_DELAY_SECONDS: int = Field(2, env="RATE_LIMIT_DELAY_SECONDS")  # Delay between slides
+    MAX_VERTEX_RETRIES: int = Field(5, env="MAX_VERTEX_RETRIES")  # Max retry attempts for 429 errors
+    VERTEX_RETRY_BASE_DELAY: int = Field(2, env="VERTEX_RETRY_BASE_DELAY")  # Base delay (exponential backoff)
+
+    # v3.4: Illustrator Service Integration (Stage 6 - Visualization Generation)
+    # Handles pyramid and future data visualizations (funnel, SWOT, BCG matrix, etc.)
+    ILLUSTRATOR_SERVICE_ENABLED: bool = Field(True, env="ILLUSTRATOR_SERVICE_ENABLED")
+    ILLUSTRATOR_SERVICE_URL: str = Field(
+        "http://localhost:8000",  # Local development (Illustrator v1.0)
+        env="ILLUSTRATOR_SERVICE_URL"
+    )
+    ILLUSTRATOR_SERVICE_TIMEOUT: int = Field(60, env="ILLUSTRATOR_SERVICE_TIMEOUT")  # Pyramid generation ~4s
+
+    # v3.4: Analytics Service Integration (Stage 6 - Chart Generation)
+    # Handles L01, L02, L03 analytics layouts with charts + AI observations
+    ANALYTICS_SERVICE_ENABLED: bool = Field(True, env="ANALYTICS_SERVICE_ENABLED")
+    ANALYTICS_SERVICE_URL: str = Field(
+        "https://analytics-v30-production.up.railway.app",  # Railway production
+        env="ANALYTICS_SERVICE_URL"
+    )
+    ANALYTICS_SERVICE_TIMEOUT: int = Field(30, env="ANALYTICS_SERVICE_TIMEOUT")  # Chart generation ~3s
+
+    # v3.4: Unified Variant Registration System (Phase 3.5)
+    # Registry-driven variant management for all content generation services
+    UNIFIED_VARIANT_SYSTEM_ENABLED: bool = Field(
+        False,  # Default: disabled (use existing system)
+        env="UNIFIED_VARIANT_SYSTEM_ENABLED",
+        description="Enable unified variant registration system for slide classification and routing"
+    )
+    UNIFIED_VARIANT_SYSTEM_PERCENTAGE: int = Field(
+        0,  # Default: 0% rollout
+        ge=0,
+        le=100,
+        env="UNIFIED_VARIANT_SYSTEM_PERCENTAGE",
+        description="Percentage of sessions to use unified system (0-100). Only applies if ENABLED=true"
+    )
+    VARIANT_REGISTRY_PATH: Optional[str] = Field(
+        None,  # Default: use config/unified_variant_registry.json
+        env="VARIANT_REGISTRY_PATH",
+        description="Path to unified variant registry JSON file (optional)"
+    )
+
+    class Config:
+        env_file = ".env"
+        env_file_encoding = "utf-8"
+        case_sensitive = True
+        extra = "ignore"  # Ignore extra fields in .env
+    
+    @property
+    def has_ai_service(self) -> bool:
+        """Check if at least one AI service is configured."""
+        return bool(self.GCP_ENABLED or self.OPENAI_API_KEY or self.ANTHROPIC_API_KEY)
+
+    @property
+    def is_production(self) -> bool:
+        """Check if running in production environment (Railway)."""
+        return os.environ.get('RAILWAY_PROJECT_ID') is not None
+
+    def validate_settings(self) -> None:
+        """
+        Validate that essential settings are configured.
+
+        v3.3: Updated for Application Default Credentials (ADC) pattern.
+        """
+        # Check if at least one AI service is configured
+        if not self.has_ai_service:
+            raise ValueError(
+                "No AI service configured. Please either:\n"
+                "  1. Enable GCP (GCP_ENABLED=true) and authenticate with Vertex AI\n"
+                "     - Local: Run 'gcloud auth application-default login'\n"
+                "     - Railway: Set GCP_SERVICE_ACCOUNT_JSON environment variable\n"
+                "  2. Set OPENAI_API_KEY or ANTHROPIC_API_KEY in your .env file"
+            )
+
+        # v3.3: Validate GCP setup if enabled
+        if self.GCP_ENABLED:
+            if self.is_production and not self.GCP_SERVICE_ACCOUNT_JSON:
+                raise ValueError(
+                    "PRODUCTION SECURITY ERROR:\n"
+                    "GCP_ENABLED is true but GCP_SERVICE_ACCOUNT_JSON is not set.\n"
+                    "Railway production deployments MUST have GCP_SERVICE_ACCOUNT_JSON configured.\n"
+                    "Add the service account JSON to Railway environment variables."
+                )
+
+            if not self.is_production and not self.GCP_SERVICE_ACCOUNT_JSON:
+                # Local development - just log a reminder
+                from src.utils.logger import setup_logger
+                logger = setup_logger(__name__)
+                logger.info("Local development mode: Ensure you've run 'gcloud auth application-default login'")
+
+
+def get_settings() -> Settings:
+    """Get cached settings instance."""
+    return Settings()
+
+
+# For backward compatibility with existing code
+settings = get_settings()

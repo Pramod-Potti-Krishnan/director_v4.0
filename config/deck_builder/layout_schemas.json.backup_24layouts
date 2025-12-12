@@ -1,0 +1,1571 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "version": "2.0",
+  "description": "Complete schema definitions for all 24 deck-builder layouts. Single source of truth for layout requirements, field specifications, and best use cases. Enhanced with format ownership specifications for v3.2 architecture.",
+  "layouts": {
+    "L01": {
+      "layout_id": "L01",
+      "name": "Title Slide",
+      "slide_type_main": "Title",
+      "slide_subtype": "Opening",
+      "best_use_case": "Use as the first slide of any presentation. Ideal for setting the stage with presentation title, subtitle, presenter information, and organization branding. Creates a professional opening that establishes credibility and context for the audience.",
+      "best_for_keywords": [
+        "opening",
+        "title",
+        "introduction",
+        "cover page",
+        "first slide",
+        "presentation intro",
+        "branding"
+      ],
+      "content_schema": {
+        "main_title": {
+          "type": "string",
+          "max_chars": 60,
+          "max_lines": 2,
+          "alignment": "center",
+          "required": true,
+          "description": "Main presentation title",
+          "format_type": "plain_text",
+          "format_owner": "layout_builder"
+        },
+        "subtitle": {
+          "type": "string",
+          "max_chars": 100,
+          "max_lines": 3,
+          "alignment": "center",
+          "required": false,
+          "description": "Presentation subtitle or tagline",
+          "format_type": "plain_text",
+          "format_owner": "layout_builder"
+        },
+        "presenter_name": {
+          "type": "string",
+          "max_chars": 40,
+          "max_lines": 3,
+          "alignment": "center",
+          "required": false,
+          "description": "Presenter name and title",
+          "format_type": "plain_text",
+          "format_owner": "layout_builder"
+        },
+        "organization": {
+          "type": "string",
+          "max_chars": 50,
+          "max_lines": 3,
+          "alignment": "center",
+          "required": false,
+          "description": "Organization or company name",
+          "format_type": "plain_text",
+          "format_owner": "layout_builder"
+        },
+        "date": {
+          "type": "string",
+          "max_chars": 20,
+          "max_lines": 1,
+          "alignment": "right",
+          "required": false,
+          "description": "Presentation date",
+          "format_type": "plain_text",
+          "format_owner": "layout_builder"
+        }
+      }
+    },
+    "L02": {
+      "layout_id": "L02",
+      "name": "Section Divider",
+      "slide_type_main": "Section",
+      "slide_subtype": "Divider",
+      "best_use_case": "Use between major presentation sections to create visual breathing room and signal topic transitions. Perfect for breaking up long presentations, introducing new chapters, or marking shifts in narrative direction. Keeps audiences oriented and engaged.",
+      "best_for_keywords": [
+        "section break",
+        "transition",
+        "chapter",
+        "divider",
+        "new topic",
+        "breathing room"
+      ],
+      "content_schema": {
+        "section_title": {
+          "type": "string",
+          "max_chars": 40,
+          "max_lines": 2,
+          "alignment": "center",
+          "required": true,
+          "description": "Section or chapter title",
+          "format_type": "plain_text",
+          "format_owner": "layout_builder"
+        }
+      }
+    },
+    "L03": {
+      "layout_id": "L03",
+      "name": "Closing Slide",
+      "slide_type_main": "Conclusion",
+      "slide_subtype": "Closing",
+      "best_use_case": "Use as the final slide to wrap up presentations professionally. Ideal for thank you messages, calls-to-action, contact information, and leaving audiences with next steps. Provides closure while keeping communication channels open.",
+      "best_for_keywords": [
+        "closing",
+        "thank you",
+        "final slide",
+        "contact",
+        "conclusion",
+        "call to action",
+        "next steps"
+      ],
+      "content_schema": {
+        "closing_message": {
+          "type": "string",
+          "max_chars": 50,
+          "max_lines": 2,
+          "alignment": "center",
+          "required": true,
+          "description": "Closing message or thank you",
+          "format_type": "plain_text",
+          "format_owner": "layout_builder"
+        },
+        "subtitle": {
+          "type": "string",
+          "max_chars": 80,
+          "max_lines": 3,
+          "alignment": "center",
+          "required": false,
+          "description": "Additional closing text or call to action",
+          "format_type": "plain_text",
+          "format_owner": "layout_builder"
+        },
+        "contact_email": {
+          "type": "string",
+          "max_chars": 50,
+          "max_lines": 1,
+          "alignment": "center",
+          "required": false,
+          "description": "Contact email address",
+          "format_type": "plain_text",
+          "format_owner": "layout_builder"
+        },
+        "website": {
+          "type": "string",
+          "max_chars": 50,
+          "max_lines": 1,
+          "alignment": "center",
+          "required": false,
+          "description": "Website URL",
+          "format_type": "plain_text",
+          "format_owner": "layout_builder"
+        },
+        "social_media": {
+          "type": "string",
+          "max_chars": 80,
+          "max_lines": 3,
+          "alignment": "center",
+          "required": false,
+          "description": "Social media handles",
+          "format_type": "plain_text",
+          "format_owner": "layout_builder"
+        }
+      }
+    },
+    "L04": {
+      "layout_id": "L04",
+      "name": "Text + Summary",
+      "slide_type_main": "Content",
+      "slide_subtype": "Text+Summary",
+      "best_use_case": "Use for in-depth explanations, detailed narratives, or comprehensive topic coverage that requires substantial text space. The summary box at the bottom is perfect for highlighting key takeaways or actionable insights. Ideal for educational content, policy explanations, or detailed analysis where context and summary are both needed.",
+      "best_for_keywords": [
+        "detailed explanation",
+        "narrative",
+        "in-depth",
+        "analysis",
+        "educational",
+        "policy",
+        "comprehensive",
+        "long-form text",
+        "summary"
+      ],
+      "content_schema": {
+        "slide_title": {
+          "type": "string",
+          "max_chars": 60,
+          "max_lines": 1,
+          "alignment": "left",
+          "required": true,
+          "description": "Slide title",
+          "format_type": "plain_text",
+          "format_owner": "layout_builder"
+        },
+        "subtitle": {
+          "type": "string",
+          "max_chars": 80,
+          "max_lines": 1,
+          "alignment": "left",
+          "required": false,
+          "description": "Slide subtitle",
+          "format_type": "plain_text",
+          "format_owner": "layout_builder"
+        },
+        "main_text_content": {
+          "type": "string",
+          "max_chars": 1200,
+          "max_lines": 15,
+          "alignment": "left",
+          "required": true,
+          "description": "Main paragraph text content",
+          "format_type": "html",
+          "format_owner": "text_service",
+          "validation_threshold": 0.9,
+          "expected_structure": "p or ul>li or mixed"
+        },
+        "summary": {
+          "type": "string",
+          "max_chars": 200,
+          "max_lines": 3,
+          "alignment": "left",
+          "required": false,
+          "description": "Summary box with key takeaway",
+          "format_type": "html",
+          "format_owner": "text_service",
+          "validation_threshold": 0.9,
+          "expected_structure": "p or strong"
+        }
+      }
+    },
+    "L05": {
+      "layout_id": "L05",
+      "name": "Bullet List",
+      "slide_type_main": "Content",
+      "slide_subtype": "List",
+      "best_use_case": "Use for presenting key points, features, benefits, or action items in an easy-to-scan format. Perfect for executive summaries, agenda slides, feature lists, or any content where clarity and quick comprehension are priorities. The bullet format naturally breaks down complex information into digestible chunks.",
+      "best_for_keywords": [
+        "key points",
+        "features",
+        "benefits",
+        "action items",
+        "summary",
+        "agenda",
+        "takeaways",
+        "list",
+        "highlights"
+      ],
+      "content_schema": {
+        "slide_title": {
+          "type": "string",
+          "max_chars": 60,
+          "max_lines": 1,
+          "alignment": "left",
+          "required": true,
+          "description": "Slide title",
+          "format_type": "plain_text",
+          "format_owner": "layout_builder"
+        },
+        "subtitle": {
+          "type": "string",
+          "max_chars": 80,
+          "max_lines": 1,
+          "alignment": "left",
+          "required": false,
+          "description": "Slide subtitle",
+          "format_type": "plain_text",
+          "format_owner": "layout_builder"
+        },
+        "bullets": {
+          "type": "array",
+          "item_type": "string",
+          "min_items": 5,
+          "max_items": 8,
+          "max_chars_per_item": 100,
+          "max_lines_per_item": 2,
+          "alignment": "left",
+          "required": true,
+          "description": "Array of bullet point strings",
+          "format_type": "html",
+          "format_owner": "text_service",
+          "validation_threshold": 0.9,
+          "expected_structure": "ul>li or ol>li"
+        }
+      }
+    },
+    "L06": {
+      "layout_id": "L06",
+      "name": "Numbered List",
+      "slide_type_main": "Content",
+      "slide_subtype": "Numbered-List",
+      "best_use_case": "Use for sequential processes, step-by-step instructions, rankings, timelines, or prioritized lists where order matters. Each item includes a title and description, making it ideal for detailed process documentation, implementation roadmaps, or hierarchical information. The numbering reinforces sequence and progression.",
+      "best_for_keywords": [
+        "steps",
+        "process",
+        "sequence",
+        "instructions",
+        "rankings",
+        "timeline",
+        "prioritized",
+        "roadmap",
+        "ordered"
+      ],
+      "content_schema": {
+        "slide_title": {
+          "type": "string",
+          "max_chars": 60,
+          "max_lines": 1,
+          "alignment": "left",
+          "required": true,
+          "description": "Slide title",
+          "format_type": "plain_text",
+          "format_owner": "layout_builder"
+        },
+        "subtitle": {
+          "type": "string",
+          "max_chars": 80,
+          "max_lines": 1,
+          "alignment": "left",
+          "required": false,
+          "description": "Slide subtitle",
+          "format_type": "plain_text",
+          "format_owner": "layout_builder"
+        },
+        "numbered_items": {
+          "type": "array_of_objects",
+          "min_items": 4,
+          "max_items": 6,
+          "item_structure": {
+            "title": {
+              "type": "string",
+              "max_chars": 40,
+              "description": "Step title",
+              "format_type": "plain_text",
+              "format_owner": "layout_builder"
+            },
+            "description": {
+              "type": "string",
+              "max_chars": 150,
+              "description": "Step description",
+              "format_type": "html",
+              "format_owner": "text_service",
+              "validation_threshold": 0.9
+            }
+          },
+          "alignment": "left",
+          "required": true,
+          "description": "Array of numbered step objects"
+        }
+      }
+    },
+    "L07": {
+      "layout_id": "L07",
+      "name": "Quote Slide",
+      "slide_type_main": "Content",
+      "slide_subtype": "Quote",
+      "best_use_case": "Use for emphasizing key messages, featuring customer testimonials, highlighting expert opinions, or creating dramatic impact with important statements. The centered, prominent text design commands attention and creates memorable moments in presentations. Perfect for social proof, thought leadership, or mission statements.",
+      "best_for_keywords": [
+        "quote",
+        "testimonial",
+        "customer feedback",
+        "expert opinion",
+        "emphasis",
+        "impact",
+        "social proof",
+        "mission statement",
+        "thought leadership",
+        "inspiring"
+      ],
+      "content_schema": {
+        "quote_text": {
+          "type": "string",
+          "max_chars": 200,
+          "max_lines": 4,
+          "alignment": "center",
+          "required": true,
+          "description": "The quote text itself - impactful statement or testimonial",
+          "format_type": "plain_text",
+          "format_owner": "layout_builder"
+        },
+        "attribution": {
+          "type": "string",
+          "max_chars": 60,
+          "max_lines": 2,
+          "alignment": "center",
+          "format": "em-dash+name",
+          "required": true,
+          "description": "Quote author/source with em-dash (e.g., '\u2014 Steve Jobs, Apple CEO')",
+          "format_type": "plain_text",
+          "format_owner": "layout_builder"
+        }
+      }
+    },
+    "L08": {
+      "layout_id": "L08",
+      "name": "Multi-column Content",
+      "slide_type_main": "Content",
+      "slide_subtype": "Columns",
+      "best_use_case": "Use for presenting multiple parallel topics, feature comparisons, or independent concepts that benefit from side-by-side layout. Supports up to 3 columns for balanced visual weight. Ideal for product tier comparisons, service offerings, team member profiles, or any content where topics are related but distinct. The columnar structure helps audiences process multiple concepts simultaneously.",
+      "best_for_keywords": [
+        "multi-topic",
+        "columns",
+        "parallel concepts",
+        "feature tiers",
+        "service offerings",
+        "team profiles",
+        "multiple topics"
+      ],
+      "content_schema": {
+        "slide_title": {
+          "type": "string",
+          "max_chars": 60,
+          "max_lines": 1,
+          "alignment": "left",
+          "required": true,
+          "description": "Slide title",
+          "format_type": "plain_text",
+          "format_owner": "layout_builder"
+        },
+        "subtitle": {
+          "type": "string",
+          "max_chars": 80,
+          "max_lines": 1,
+          "alignment": "left",
+          "required": false,
+          "description": "Slide subtitle",
+          "format_type": "plain_text",
+          "format_owner": "layout_builder"
+        },
+        "columns": {
+          "type": "array_of_objects",
+          "min_items": 2,
+          "max_items": 3,
+          "item_structure": {
+            "header": {
+              "type": "string",
+              "max_chars": 30,
+              "description": "Column header",
+              "format_type": "plain_text",
+              "format_owner": "layout_builder"
+            },
+            "content": {
+              "type": "string",
+              "max_chars": 300,
+              "max_lines": 15,
+              "description": "Column content text",
+              "format_type": "html",
+              "format_owner": "text_service",
+              "validation_threshold": 0.9,
+              "expected_structure": "p or ul>li or mixed"
+            }
+          },
+          "alignment": "left",
+          "required": true,
+          "description": "Array of column objects"
+        }
+      }
+    },
+    "L09": {
+      "layout_id": "L09",
+      "name": "Hero Image with Overlay",
+      "slide_type_main": "Content",
+      "slide_subtype": "Hero-Image",
+      "best_use_case": "Use for visual storytelling, product showcases, emotional appeals, or brand-focused slides where imagery takes center stage. The overlay text creates impact without overwhelming the visual. Perfect for introducing new products, setting mood or tone, showcasing portfolio work, or creating memorable 'wow' moments. Image should be high-quality and thematically aligned with message.",
+      "best_for_keywords": [
+        "visual storytelling",
+        "product showcase",
+        "hero image",
+        "emotional",
+        "brand",
+        "portfolio",
+        "wow moment",
+        "image-driven"
+      ],
+      "content_schema": {
+        "slide_title": {
+          "type": "string",
+          "max_chars": 60,
+          "max_lines": 1,
+          "alignment": "left",
+          "required": true,
+          "description": "Slide title",
+          "format_type": "plain_text",
+          "format_owner": "layout_builder"
+        },
+        "subtitle": {
+          "type": "string",
+          "max_chars": 80,
+          "max_lines": 1,
+          "alignment": "left",
+          "required": false,
+          "description": "Slide subtitle",
+          "format_type": "plain_text",
+          "format_owner": "layout_builder"
+        },
+        "hero_image": {
+          "type": "image_placeholder",
+          "aspect_ratio": "29:12",
+          "required": true,
+          "description": "Large hero image URL or placeholder"
+        },
+        "overlay_text": {
+          "type": "string",
+          "max_chars": 50,
+          "max_lines": 2,
+          "required": false,
+          "description": "Overlay text on image",
+          "format_type": "plain_text",
+          "format_owner": "layout_builder"
+        }
+      }
+    },
+    "L10": {
+      "layout_id": "L10",
+      "name": "Image Left + Text Right (60/40)",
+      "slide_type_main": "Content",
+      "slide_subtype": "Image-Left+Text-Right",
+      "best_use_case": "Use when imagery should dominate but requires supporting text explanation. Perfect for product demonstrations, visual case studies, before/after scenarios, or technical diagrams that need context. The 60/40 split prioritizes visual information while maintaining substantial text space for details, specifications, or explanations.",
+      "best_for_keywords": [
+        "image focus",
+        "visual demonstration",
+        "product demo",
+        "case study",
+        "before/after",
+        "diagram with context"
+      ],
+      "content_schema": {
+        "slide_title": {
+          "type": "string",
+          "max_chars": 60,
+          "max_lines": 1,
+          "alignment": "left",
+          "required": true,
+          "description": "Slide title",
+          "format_type": "plain_text",
+          "format_owner": "layout_builder"
+        },
+        "subtitle": {
+          "type": "string",
+          "max_chars": 80,
+          "max_lines": 1,
+          "alignment": "left",
+          "required": false,
+          "description": "Slide subtitle",
+          "format_type": "plain_text",
+          "format_owner": "layout_builder"
+        },
+        "image": {
+          "type": "image_placeholder",
+          "aspect_ratio": "17:12",
+          "position": "left",
+          "required": true,
+          "description": "Left-side image URL or placeholder"
+        },
+        "text_content": {
+          "type": "string",
+          "max_chars": 600,
+          "max_lines": 15,
+          "alignment": "left",
+          "required": true,
+          "description": "Right-side text content",
+          "format_type": "html",
+          "format_owner": "text_service",
+          "validation_threshold": 0.9,
+          "expected_structure": "p or ul>li or mixed"
+        }
+      }
+    },
+    "L11": {
+      "layout_id": "L11",
+      "name": "Text Left + Image Right (40/60)",
+      "slide_type_main": "Content",
+      "slide_subtype": "Text-Left+Image-Right",
+      "best_use_case": "Use when text explanation should lead but visual support is essential. Ideal for conceptual explanations followed by visual examples, feature descriptions with product images, or instructions with reference photos. The text-first layout guides the audience through information before reinforcing with visuals. Perfect for training materials or explanatory content.",
+      "best_for_keywords": [
+        "text focus",
+        "explanation with visuals",
+        "feature description",
+        "instructions",
+        "training",
+        "text-driven"
+      ],
+      "content_schema": {
+        "slide_title": {
+          "type": "string",
+          "max_chars": 60,
+          "max_lines": 1,
+          "alignment": "left",
+          "required": true,
+          "description": "Slide title",
+          "format_type": "plain_text",
+          "format_owner": "layout_builder"
+        },
+        "subtitle": {
+          "type": "string",
+          "max_chars": 80,
+          "max_lines": 1,
+          "alignment": "left",
+          "required": false,
+          "description": "Slide subtitle",
+          "format_type": "plain_text",
+          "format_owner": "layout_builder"
+        },
+        "text_content": {
+          "type": "string",
+          "max_chars": 600,
+          "max_lines": 15,
+          "alignment": "left",
+          "required": true,
+          "description": "Left-side text content",
+          "format_type": "html",
+          "format_owner": "text_service",
+          "validation_threshold": 0.9,
+          "expected_structure": "p or ul>li or mixed"
+        },
+        "image": {
+          "type": "image_placeholder",
+          "aspect_ratio": "17:12",
+          "position": "right",
+          "required": true,
+          "description": "Right-side image URL or placeholder"
+        }
+      }
+    },
+    "L12": {
+      "layout_id": "L12",
+      "name": "Image Gallery (2x2)",
+      "slide_type_main": "Content",
+      "slide_subtype": "Gallery",
+      "best_use_case": "Use for portfolio showcases, product catalogs, project photo collections, or any content requiring multiple images in balanced layout. The 2\u00d72 grid (4 images) creates visual harmony and allows audiences to compare related visuals. Perfect for before/after comparisons, design variations, team photos, or illustrating diverse examples. Images should be thematically related for coherence.",
+      "best_for_keywords": [
+        "portfolio",
+        "gallery",
+        "multiple images",
+        "product catalog",
+        "photo collection",
+        "showcase",
+        "comparison"
+      ],
+      "content_schema": {
+        "slide_title": {
+          "type": "string",
+          "max_chars": 60,
+          "max_lines": 1,
+          "alignment": "left",
+          "required": true,
+          "description": "Slide title",
+          "format_type": "plain_text",
+          "format_owner": "layout_builder"
+        },
+        "subtitle": {
+          "type": "string",
+          "max_chars": 80,
+          "max_lines": 1,
+          "alignment": "left",
+          "required": false,
+          "description": "Slide subtitle",
+          "format_type": "plain_text",
+          "format_owner": "layout_builder"
+        },
+        "image_1": {
+          "type": "image_placeholder",
+          "aspect_ratio": "14:6",
+          "position": "top-left",
+          "required": true,
+          "description": "Top-left image"
+        },
+        "image_2": {
+          "type": "image_placeholder",
+          "aspect_ratio": "14:6",
+          "position": "top-right",
+          "required": true,
+          "description": "Top-right image"
+        },
+        "image_3": {
+          "type": "image_placeholder",
+          "aspect_ratio": "14:6",
+          "position": "bottom-left",
+          "required": true,
+          "description": "Bottom-left image"
+        },
+        "image_4": {
+          "type": "image_placeholder",
+          "aspect_ratio": "14:6",
+          "position": "bottom-right",
+          "required": true,
+          "description": "Bottom-right image"
+        }
+      }
+    },
+    "L13": {
+      "layout_id": "L13",
+      "name": "Centered Diagram",
+      "slide_type_main": "Content",
+      "slide_subtype": "Diagram-Centered",
+      "best_use_case": "Use for single, important diagrams that require maximum visibility and focus. Perfect for process flows, organizational charts, system architectures, or conceptual frameworks where the diagram is the primary message. The centered positioning with caption creates a clean, professional presentation. Ideal when the visual should speak for itself with minimal text distraction.",
+      "best_for_keywords": [
+        "diagram",
+        "process flow",
+        "org chart",
+        "architecture",
+        "framework",
+        "single visual focus"
+      ],
+      "content_schema": {
+        "slide_title": {
+          "type": "string",
+          "max_chars": 60,
+          "max_lines": 1,
+          "alignment": "left",
+          "required": true,
+          "description": "Slide title",
+          "format_type": "plain_text",
+          "format_owner": "layout_builder"
+        },
+        "subtitle": {
+          "type": "string",
+          "max_chars": 80,
+          "max_lines": 1,
+          "alignment": "left",
+          "required": false,
+          "description": "Slide subtitle",
+          "format_type": "plain_text",
+          "format_owner": "layout_builder"
+        },
+        "diagram": {
+          "type": "diagram_placeholder",
+          "aspect_ratio": "21:10",
+          "position": "center",
+          "required": true,
+          "description": "Centered diagram URL or placeholder"
+        },
+        "caption": {
+          "type": "string",
+          "max_chars": 120,
+          "max_lines": 1,
+          "alignment": "center",
+          "required": false,
+          "description": "Diagram caption",
+          "format_type": "plain_text",
+          "format_owner": "layout_builder"
+        }
+      }
+    },
+    "L14": {
+      "layout_id": "L14",
+      "name": "Diagram Left + Text Right",
+      "slide_type_main": "Content",
+      "slide_subtype": "Diagram-Left+Text-Right",
+      "best_use_case": "Use for technical explanations where the diagram needs equal weight with descriptive text. Perfect for explaining system architectures, process flows with detailed steps, or technical concepts requiring both visual and textual explanation. The side-by-side layout allows audiences to reference the diagram while reading explanations. Ideal for technical documentation or training materials.",
+      "best_for_keywords": [
+        "technical explanation",
+        "system architecture",
+        "process diagram",
+        "technical concepts",
+        "documentation"
+      ],
+      "content_schema": {
+        "slide_title": {
+          "type": "string",
+          "max_chars": 60,
+          "max_lines": 1,
+          "alignment": "left",
+          "required": true,
+          "description": "Slide title",
+          "format_type": "plain_text",
+          "format_owner": "layout_builder"
+        },
+        "subtitle": {
+          "type": "string",
+          "max_chars": 80,
+          "max_lines": 1,
+          "alignment": "left",
+          "required": false,
+          "description": "Slide subtitle",
+          "format_type": "plain_text",
+          "format_owner": "layout_builder"
+        },
+        "diagram": {
+          "type": "diagram_placeholder",
+          "aspect_ratio": "14:12",
+          "position": "left",
+          "required": true,
+          "description": "Left-side diagram"
+        },
+        "text_content": {
+          "type": "string",
+          "max_chars": 600,
+          "max_lines": 15,
+          "alignment": "left",
+          "required": true,
+          "description": "Right-side text explanation",
+          "format_type": "html",
+          "format_owner": "text_service",
+          "validation_threshold": 0.9,
+          "expected_structure": "p or ul>li or mixed"
+        }
+      }
+    },
+    "L15": {
+      "layout_id": "L15",
+      "name": "Text Left + Diagram Right",
+      "slide_type_main": "Content",
+      "slide_subtype": "Text-Left+Diagram-Right",
+      "best_use_case": "Use when text explanation should guide the audience before revealing the diagram. Ideal for building understanding progressively, explaining methodology before showing results, or introducing concepts before visual representation. The text-first layout is particularly effective for educational content where comprehension depends on proper sequencing of information.",
+      "best_for_keywords": [
+        "progressive explanation",
+        "methodology",
+        "educational",
+        "text-driven diagram",
+        "concept introduction"
+      ],
+      "content_schema": {
+        "slide_title": {
+          "type": "string",
+          "max_chars": 60,
+          "max_lines": 1,
+          "alignment": "left",
+          "required": true,
+          "description": "Slide title",
+          "format_type": "plain_text",
+          "format_owner": "layout_builder"
+        },
+        "subtitle": {
+          "type": "string",
+          "max_chars": 80,
+          "max_lines": 1,
+          "alignment": "left",
+          "required": false,
+          "description": "Slide subtitle",
+          "format_type": "plain_text",
+          "format_owner": "layout_builder"
+        },
+        "text_content": {
+          "type": "string",
+          "max_chars": 600,
+          "max_lines": 15,
+          "alignment": "left",
+          "required": true,
+          "description": "Left-side text explanation",
+          "format_type": "html",
+          "format_owner": "text_service",
+          "validation_threshold": 0.9,
+          "expected_structure": "p or ul>li or mixed"
+        },
+        "diagram": {
+          "type": "diagram_placeholder",
+          "aspect_ratio": "15:12",
+          "position": "right",
+          "required": true,
+          "description": "Right-side diagram"
+        }
+      }
+    },
+    "L16": {
+      "layout_id": "L16",
+      "name": "Full-Width Diagram",
+      "slide_type_main": "Content",
+      "slide_subtype": "Diagram-Full-Width",
+      "best_use_case": "Use for large, complex diagrams requiring maximum space for detail visibility. Perfect for architectural blueprints, comprehensive system maps, detailed flowcharts, or wide-format visualizations like timelines and roadmaps. The full-width layout maximizes diagram real estate while maintaining a caption area. Best for technical audiences who need to see intricate details.",
+      "best_for_keywords": [
+        "complex diagram",
+        "architecture blueprint",
+        "system map",
+        "flowchart",
+        "timeline",
+        "roadmap",
+        "large visual"
+      ],
+      "content_schema": {
+        "slide_title": {
+          "type": "string",
+          "max_chars": 60,
+          "max_lines": 1,
+          "alignment": "left",
+          "required": true,
+          "description": "Slide title",
+          "format_type": "plain_text",
+          "format_owner": "layout_builder"
+        },
+        "subtitle": {
+          "type": "string",
+          "max_chars": 80,
+          "max_lines": 1,
+          "alignment": "left",
+          "required": false,
+          "description": "Slide subtitle",
+          "format_type": "plain_text",
+          "format_owner": "layout_builder"
+        },
+        "diagram": {
+          "type": "diagram_placeholder",
+          "aspect_ratio": "29:11",
+          "position": "full-width",
+          "required": true,
+          "description": "Full-width diagram"
+        },
+        "caption": {
+          "type": "string",
+          "max_chars": 150,
+          "max_lines": 1,
+          "alignment": "center",
+          "required": false,
+          "description": "Diagram caption",
+          "format_type": "plain_text",
+          "format_owner": "layout_builder"
+        }
+      }
+    },
+    "L17": {
+      "layout_id": "L17",
+      "name": "Chart + Insights",
+      "slide_type_main": "Content",
+      "slide_subtype": "Chart+Insights",
+      "best_use_case": "Use for data-driven presentations where charts need accompanying interpretation and key insights. Perfect for quarterly reviews, performance reports, market analysis, or any scenario where data visualization requires explanatory context. The split layout balances visual data with textual insights, making complex information more digestible. Ideal for executive presentations and analytical content.",
+      "best_for_keywords": [
+        "data",
+        "chart",
+        "analytics",
+        "performance",
+        "metrics",
+        "quarterly review",
+        "analysis",
+        "insights",
+        "trends",
+        "visualization"
+      ],
+      "content_schema": {
+        "slide_title": {
+          "type": "string",
+          "max_chars": 60,
+          "max_lines": 1,
+          "alignment": "left",
+          "required": true,
+          "description": "Slide title",
+          "format_type": "plain_text",
+          "format_owner": "layout_builder"
+        },
+        "subtitle": {
+          "type": "string",
+          "max_chars": 80,
+          "max_lines": 1,
+          "alignment": "left",
+          "required": false,
+          "description": "Slide subtitle",
+          "format_type": "plain_text",
+          "format_owner": "layout_builder"
+        },
+        "chart": {
+          "type": "chart_placeholder",
+          "aspect_ratio": "17:9",
+          "position": "left",
+          "required": true,
+          "description": "Chart/graph placeholder or URL"
+        },
+        "key_insights": {
+          "type": "array",
+          "item_type": "string",
+          "min_items": 4,
+          "max_items": 6,
+          "max_chars_per_item": 100,
+          "max_lines_per_item": 2,
+          "alignment": "left",
+          "required": true,
+          "description": "Array of key insight bullet points",
+          "format_type": "html",
+          "format_owner": "text_service",
+          "validation_threshold": 0.9,
+          "expected_structure": "ul>li or ol>li"
+        },
+        "summary": {
+          "type": "string",
+          "max_chars": 200,
+          "max_lines": 2,
+          "alignment": "left",
+          "required": false,
+          "description": "Bottom summary box",
+          "format_type": "html",
+          "format_owner": "text_service",
+          "validation_threshold": 0.9,
+          "expected_structure": "p or strong"
+        }
+      }
+    },
+    "L18": {
+      "layout_id": "L18",
+      "name": "Data Table",
+      "slide_type_main": "Content",
+      "slide_subtype": "Table",
+      "best_use_case": "Use for presenting structured data, detailed comparisons, specifications, or any information best organized in rows and columns. Perfect for pricing tables, feature comparisons, financial data, schedules, or inventory lists. The table format allows audiences to scan and compare information efficiently. Best when data precision and detail matter more than visual impact.",
+      "best_for_keywords": [
+        "table",
+        "data",
+        "structured information",
+        "comparison",
+        "specifications",
+        "pricing",
+        "financial",
+        "schedule",
+        "inventory"
+      ],
+      "content_schema": {
+        "slide_title": {
+          "type": "string",
+          "max_chars": 60,
+          "max_lines": 1,
+          "alignment": "left",
+          "required": true,
+          "description": "Slide title",
+          "format_type": "plain_text",
+          "format_owner": "layout_builder"
+        },
+        "subtitle": {
+          "type": "string",
+          "max_chars": 80,
+          "max_lines": 1,
+          "alignment": "left",
+          "required": false,
+          "description": "Slide subtitle",
+          "format_type": "plain_text",
+          "format_owner": "layout_builder"
+        },
+        "table": {
+          "type": "table_placeholder",
+          "rows": 12,
+          "cols": 6,
+          "required": true,
+          "description": "Table data placeholder"
+        }
+      }
+    },
+    "L19": {
+      "layout_id": "L19",
+      "name": "Dashboard Layout",
+      "slide_type_main": "Content",
+      "slide_subtype": "Dashboard",
+      "best_use_case": "Use for displaying key performance indicators (KPIs), metrics dashboards, scorecards, or at-a-glance status updates. Perfect for executive summaries, project health checks, sales performance, or any situation requiring quick visual scanning of multiple metrics. The grid layout (up to 6 metrics) creates a clean, organized presentation of numerical data with labels.",
+      "best_for_keywords": [
+        "KPI",
+        "metrics",
+        "dashboard",
+        "scorecard",
+        "performance indicators",
+        "executive summary",
+        "status update"
+      ],
+      "content_schema": {
+        "slide_title": {
+          "type": "string",
+          "max_chars": 60,
+          "max_lines": 1,
+          "alignment": "left",
+          "required": true,
+          "description": "Slide title",
+          "format_type": "plain_text",
+          "format_owner": "layout_builder"
+        },
+        "subtitle": {
+          "type": "string",
+          "max_chars": 80,
+          "max_lines": 1,
+          "alignment": "left",
+          "required": false,
+          "description": "Slide subtitle",
+          "format_type": "plain_text",
+          "format_owner": "layout_builder"
+        },
+        "metrics": {
+          "type": "array_of_objects",
+          "min_items": 3,
+          "max_items": 6,
+          "item_structure": {
+            "value": {
+              "type": "string",
+              "max_chars": 15,
+              "description": "Metric value (e.g., '42%', '$2.5M')",
+              "format_type": "plain_text",
+              "format_owner": "layout_builder"
+            },
+            "label": {
+              "type": "string",
+              "max_chars": 40,
+              "description": "Metric label (e.g., 'Revenue Growth')",
+              "format_type": "plain_text",
+              "format_owner": "layout_builder"
+            }
+          },
+          "required": true,
+          "description": "Array of KPI metric objects"
+        }
+      }
+    },
+    "L20": {
+      "layout_id": "L20",
+      "name": "Comparison Layout",
+      "slide_type_main": "Content",
+      "slide_subtype": "Comparison",
+      "best_use_case": "Use for side-by-side comparisons, pros/cons analysis, before/after scenarios, or contrasting two options/approaches. Perfect for decision-making presentations, product comparisons, competitive analysis, or highlighting differences. The equal-width columns create visual balance while the list format makes differences easy to scan. Ideal when audiences need to evaluate alternatives.",
+      "best_for_keywords": [
+        "comparison",
+        "vs",
+        "versus",
+        "pros and cons",
+        "before and after",
+        "alternatives",
+        "options",
+        "competitive analysis",
+        "evaluate",
+        "contrast"
+      ],
+      "content_schema": {
+        "slide_title": {
+          "type": "string",
+          "max_chars": 60,
+          "max_lines": 1,
+          "alignment": "left",
+          "required": true,
+          "description": "Slide title",
+          "format_type": "plain_text",
+          "format_owner": "layout_builder"
+        },
+        "subtitle": {
+          "type": "string",
+          "max_chars": 80,
+          "max_lines": 1,
+          "alignment": "left",
+          "required": false,
+          "description": "Slide subtitle",
+          "format_type": "plain_text",
+          "format_owner": "layout_builder"
+        },
+        "left_content": {
+          "type": "object",
+          "structure": {
+            "header": {
+              "type": "string",
+              "max_chars": 30,
+              "description": "Left column header",
+              "format_type": "plain_text",
+              "format_owner": "layout_builder"
+            },
+            "items": {
+              "type": "array",
+              "item_type": "string",
+              "min_items": 5,
+              "max_items": 8,
+              "max_chars_per_item": 80,
+              "description": "Left column bullet points",
+              "format_type": "html",
+              "format_owner": "text_service",
+              "validation_threshold": 0.9,
+              "expected_structure": "ul>li"
+            }
+          },
+          "required": true,
+          "description": "Left comparison column"
+        },
+        "right_content": {
+          "type": "object",
+          "structure": {
+            "header": {
+              "type": "string",
+              "max_chars": 30,
+              "description": "Right column header",
+              "format_type": "plain_text",
+              "format_owner": "layout_builder"
+            },
+            "items": {
+              "type": "array",
+              "item_type": "string",
+              "min_items": 5,
+              "max_items": 8,
+              "max_chars_per_item": 80,
+              "description": "Right column bullet points",
+              "format_type": "html",
+              "format_owner": "text_service",
+              "validation_threshold": 0.9,
+              "expected_structure": "ul>li"
+            }
+          },
+          "required": true,
+          "description": "Right comparison column"
+        }
+      }
+    },
+    "L21": {
+      "layout_id": "L21",
+      "name": "Table + Chart Combo",
+      "slide_type_main": "Content",
+      "slide_subtype": "Table+Chart",
+      "best_use_case": "Use when raw data and visual representation both add value to the narrative. Perfect for financial reports (numbers + trends), performance analysis (metrics + visualization), or any scenario where audiences need both detailed figures and graphical context. The side-by-side layout allows for data verification while maintaining visual engagement. Ideal for analytical presentations requiring both precision and pattern recognition.",
+      "best_for_keywords": [
+        "data and visualization",
+        "financial report",
+        "numbers and trends",
+        "metrics and charts",
+        "analytical",
+        "dual view"
+      ],
+      "content_schema": {
+        "slide_title": {
+          "type": "string",
+          "max_chars": 60,
+          "max_lines": 1,
+          "alignment": "left",
+          "required": true,
+          "description": "Slide title",
+          "format_type": "plain_text",
+          "format_owner": "layout_builder"
+        },
+        "subtitle": {
+          "type": "string",
+          "max_chars": 80,
+          "max_lines": 1,
+          "alignment": "left",
+          "required": false,
+          "description": "Slide subtitle",
+          "format_type": "plain_text",
+          "format_owner": "layout_builder"
+        },
+        "table": {
+          "type": "table_placeholder",
+          "rows": 10,
+          "cols": 4,
+          "position": "left",
+          "required": true,
+          "description": "Left-side data table"
+        },
+        "chart": {
+          "type": "chart_placeholder",
+          "aspect_ratio": "14:12",
+          "position": "right",
+          "required": true,
+          "description": "Right-side chart"
+        }
+      }
+    },
+    "L22": {
+      "layout_id": "L22",
+      "name": "Two Column Layout",
+      "slide_type_main": "Content",
+      "slide_subtype": "Two-Column",
+      "best_use_case": "Use for presenting two related but distinct topics, dual concepts, paired content, or complementary information. Perfect for process steps (step 1 vs step 2), feature pairs, related case studies, or parallel narratives. The equal column width emphasizes balance and parity between topics. More flexible than comparison layout as content doesn't need to be contrasting\u2014just related.",
+      "best_for_keywords": [
+        "two topics",
+        "dual concepts",
+        "paired content",
+        "complementary",
+        "parallel",
+        "balanced",
+        "related"
+      ],
+      "content_schema": {
+        "slide_title": {
+          "type": "string",
+          "max_chars": 60,
+          "max_lines": 1,
+          "alignment": "left",
+          "required": true,
+          "description": "Slide title",
+          "format_type": "plain_text",
+          "format_owner": "layout_builder"
+        },
+        "subtitle": {
+          "type": "string",
+          "max_chars": 80,
+          "max_lines": 1,
+          "alignment": "left",
+          "required": false,
+          "description": "Slide subtitle",
+          "format_type": "plain_text",
+          "format_owner": "layout_builder"
+        },
+        "left_column": {
+          "type": "object",
+          "structure": {
+            "header": {
+              "type": "string",
+              "max_chars": 30,
+              "description": "Left column header",
+              "format_type": "plain_text",
+              "format_owner": "layout_builder"
+            },
+            "content": {
+              "type": "string",
+              "max_chars": 500,
+              "max_lines": 15,
+              "description": "Left column content",
+              "format_type": "html",
+              "format_owner": "text_service",
+              "validation_threshold": 0.9,
+              "expected_structure": "p or ul>li or mixed"
+            }
+          },
+          "required": true,
+          "description": "Left column content"
+        },
+        "right_column": {
+          "type": "object",
+          "structure": {
+            "header": {
+              "type": "string",
+              "max_chars": 30,
+              "description": "Right column header",
+              "format_type": "plain_text",
+              "format_owner": "layout_builder"
+            },
+            "content": {
+              "type": "string",
+              "max_chars": 500,
+              "max_lines": 15,
+              "description": "Right column content",
+              "format_type": "html",
+              "format_owner": "text_service",
+              "validation_threshold": 0.9,
+              "expected_structure": "p or ul>li or mixed"
+            }
+          },
+          "required": true,
+          "description": "Right column content"
+        }
+      }
+    },
+    "L23": {
+      "layout_id": "L23",
+      "name": "Three Column Layout",
+      "slide_type_main": "Content",
+      "slide_subtype": "Three-Column",
+      "best_use_case": "Use for presenting three balanced concepts, pillars, phases, or categories. Perfect for 'good/better/best' tiers, product comparison across three options, three-step processes, or organizational structures with three divisions. The equal-width columns create visual harmony and suggest co-equal importance. Ideal for framework presentations or tiered offerings where three is the natural grouping.",
+      "best_for_keywords": [
+        "three concepts",
+        "pillars",
+        "tiers",
+        "three options",
+        "three steps",
+        "framework",
+        "balanced"
+      ],
+      "content_schema": {
+        "slide_title": {
+          "type": "string",
+          "max_chars": 60,
+          "max_lines": 1,
+          "alignment": "left",
+          "required": true,
+          "description": "Slide title",
+          "format_type": "plain_text",
+          "format_owner": "layout_builder"
+        },
+        "subtitle": {
+          "type": "string",
+          "max_chars": 80,
+          "max_lines": 1,
+          "alignment": "left",
+          "required": false,
+          "description": "Slide subtitle",
+          "format_type": "plain_text",
+          "format_owner": "layout_builder"
+        },
+        "column_1": {
+          "type": "object",
+          "structure": {
+            "header": {
+              "type": "string",
+              "max_chars": 25,
+              "description": "Column 1 header",
+              "format_type": "plain_text",
+              "format_owner": "layout_builder"
+            },
+            "content": {
+              "type": "string",
+              "max_chars": 350,
+              "max_lines": 15,
+              "description": "Column 1 content",
+              "format_type": "html",
+              "format_owner": "text_service",
+              "validation_threshold": 0.9,
+              "expected_structure": "p or ul>li or mixed"
+            }
+          },
+          "required": true,
+          "description": "First column"
+        },
+        "column_2": {
+          "type": "object",
+          "structure": {
+            "header": {
+              "type": "string",
+              "max_chars": 25,
+              "description": "Column 2 header",
+              "format_type": "plain_text",
+              "format_owner": "layout_builder"
+            },
+            "content": {
+              "type": "string",
+              "max_chars": 350,
+              "max_lines": 15,
+              "description": "Column 2 content",
+              "format_type": "html",
+              "format_owner": "text_service",
+              "validation_threshold": 0.9,
+              "expected_structure": "p or ul>li or mixed"
+            }
+          },
+          "required": true,
+          "description": "Second column"
+        },
+        "column_3": {
+          "type": "object",
+          "structure": {
+            "header": {
+              "type": "string",
+              "max_chars": 25,
+              "description": "Column 3 header",
+              "format_type": "plain_text",
+              "format_owner": "layout_builder"
+            },
+            "content": {
+              "type": "string",
+              "max_chars": 350,
+              "max_lines": 15,
+              "description": "Column 3 content",
+              "format_type": "html",
+              "format_owner": "text_service",
+              "validation_threshold": 0.9,
+              "expected_structure": "p or ul>li or mixed"
+            }
+          },
+          "required": true,
+          "description": "Third column"
+        }
+      }
+    },
+    "L24": {
+      "layout_id": "L24",
+      "name": "Quad Layout (2x2 Grid)",
+      "slide_type_main": "Content",
+      "slide_subtype": "Quad-Grid",
+      "best_use_case": "Use for 2\u00d72 matrices, four-quadrant models (like SWOT analysis), four distinct topics of equal importance, or segmented content requiring visual separation. Perfect for framework presentations (Eisenhower Matrix, BCG Matrix), four product features, four team goals, or any content naturally grouped into four categories. The bordered boxes create clear visual separation while maintaining balanced layout.",
+      "best_for_keywords": [
+        "matrix",
+        "four quadrants",
+        "SWOT",
+        "four topics",
+        "2x2",
+        "framework",
+        "segmented",
+        "BCG Matrix"
+      ],
+      "content_schema": {
+        "slide_title": {
+          "type": "string",
+          "max_chars": 60,
+          "max_lines": 1,
+          "alignment": "left",
+          "required": true,
+          "description": "Slide title",
+          "format_type": "plain_text",
+          "format_owner": "layout_builder"
+        },
+        "subtitle": {
+          "type": "string",
+          "max_chars": 80,
+          "max_lines": 1,
+          "alignment": "left",
+          "required": false,
+          "description": "Slide subtitle",
+          "format_type": "plain_text",
+          "format_owner": "layout_builder"
+        },
+        "quad_1": {
+          "type": "object",
+          "structure": {
+            "header": {
+              "type": "string",
+              "max_chars": 25,
+              "description": "Quadrant 1 header (top-left)",
+              "format_type": "plain_text",
+              "format_owner": "layout_builder"
+            },
+            "content": {
+              "type": "string",
+              "max_chars": 250,
+              "max_lines": 7,
+              "description": "Quadrant 1 content",
+              "format_type": "html",
+              "format_owner": "text_service",
+              "validation_threshold": 0.9,
+              "expected_structure": "p or ul>li or mixed"
+            }
+          },
+          "required": true,
+          "description": "Top-left quadrant"
+        },
+        "quad_2": {
+          "type": "object",
+          "structure": {
+            "header": {
+              "type": "string",
+              "max_chars": 25,
+              "description": "Quadrant 2 header (top-right)",
+              "format_type": "plain_text",
+              "format_owner": "layout_builder"
+            },
+            "content": {
+              "type": "string",
+              "max_chars": 250,
+              "max_lines": 7,
+              "description": "Quadrant 2 content",
+              "format_type": "html",
+              "format_owner": "text_service",
+              "validation_threshold": 0.9,
+              "expected_structure": "p or ul>li or mixed"
+            }
+          },
+          "required": true,
+          "description": "Top-right quadrant"
+        },
+        "quad_3": {
+          "type": "object",
+          "structure": {
+            "header": {
+              "type": "string",
+              "max_chars": 25,
+              "description": "Quadrant 3 header (bottom-left)",
+              "format_type": "plain_text",
+              "format_owner": "layout_builder"
+            },
+            "content": {
+              "type": "string",
+              "max_chars": 250,
+              "max_lines": 7,
+              "description": "Quadrant 3 content",
+              "format_type": "html",
+              "format_owner": "text_service",
+              "validation_threshold": 0.9,
+              "expected_structure": "p or ul>li or mixed"
+            }
+          },
+          "required": true,
+          "description": "Bottom-left quadrant"
+        },
+        "quad_4": {
+          "type": "object",
+          "structure": {
+            "header": {
+              "type": "string",
+              "max_chars": 25,
+              "description": "Quadrant 4 header (bottom-right)",
+              "format_type": "plain_text",
+              "format_owner": "layout_builder"
+            },
+            "content": {
+              "type": "string",
+              "max_chars": 250,
+              "max_lines": 7,
+              "description": "Quadrant 4 content",
+              "format_type": "html",
+              "format_owner": "text_service",
+              "validation_threshold": 0.9,
+              "expected_structure": "p or ul>li or mixed"
+            }
+          },
+          "required": true,
+          "description": "Bottom-right quadrant"
+        }
+      }
+    }
+  }
+}

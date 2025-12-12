@@ -1,0 +1,847 @@
+{
+  "version": "2.0.0",
+  "last_updated": "2025-11-25",
+  "source": "Analytics Service v3.7.0 - Chart.js + D3.js Integration",
+  "total_variants": 18,
+  "slide_type": "analytics",
+  "default_layout": "L02",
+  "chart_types": [
+    {
+      "chart_id": "line",
+      "chart_name": "Line Chart",
+      "description": "Displays trends and changes over time with connected data points",
+      "library": "Chart.js",
+      "supported_layouts": ["L02"],
+      "analytics_endpoint": "revenue_over_time",
+      "use_cases": [
+        "Revenue trends over time",
+        "Performance metrics tracking",
+        "Growth trajectories",
+        "Time series analysis",
+        "Continuous data visualization"
+      ],
+      "data_requirements": {
+        "format": "time_series",
+        "min_data_points": 2,
+        "max_data_points": 50,
+        "optimal_data_points": "3-20 points",
+        "label_type": "temporal",
+        "value_type": "numeric"
+      },
+      "best_for": [
+        "Showing trends",
+        "Time-based data",
+        "Continuous progression",
+        "Multiple data series comparison"
+      ],
+      "avoid_when": [
+        "Comparing categories (use bar chart)",
+        "Showing composition (use pie chart)",
+        "Less than 3 data points"
+      ],
+      "example_narrative": "Show quarterly revenue growth highlighting strong Q3-Q4 performance",
+      "example_data": [
+        {"label": "Q1 2024", "value": 125000},
+        {"label": "Q2 2024", "value": 145000},
+        {"label": "Q3 2024", "value": 195000},
+        {"label": "Q4 2024", "value": 220000}
+      ]
+    },
+    {
+      "chart_id": "bar_vertical",
+      "chart_name": "Vertical Bar Chart",
+      "description": "Compares values across different categories with vertical bars",
+      "library": "Chart.js",
+      "supported_layouts": ["L02"],
+      "analytics_endpoint": "quarterly_comparison",
+      "use_cases": [
+        "Quarterly performance comparison",
+        "Product sales by category",
+        "Regional performance",
+        "Department metrics",
+        "Year-over-year comparison"
+      ],
+      "data_requirements": {
+        "format": "categorical",
+        "min_data_points": 2,
+        "max_data_points": 50,
+        "optimal_data_points": "3-12 bars",
+        "label_type": "categorical",
+        "value_type": "numeric"
+      },
+      "best_for": [
+        "Category comparisons",
+        "Discrete data sets",
+        "Ranking visualization",
+        "Period-to-period comparison"
+      ],
+      "avoid_when": [
+        "More than 15 categories (gets cluttered)",
+        "Showing trends over time (use line chart)",
+        "Showing composition (use pie chart)"
+      ],
+      "example_narrative": "Compare quarterly sales performance across product categories",
+      "example_data": [
+        {"label": "Product A", "value": 450000},
+        {"label": "Product B", "value": 380000},
+        {"label": "Product C", "value": 290000},
+        {"label": "Product D", "value": 520000}
+      ]
+    },
+    {
+      "chart_id": "bar_horizontal",
+      "chart_name": "Horizontal Bar Chart",
+      "description": "Compares values across categories with horizontal bars, ideal for long labels",
+      "library": "Chart.js",
+      "supported_layouts": ["L02"],
+      "analytics_endpoint": "category_ranking",
+      "use_cases": [
+        "Rankings and leaderboards",
+        "Survey results",
+        "Long category names",
+        "Top performers",
+        "Comparative metrics"
+      ],
+      "data_requirements": {
+        "format": "categorical",
+        "min_data_points": 2,
+        "max_data_points": 50,
+        "optimal_data_points": "3-12 bars",
+        "label_type": "categorical",
+        "value_type": "numeric"
+      },
+      "best_for": [
+        "Long category labels",
+        "Rankings",
+        "Easier reading from left to right",
+        "Top 10 lists"
+      ],
+      "avoid_when": [
+        "Labels are very short (vertical works better)",
+        "More than 15 items"
+      ],
+      "example_narrative": "Rank top performing regions by revenue",
+      "example_data": [
+        {"label": "North America", "value": 1200000},
+        {"label": "Europe", "value": 980000},
+        {"label": "Asia Pacific", "value": 850000},
+        {"label": "Latin America", "value": 420000}
+      ]
+    },
+    {
+      "chart_id": "pie",
+      "chart_name": "Pie Chart",
+      "description": "Shows composition and relative proportions of a whole",
+      "library": "Chart.js",
+      "supported_layouts": ["L02"],
+      "analytics_endpoint": "market_share",
+      "use_cases": [
+        "Market share distribution",
+        "Budget allocation",
+        "Composition breakdown",
+        "Percentage distribution",
+        "Part-to-whole relationships"
+      ],
+      "data_requirements": {
+        "format": "compositional",
+        "min_data_points": 2,
+        "max_data_points": 50,
+        "optimal_data_points": "3-6 slices",
+        "label_type": "categorical",
+        "value_type": "numeric_positive"
+      },
+      "best_for": [
+        "Showing proportions",
+        "Market share",
+        "Composition (parts of a whole)",
+        "2-6 categories"
+      ],
+      "avoid_when": [
+        "More than 8 categories (too many slices)",
+        "Comparing values (use bar chart)",
+        "Showing trends (use line chart)",
+        "Values are very similar (hard to distinguish)"
+      ],
+      "example_narrative": "Show market share distribution across competitors",
+      "example_data": [
+        {"label": "Company A", "value": 35},
+        {"label": "Company B", "value": 28},
+        {"label": "Company C", "value": 22},
+        {"label": "Others", "value": 15}
+      ]
+    },
+    {
+      "chart_id": "doughnut",
+      "chart_name": "Doughnut Chart",
+      "description": "Similar to pie chart but with hollow center, modern appearance",
+      "library": "Chart.js",
+      "supported_layouts": ["L02"],
+      "analytics_endpoint": "market_share",
+      "use_cases": [
+        "Market share (modern style)",
+        "Budget breakdown",
+        "Composition with central metric",
+        "Resource allocation",
+        "Portfolio distribution"
+      ],
+      "data_requirements": {
+        "format": "compositional",
+        "min_data_points": 2,
+        "max_data_points": 50,
+        "optimal_data_points": "3-6 slices",
+        "label_type": "categorical",
+        "value_type": "numeric_positive"
+      },
+      "best_for": [
+        "Modern, clean aesthetic",
+        "Composition with center space for title/metric",
+        "Professional presentations",
+        "Same use cases as pie chart"
+      ],
+      "avoid_when": [
+        "More than 8 categories",
+        "Traditional/conservative audiences prefer pie"
+      ],
+      "example_narrative": "Visualize customer segment distribution with modern styling",
+      "example_data": [
+        {"label": "Enterprise", "value": 45},
+        {"label": "SMB", "value": 30},
+        {"label": "Startup", "value": 15},
+        {"label": "Non-profit", "value": 10}
+      ]
+    },
+    {
+      "chart_id": "scatter",
+      "chart_name": "Scatter Plot",
+      "description": "Shows relationship between two variables with individual data points",
+      "library": "Chart.js",
+      "supported_layouts": ["L02"],
+      "analytics_endpoint": "correlation_analysis",
+      "use_cases": [
+        "Correlation analysis",
+        "Distribution patterns",
+        "Outlier detection",
+        "Relationship visualization",
+        "Scientific data"
+      ],
+      "data_requirements": {
+        "format": "xy_coordinates",
+        "min_data_points": 10,
+        "max_data_points": 50,
+        "optimal_data_points": "10-50 points",
+        "label_type": "none_or_tooltip",
+        "value_type": "numeric_xy_pairs"
+      },
+      "best_for": [
+        "Showing correlation",
+        "Identifying patterns",
+        "Finding outliers",
+        "Two-variable analysis"
+      ],
+      "avoid_when": [
+        "Less than 10 data points",
+        "Categorical data (use bar chart)",
+        "Time series (use line chart)"
+      ],
+      "example_narrative": "Analyze correlation between marketing spend and revenue",
+      "example_data": [
+        {"x": 10000, "y": 125000},
+        {"x": 15000, "y": 145000},
+        {"x": 20000, "y": 195000},
+        {"x": 25000, "y": 220000},
+        {"x": 12000, "y": 130000}
+      ]
+    },
+    {
+      "chart_id": "bubble",
+      "chart_name": "Bubble Chart",
+      "description": "Scatter plot with third dimension shown as bubble size",
+      "library": "Chart.js",
+      "supported_layouts": ["L02"],
+      "analytics_endpoint": "multidimensional_analysis",
+      "use_cases": [
+        "Three-variable analysis",
+        "Product portfolio analysis",
+        "Risk-return plots",
+        "Market positioning",
+        "Multi-dimensional comparison"
+      ],
+      "data_requirements": {
+        "format": "xyz_coordinates",
+        "min_data_points": 5,
+        "max_data_points": 50,
+        "optimal_data_points": "5-30 bubbles",
+        "label_type": "categorical_or_tooltip",
+        "value_type": "numeric_xyz"
+      },
+      "best_for": [
+        "Three dimensions of data",
+        "Portfolio analysis",
+        "Complex comparisons",
+        "Market segmentation"
+      ],
+      "avoid_when": [
+        "Less than 5 data points",
+        "Simple two-variable data (use scatter)",
+        "Audience unfamiliar with bubble charts"
+      ],
+      "example_narrative": "Show product portfolio with revenue, growth, and market size",
+      "example_data": [
+        {"x": 100000, "y": 15, "r": 50, "label": "Product A"},
+        {"x": 80000, "y": 25, "r": 30, "label": "Product B"},
+        {"x": 120000, "y": 10, "r": 70, "label": "Product C"}
+      ]
+    },
+    {
+      "chart_id": "radar",
+      "chart_name": "Radar Chart",
+      "description": "Displays multiple variables on axes starting from the same center point",
+      "library": "Chart.js",
+      "supported_layouts": ["L02"],
+      "analytics_endpoint": "multi_metric_comparison",
+      "use_cases": [
+        "Skills assessment",
+        "Product comparison across features",
+        "Performance evaluation",
+        "Multi-criteria analysis",
+        "Competitive analysis"
+      ],
+      "data_requirements": {
+        "format": "multi_metric",
+        "min_data_points": 3,
+        "max_data_points": 10,
+        "optimal_data_points": "4-8 metrics",
+        "label_type": "metric_names",
+        "value_type": "normalized_0_100"
+      },
+      "best_for": [
+        "Multiple metrics comparison",
+        "Balanced scorecard",
+        "Skill profiles",
+        "Product feature comparison"
+      ],
+      "avoid_when": [
+        "More than 10 metrics (gets cluttered)",
+        "Metrics on very different scales",
+        "Simple comparisons (use bar chart)"
+      ],
+      "example_narrative": "Compare product features across quality, price, performance, and support",
+      "example_data": [
+        {"label": "Quality", "value": 85},
+        {"label": "Price", "value": 70},
+        {"label": "Performance", "value": 92},
+        {"label": "Support", "value": 78},
+        {"label": "Innovation", "value": 88}
+      ]
+    },
+    {
+      "chart_id": "polar_area",
+      "chart_name": "Polar Area Chart",
+      "description": "Similar to pie chart but uses angles and areas to show proportions",
+      "library": "Chart.js",
+      "supported_layouts": ["L02"],
+      "analytics_endpoint": "radial_composition",
+      "use_cases": [
+        "Cyclical data",
+        "Composition with emphasis on magnitude",
+        "Seasonal patterns",
+        "Directional data",
+        "Angular distribution"
+      ],
+      "data_requirements": {
+        "format": "compositional",
+        "min_data_points": 3,
+        "max_data_points": 12,
+        "optimal_data_points": "4-8 segments",
+        "label_type": "categorical",
+        "value_type": "numeric_positive"
+      },
+      "best_for": [
+        "Cyclical or seasonal data",
+        "Emphasis on magnitude differences",
+        "Visual impact",
+        "Unique data representation"
+      ],
+      "avoid_when": [
+        "Precise comparisons needed (use bar chart)",
+        "Conservative audiences",
+        "More than 10 categories"
+      ],
+      "example_narrative": "Show seasonal sales distribution with visual emphasis on peak months",
+      "example_data": [
+        {"label": "Winter", "value": 120000},
+        {"label": "Spring", "value": 150000},
+        {"label": "Summer", "value": 200000},
+        {"label": "Fall", "value": 175000}
+      ]
+    },
+    {
+      "chart_id": "area",
+      "chart_name": "Area Chart",
+      "description": "Line chart with filled area below, emphasizing cumulative volume and trends",
+      "library": "Chart.js",
+      "supported_layouts": ["L02"],
+      "analytics_endpoint": "revenue_over_time",
+      "use_cases": [
+        "Cumulative trends over time",
+        "Volume visualization",
+        "Total accumulation tracking",
+        "Emphasizing magnitude of change"
+      ],
+      "data_requirements": {
+        "format": "time_series",
+        "min_data_points": 3,
+        "max_data_points": 50,
+        "optimal_data_points": "5-30 points",
+        "label_type": "temporal",
+        "value_type": "numeric"
+      },
+      "best_for": [
+        "Showing volume over time",
+        "Cumulative metrics",
+        "Emphasizing total magnitude",
+        "Professional presentations"
+      ],
+      "avoid_when": [
+        "Need precise value comparison (use line or bar)",
+        "Multiple overlapping series (gets cluttered)",
+        "Less than 3 data points"
+      ],
+      "example_narrative": "Show cumulative revenue growth throughout 2024",
+      "example_data": [
+        {"label": "Q1 2024", "value": 124000},
+        {"label": "Q2 2024", "value": 145000},
+        {"label": "Q3 2024", "value": 178000},
+        {"label": "Q4 2024", "value": 163000}
+      ]
+    },
+    {
+      "chart_id": "bar_grouped",
+      "chart_name": "Grouped Bar Chart",
+      "description": "Side-by-side bars comparing multiple series across categories",
+      "library": "Chart.js",
+      "supported_layouts": ["L02"],
+      "analytics_endpoint": "quarterly_comparison",
+      "use_cases": [
+        "Side-by-side period comparison",
+        "Regional performance comparison",
+        "Product line comparison",
+        "Year-over-year analysis"
+      ],
+      "data_requirements": {
+        "format": "multi_series",
+        "min_data_points": 2,
+        "max_data_points": 30,
+        "optimal_data_points": "3-8 categories with 2-4 series",
+        "label_type": "categorical",
+        "value_type": "numeric"
+      },
+      "best_for": [
+        "Comparing multiple metrics side by side",
+        "Year-over-year comparisons",
+        "Regional or product comparisons",
+        "Clear visual separation of series"
+      ],
+      "avoid_when": [
+        "More than 4 series (gets cluttered)",
+        "Showing composition (use stacked bar)",
+        "Simple single-series data (use regular bar)"
+      ],
+      "example_narrative": "Compare quarterly performance across three regions side by side",
+      "example_data": [
+        {"label": "Q1", "North America": 124, "EMEA": 98, "APAC": 75},
+        {"label": "Q2", "North America": 145, "EMEA": 112, "APAC": 88},
+        {"label": "Q3", "North America": 165, "EMEA": 128, "APAC": 105},
+        {"label": "Q4", "North America": 180, "EMEA": 145, "APAC": 125}
+      ]
+    },
+    {
+      "chart_id": "bar_stacked",
+      "chart_name": "Stacked Bar Chart",
+      "description": "Bars stacked to show composition and total across categories",
+      "library": "Chart.js",
+      "supported_layouts": ["L02"],
+      "analytics_endpoint": "quarterly_comparison",
+      "use_cases": [
+        "Part-to-whole breakdown",
+        "Cost structure analysis",
+        "Revenue composition",
+        "Resource allocation over time"
+      ],
+      "data_requirements": {
+        "format": "multi_series",
+        "min_data_points": 2,
+        "max_data_points": 30,
+        "optimal_data_points": "3-8 categories with 2-5 series",
+        "label_type": "categorical",
+        "value_type": "numeric"
+      },
+      "best_for": [
+        "Showing composition and total simultaneously",
+        "Cost breakdown analysis",
+        "Revenue contribution by segment",
+        "Resource allocation visualization"
+      ],
+      "avoid_when": [
+        "More than 5 series (hard to read)",
+        "Need precise comparisons (use grouped bar)",
+        "Simple totals only (use regular bar)"
+      ],
+      "example_narrative": "Show quarterly cost structure breakdown by department",
+      "example_data": [
+        {"label": "Q1", "Operations": 43, "Sales": 28, "R&D": 24},
+        {"label": "Q2", "Operations": 47, "Sales": 31, "R&D": 26},
+        {"label": "Q3", "Operations": 51, "Sales": 34, "R&D": 29},
+        {"label": "Q4", "Operations": 53, "Sales": 36, "R&D": 29}
+      ]
+    },
+    {
+      "chart_id": "area_stacked",
+      "chart_name": "Stacked Area Chart",
+      "description": "Stacked areas showing cumulative composition over time",
+      "library": "Chart.js",
+      "supported_layouts": ["L02"],
+      "analytics_endpoint": "revenue_over_time",
+      "use_cases": [
+        "Revenue composition over time",
+        "Cumulative growth by segment",
+        "Market share evolution",
+        "Multi-product revenue tracking"
+      ],
+      "data_requirements": {
+        "format": "multi_series",
+        "min_data_points": 3,
+        "max_data_points": 50,
+        "optimal_data_points": "5-20 points with 2-4 series",
+        "label_type": "temporal",
+        "value_type": "numeric"
+      },
+      "best_for": [
+        "Cumulative trends with composition",
+        "Revenue breakdown over time",
+        "Market share evolution",
+        "Contribution analysis"
+      ],
+      "avoid_when": [
+        "More than 5 series (overlapping issues)",
+        "Need precise value reading",
+        "Simple single-line trends (use line or area)"
+      ],
+      "example_narrative": "Show revenue contribution from three product lines over time",
+      "example_data": [
+        {"label": "Q1", "Product A": 50, "Product B": 35, "Product C": 39},
+        {"label": "Q2", "Product A": 58, "Product B": 42, "Product C": 45},
+        {"label": "Q3", "Product A": 71, "Product B": 52, "Product C": 55},
+        {"label": "Q4", "Product A": 65, "Product B": 48, "Product C": 50}
+      ]
+    },
+    {
+      "chart_id": "mixed",
+      "chart_name": "Mixed Chart",
+      "description": "Combines different chart types (line + bar) for complex visualizations",
+      "library": "Chart.js",
+      "supported_layouts": ["L02"],
+      "analytics_endpoint": "kpi_metrics",
+      "use_cases": [
+        "Revenue vs costs comparison",
+        "Actual vs target visualization",
+        "Multiple metric types on same chart",
+        "KPI dashboards"
+      ],
+      "data_requirements": {
+        "format": "multi_series_typed",
+        "min_data_points": 2,
+        "max_data_points": 30,
+        "optimal_data_points": "4-12 points with 2-3 series",
+        "label_type": "temporal_or_categorical",
+        "value_type": "numeric"
+      },
+      "best_for": [
+        "Comparing different metric types",
+        "Revenue and costs on same chart",
+        "Actual vs target visualization",
+        "Advanced business dashboards"
+      ],
+      "avoid_when": [
+        "More than 3 different chart types (confusing)",
+        "Simple comparisons (use single chart type)",
+        "Audience unfamiliar with mixed charts"
+      ],
+      "example_narrative": "Show revenue trend (line) vs quarterly costs (bar) comparison",
+      "example_data": [
+        {"label": "Q1", "Revenue": 125, "Costs": 80},
+        {"label": "Q2", "Revenue": 145, "Costs": 90},
+        {"label": "Q3", "Revenue": 170, "Costs": 110},
+        {"label": "Q4", "Revenue": 195, "Costs": 120}
+      ]
+    },
+    {
+      "chart_id": "d3_treemap",
+      "chart_name": "D3 Treemap",
+      "description": "SVG-based hierarchical treemap showing proportional data as nested rectangles",
+      "library": "D3.js",
+      "supported_layouts": ["L02"],
+      "analytics_endpoint": "market_share",
+      "use_cases": [
+        "Budget allocation by department",
+        "Market share distribution",
+        "Resource allocation visualization",
+        "Portfolio composition",
+        "Hierarchical data breakdowns"
+      ],
+      "data_requirements": {
+        "format": "hierarchical_simple",
+        "min_data_points": 2,
+        "max_data_points": 50,
+        "optimal_data_points": "4-15 rectangles",
+        "label_type": "categorical",
+        "value_type": "numeric_positive"
+      },
+      "best_for": [
+        "Part-to-whole with many categories",
+        "Budget or resource allocation",
+        "Hierarchical data visualization",
+        "When SVG output preferred over Canvas"
+      ],
+      "avoid_when": [
+        "Time series data (use line chart)",
+        "Exact value comparison needed (use bar)",
+        "Less than 4 categories (use pie/doughnut)"
+      ],
+      "example_narrative": "Show department budget allocation with proportional sizing",
+      "example_data": [
+        {"label": "Engineering", "value": 450000},
+        {"label": "Sales", "value": 320000},
+        {"label": "Marketing", "value": 180000},
+        {"label": "Operations", "value": 120000}
+      ]
+    },
+    {
+      "chart_id": "d3_sunburst",
+      "chart_name": "D3 Sunburst",
+      "description": "SVG-based radial hierarchical visualization with concentric circles",
+      "library": "D3.js",
+      "supported_layouts": ["L02"],
+      "analytics_endpoint": "market_share",
+      "use_cases": [
+        "Multi-level budget allocation",
+        "Organizational structure visualization",
+        "Nested data relationships",
+        "Market segmentation breakdown",
+        "Resource distribution hierarchies"
+      ],
+      "data_requirements": {
+        "format": "hierarchical_simple",
+        "min_data_points": 2,
+        "max_data_points": 50,
+        "optimal_data_points": "4-12 segments",
+        "label_type": "categorical",
+        "value_type": "numeric_positive"
+      },
+      "best_for": [
+        "Hierarchical parent-child relationships",
+        "Multi-level budget allocation",
+        "Organizational structures",
+        "Radial layout enhances understanding"
+      ],
+      "avoid_when": [
+        "Time series data (use line chart)",
+        "Simple part-to-whole (use pie or treemap)",
+        "More than 3 hierarchy levels",
+        "Precise value comparison needed"
+      ],
+      "example_narrative": "Display FY2025 budget hierarchy across all departments in circular layout",
+      "example_data": [
+        {"label": "Engineering", "value": 800000},
+        {"label": "Sales", "value": 600000},
+        {"label": "Marketing", "value": 400000},
+        {"label": "Operations", "value": 350000},
+        {"label": "Finance", "value": 200000},
+        {"label": "HR", "value": 150000}
+      ]
+    },
+    {
+      "chart_id": "d3_choropleth_usa",
+      "chart_name": "D3 Choropleth USA Map",
+      "description": "Geographic choropleth map of USA with color-coded states",
+      "library": "D3.js",
+      "supported_layouts": ["L02"],
+      "analytics_endpoint": "market_share",
+      "use_cases": [
+        "Regional sales by state",
+        "Market penetration analysis",
+        "State-by-state performance",
+        "Geographic revenue distribution",
+        "Customer density mapping"
+      ],
+      "data_requirements": {
+        "format": "geographic_usa",
+        "min_data_points": 1,
+        "max_data_points": 50,
+        "optimal_data_points": "5-20 states",
+        "label_type": "state_names_or_abbreviations",
+        "value_type": "numeric"
+      },
+      "best_for": [
+        "Geographic USA data visualization",
+        "State-level performance comparison",
+        "Regional trends and patterns",
+        "Market penetration analysis",
+        "Location-based metrics"
+      ],
+      "avoid_when": [
+        "Non-geographic data (use bar or treemap)",
+        "Time series (use line chart)",
+        "International data (needs different map)",
+        "Fewer than 3 states",
+        "Precise value comparison needed"
+      ],
+      "example_narrative": "Show Q4 sales performance across top 10 states with color-coded map",
+      "example_data": [
+        {"label": "CA", "value": 850000},
+        {"label": "TX", "value": 720000},
+        {"label": "NY", "value": 690000},
+        {"label": "FL", "value": 580000},
+        {"label": "IL", "value": 450000}
+      ]
+    },
+    {
+      "chart_id": "d3_sankey",
+      "chart_name": "D3 Sankey Diagram",
+      "description": "Flow diagram showing allocation and movement between stages",
+      "library": "D3.js",
+      "supported_layouts": ["L02"],
+      "analytics_endpoint": "market_share",
+      "use_cases": [
+        "Budget flow visualization",
+        "Process workflow mapping",
+        "Energy or resource transfer",
+        "Customer journey tracking",
+        "Revenue allocation breakdown"
+      ],
+      "data_requirements": {
+        "format": "flow_based",
+        "min_data_points": 3,
+        "max_data_points": 30,
+        "optimal_data_points": "5-15 flows",
+        "label_type": "source_target_pairs",
+        "value_type": "numeric_positive"
+      },
+      "best_for": [
+        "Flow and allocation visualization",
+        "Process diagrams",
+        "Budget flow from source to destination",
+        "Customer journey mapping",
+        "Resource transfer analysis"
+      ],
+      "avoid_when": [
+        "Simple comparisons (use bar chart)",
+        "Time series (use line chart)",
+        "No clear flow relationship",
+        "Audience unfamiliar with Sankey diagrams"
+      ],
+      "example_narrative": "Show budget allocation flow from revenue to departments to projects",
+      "example_data": [
+        {"label": "Revenue → Engineering", "value": 800000},
+        {"label": "Revenue → Sales", "value": 600000},
+        {"label": "Engineering → Product A", "value": 500000},
+        {"label": "Engineering → Product B", "value": 300000},
+        {"label": "Sales → Marketing", "value": 400000}
+      ]
+    }
+  ],
+  "chart_type_mappings": {
+    "line": "revenue_over_time",
+    "bar_vertical": "quarterly_comparison",
+    "bar_horizontal": "category_ranking",
+    "pie": "market_share",
+    "doughnut": "market_share",
+    "scatter": "correlation_analysis",
+    "bubble": "multidimensional_analysis",
+    "radar": "multi_metric_comparison",
+    "polar_area": "radial_composition",
+    "area": "revenue_over_time",
+    "_DISABLED_bar_grouped": "quarterly_comparison",
+    "_DISABLED_bar_stacked": "quarterly_comparison",
+    "_DISABLED_area_stacked": "revenue_over_time",
+    "_DISABLED_mixed": "kpi_metrics",
+    "d3_treemap": "market_share",
+    "_DISABLED_d3_sunburst": "market_share",
+    "_DISABLED_d3_choropleth_usa": "market_share",
+    "_DISABLED_d3_sankey": "market_share"
+  },
+  "disabled_charts": {
+    "bar_grouped": {
+      "status": "BROKEN",
+      "priority": "P0",
+      "issue": "Multi-series data structure bug - chart generator cannot process {labels, datasets} format",
+      "error_message": "Error: Grouped bar chart requires 'datasets' in data",
+      "tested_date": "2025-11-26",
+      "workaround": "Use bar_vertical for single series comparisons",
+      "analytics_service_version": "v3.1.4"
+    },
+    "bar_stacked": {
+      "status": "BROKEN",
+      "priority": "P0",
+      "issue": "Multi-series data structure bug - wrong data model, blank chart, cannot save edits",
+      "error_message": "Blank chart area, data editor rejects saves",
+      "tested_date": "2025-11-26",
+      "workaround": "Use bar_vertical for single series or separate slides for each series",
+      "analytics_service_version": "v3.1.4"
+    },
+    "area_stacked": {
+      "status": "BROKEN",
+      "priority": "P0",
+      "issue": "Multi-series data structure bug - wrong edit table mapped, 'Failed to save' error",
+      "error_message": "Blank chart, Failed to save error in editor",
+      "tested_date": "2025-11-26",
+      "workaround": "Use area chart for single series trends",
+      "analytics_service_version": "v3.1.4"
+    },
+    "mixed": {
+      "status": "BROKEN",
+      "priority": "P0",
+      "issue": "Multi-series data structure bug - cannot change data points, wrong data model",
+      "error_message": "Blank chart, cannot change data points in editor",
+      "tested_date": "2025-11-26",
+      "workaround": "Use separate line and bar charts on different slides",
+      "analytics_service_version": "v3.1.4"
+    },
+    "d3_sunburst": {
+      "status": "BROKEN",
+      "priority": "P0",
+      "issue": "Internal chart type mapping bug - renders column/bar chart instead of sunburst",
+      "error_message": "Chart renders but shows wrong visualization type (column instead of radial sunburst)",
+      "tested_date": "2025-11-26",
+      "workaround": "Use d3_treemap for hierarchical data or pie chart for simple composition",
+      "analytics_service_version": "v3.1.4",
+      "root_cause": "Analytics Service internal routing maps d3_sunburst to wrong chart generator (column/bar instead of sunburst)",
+      "fix_time_estimate": "15-30 minutes (simple mapping fix)"
+    },
+    "d3_choropleth_usa": {
+      "status": "UNTESTED",
+      "priority": "P1",
+      "issue": "Geographic projection likely not implemented or D3 geo plugin not loaded",
+      "tested_date": "Not tested",
+      "workaround": "Use table layout or bar chart for state-level data",
+      "analytics_service_version": "v3.1.4"
+    },
+    "d3_sankey": {
+      "status": "BROKEN",
+      "priority": "P1",
+      "issue": "Chart.js Sankey plugin CDN not loaded in generated HTML",
+      "error_message": "Blank chart area, no error messages, chart HTML only 2,977 bytes",
+      "tested_date": "2025-11-19",
+      "workaround": "Use waterfall or bar chart for flow visualization",
+      "analytics_service_version": "v3.1.4"
+    }
+  },
+  "notes": {
+    "endpoint_strategy": "Maps chart_id to Analytics Service analytics_type endpoint",
+    "shared_endpoints": "Multiple chart types share endpoints: pie/doughnut/d3_treemap/d3_sunburst/d3_choropleth_usa/d3_sankey all use 'market_share'",
+    "library_support": "Chart.js (14 types) for canvas-based charts, D3.js (4 types) for SVG-based advanced visualizations",
+    "data_validation": "Director should validate data against min/max/optimal points before calling Analytics API",
+    "classification": "Analytics is a slide variant option that Director AI can autonomously select during strawman generation",
+    "integration_version": "Analytics Service v3.7.0 - Full 18 chart type integration"
+  }
+}
