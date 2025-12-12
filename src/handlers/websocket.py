@@ -22,6 +22,7 @@ from src.models.session import SessionV4
 from src.utils.session_manager import SessionManagerV4
 from src.utils.deck_builder_client import DeckBuilderClient  # v4.0.5: Preview generation
 from src.utils.strawman_transformer import StrawmanTransformer  # v4.0.5: Transform for deck-builder
+from src.utils.text_service_client_v1_2 import TextServiceClientV1_2  # v4.0.6: Content generation
 from src.tools.registry import register_all_tools, ToolCall
 from src.storage.supabase import get_supabase_client
 from src.models.websocket_messages import (
@@ -86,6 +87,16 @@ class WebSocketHandlerV4:
         )
         self.strawman_transformer = StrawmanTransformer()
         logger.info(f"Deck Builder Client initialized: {self.settings.DECK_BUILDER_API_URL}")
+
+        # v4.0.6: Initialize Text Service Client for content generation
+        self.text_service_client = TextServiceClientV1_2(
+            base_url=self.settings.TEXT_SERVICE_URL,
+            timeout=self.settings.TEXT_SERVICE_TIMEOUT
+        )
+        logger.info(f"Text Service Client initialized: {self.settings.TEXT_SERVICE_URL}")
+
+        # v4.0.6: Explicit approval phrases for content generation bypass
+        self.explicit_approval_phrases = ['generate', 'create it', 'proceed', 'go ahead', 'make it', 'do it']
 
         # Connection tracking
         self.active_connections: Dict[str, WebSocket] = {}
@@ -229,6 +240,13 @@ class WebSocketHandlerV4:
 
         # Refresh session
         session = await self.session_manager.get_or_create(session.id, session.user_id)
+
+        # v4.0.6: Check for explicit approval with strawman - bypass Decision Engine
+        # This ensures content generation works deterministically like v3.4
+        if self._is_explicit_approval(user_message) and session.has_strawman and not session.has_content:
+            logger.info("Explicit approval detected with strawman - bypassing Decision Engine for content generation")
+            await self._handle_content_generation(websocket, session)
+            return
 
         # Build decision context
         context = self._build_decision_context(session, user_message)
@@ -693,6 +711,250 @@ Would you like me to proceed with this plan, or would you like to make any chang
         await self._send_chat(
             websocket, session,
             f"I encountered an issue: {error}. Please try again."
+        )
+
+    # ========== v4.0.6: Content Generation Methods ==========
+
+    def _is_explicit_approval(self, message: str) -> bool:
+        """
+        Check if message contains explicit approval for content generation.
+
+        v4.0.6: Deterministic check for approval phrases.
+
+        Args:
+            message: User message
+
+        Returns:
+            True if explicit approval detected
+        """
+        message_lower = message.lower().strip()
+
+        for phrase in self.explicit_approval_phrases:
+            if phrase in message_lower:
+                return True
+
+        return False
+
+    async def _handle_content_generation(self, websocket: WebSocket, session: SessionV4):
+        """
+        Handle content generation when user explicitly approves.
+
+        v4.0.6: Bypasses Decision Engine and calls text-service directly.
+        Simplified pipeline (text-service only for content slides).
+
+        Args:
+            websocket: WebSocket connection
+            session: Current session
+        """
+        await self._send_status(websocket, session, "Generating presentation content...")
+
+        try:
+            # 1. Get strawman slides
+            strawman = session.strawman
+            if not strawman:
+                await self._send_chat(websocket, session, "No presentation outline found. Let me create one first.")
+                return
+
+            # 2. Generate content for each slide via text-service
+            logger.info(f"Generating content for {len(strawman.get('slides', []))} slides...")
+            enriched_slides = await self._generate_slide_content(strawman, session)
+
+            # 3. Create final presentation with generated content (v3.4 approach)
+            logger.info("Creating final presentation with generated content...")
+            final_url, final_id = await self._create_final_presentation(enriched_slides, session)
+
+            # 4. Update session
+            await self.session_manager.update_progress(
+                session.id, session.user_id,
+                {
+                    'has_content': True,
+                    'has_explicit_approval': True,
+                    'presentation_url': final_url,
+                    'presentation_id': final_id
+                }
+            )
+
+            # Refresh session
+            session = await self.session_manager.get_or_create(session.id, session.user_id)
+
+            # 5. Send completion message with URL
+            await self._send_presentation_complete(websocket, session, final_url)
+
+        except Exception as e:
+            logger.error(f"Content generation failed: {e}")
+            await self._send_chat(
+                websocket, session,
+                f"Sorry, content generation encountered an error: {str(e)[:100]}"
+            )
+
+    async def _generate_slide_content(
+        self,
+        strawman: Dict[str, Any],
+        session: SessionV4
+    ) -> List[Dict[str, Any]]:
+        """
+        Generate content for all slides in strawman.
+
+        v4.0.6: Calls text-service for content slides, uses transformer for hero slides.
+
+        Args:
+            strawman: Strawman dict with slides
+            session: Current session
+
+        Returns:
+            List of enriched slides with generated content
+        """
+        enriched_slides = []
+        slides = strawman.get('slides', [])
+
+        for idx, slide in enumerate(slides):
+            slide_id = slide.get('slide_id', f'slide_{idx+1}')
+            is_hero = slide.get('is_hero', False)
+            hero_type = slide.get('hero_type')
+
+            if is_hero or hero_type:
+                # Hero slides: Use strawman transformer HTML (no text-service needed)
+                logger.info(f"Slide {idx+1}/{len(slides)}: Hero slide ({hero_type or 'hero'})")
+                html_content = self.strawman_transformer._create_hero_html(slide, hero_type)
+                enriched_slides.append({
+                    'slide_id': slide_id,
+                    'layout': 'L29',
+                    'content': html_content,
+                    'is_hero': True,
+                    'hero_type': hero_type
+                })
+            else:
+                # Content slides: Call text-service
+                logger.info(f"Slide {idx+1}/{len(slides)}: Content slide - calling text-service")
+                try:
+                    # Build v1.2 request
+                    request = {
+                        'variant_id': slide.get('variant_id', 'V01'),
+                        'slide_spec': {
+                            'generated_title': slide.get('title', '')[:50],
+                            'key_points': slide.get('topics', []),
+                            'narrative': slide.get('notes', ''),
+                            'layout_id': slide.get('layout', 'L01')
+                        },
+                        'presentation_spec': {
+                            'audience': session.audience or 'general',
+                            'tone': session.tone or 'professional'
+                        },
+                        'enable_parallel': True,
+                        'validate_character_counts': True
+                    }
+
+                    result = await self.text_service_client.generate(request)
+
+                    enriched_slides.append({
+                        'slide_id': slide_id,
+                        'layout': 'L25',
+                        'content': result.content if hasattr(result, 'content') else str(result),
+                        'is_hero': False,
+                        'title': slide.get('title', '')
+                    })
+                    logger.info(f"  ✅ Text service generated content for slide {idx+1}")
+
+                except Exception as e:
+                    logger.error(f"  ❌ Text service failed for slide {idx+1}: {e}")
+                    # Fallback: use strawman transformer content
+                    fallback_html = self.strawman_transformer._create_content_html(slide)
+                    enriched_slides.append({
+                        'slide_id': slide_id,
+                        'layout': 'L25',
+                        'content': fallback_html,
+                        'is_hero': False,
+                        'title': slide.get('title', ''),
+                        'fallback': True
+                    })
+
+        return enriched_slides
+
+    async def _create_final_presentation(
+        self,
+        enriched_slides: List[Dict[str, Any]],
+        session: SessionV4
+    ) -> tuple:
+        """
+        Create final presentation with generated content.
+
+        v4.0.6: Creates NEW presentation with enriched content (v3.4 approach).
+
+        Args:
+            enriched_slides: List of slides with generated content
+            session: Current session
+
+        Returns:
+            Tuple of (presentation_url, presentation_id)
+        """
+        # Build presentation payload
+        slides_payload = []
+
+        for slide in enriched_slides:
+            if slide.get('is_hero') or slide.get('layout') == 'L29':
+                slides_payload.append({
+                    'layout': 'L29',
+                    'content': {'hero_content': slide['content']}
+                })
+            else:
+                slides_payload.append({
+                    'layout': 'L25',
+                    'content': {
+                        'slide_title': slide.get('title', ''),
+                        'rich_content': slide['content']
+                    }
+                })
+
+        # Create NEW presentation (v3.4 approach - not update)
+        presentation_data = {
+            'title': session.topic or session.initial_request or 'Presentation',
+            'slides': slides_payload
+        }
+
+        logger.info(f"Creating final presentation with {len(slides_payload)} slides...")
+        api_response = await self.deck_builder_client.create_presentation(presentation_data)
+
+        final_url = self.deck_builder_client.get_full_url(api_response['url'])
+        final_id = api_response['id']
+
+        logger.info(f"Final presentation created: {final_url} (id: {final_id})")
+        return final_url, final_id
+
+    async def _send_presentation_complete(
+        self,
+        websocket: WebSocket,
+        session: SessionV4,
+        presentation_url: str
+    ):
+        """
+        Send presentation completion message with URL.
+
+        v4.0.6: Sends both chat message and presentation_url message.
+
+        Args:
+            websocket: WebSocket connection
+            session: Current session
+            presentation_url: Final presentation URL
+        """
+        # Count slides
+        slide_count = len(session.strawman.get('slides', [])) if session.strawman else 0
+        topic = session.topic or session.initial_request or 'your presentation'
+
+        # Send presentation URL message
+        url_msg = create_presentation_url(
+            session_id=session.id,
+            url=presentation_url,
+            presentation_id=session.presentation_id or '',
+            message=f"Your presentation '{topic}' with {slide_count} slides is ready!"
+        )
+        await websocket.send_json(url_msg.model_dump(mode='json'))
+
+        # Send chat message
+        await self._send_chat(
+            websocket, session,
+            f"🎉 Your presentation is ready!\n\n"
+            f"**{topic}** - {slide_count} slides\n\n"
+            f"[View Presentation]({presentation_url})"
         )
 
 

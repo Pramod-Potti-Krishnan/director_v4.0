@@ -1,5 +1,5 @@
 """
-Strawman Transformer for v4.0.5
+Strawman Transformer for v4.0.6
 
 Transforms strawman data to deck-builder API format for preview generation.
 
@@ -9,6 +9,8 @@ generating preview presentations during the strawman phase.
 Layouts:
 - L29: Hero slides (title, section dividers, closing)
 - L25: Content slides (rich content area)
+
+v4.0.6: Enhanced title slide handling with dedicated method.
 """
 import logging
 from typing import Dict, Any, List
@@ -21,6 +23,7 @@ class StrawmanTransformer:
     Transform strawman data to deck-builder API format.
 
     v4.0.5: Simplified transformer for preview generation only.
+    v4.0.6: Enhanced title slide with dedicated handler.
     """
 
     def transform(self, strawman_dict: Dict[str, Any], topic: str) -> Dict[str, Any]:
@@ -44,6 +47,9 @@ class StrawmanTransformer:
         """
         transformed_slides = []
 
+        # v4.0.6: Get presentation title early for title slide
+        presentation_title = strawman_dict.get('title', topic) or 'Untitled Presentation'
+
         for slide in strawman_dict.get('slides', []):
             # Determine if this is a hero slide or content slide
             is_hero = slide.get('is_hero', False)
@@ -51,10 +57,16 @@ class StrawmanTransformer:
 
             if is_hero or hero_type:
                 # Hero slide -> L29
+                # v4.0.6: Use dedicated title slide handler for title_slide type
+                if hero_type == 'title_slide':
+                    html_content = self._create_title_slide_html(presentation_title, slide)
+                else:
+                    html_content = self._create_hero_html(slide, hero_type)
+
                 transformed_slides.append({
                     'layout': 'L29',
                     'content': {
-                        'hero_content': self._create_hero_html(slide, hero_type)
+                        'hero_content': html_content
                     }
                 })
             else:
@@ -67,9 +79,7 @@ class StrawmanTransformer:
                     }
                 })
 
-        presentation_title = strawman_dict.get('title', topic) or 'Untitled Presentation'
-
-        logger.info(f"Transformed {len(transformed_slides)} slides for preview")
+        logger.info(f"Transformed {len(transformed_slides)} slides for preview (title: {presentation_title})")
 
         return {
             'title': presentation_title,
@@ -120,7 +130,7 @@ class StrawmanTransformer:
 </div>
 '''
         else:
-            # Title slide (default)
+            # Generic hero slide (default) - for unspecified hero types
             return f'''
 <div style="display:flex;flex-direction:column;justify-content:center;align-items:center;
             text-align:center;height:100%;padding:60px;">
@@ -128,6 +138,39 @@ class StrawmanTransformer:
         {title}
     </h1>
     <p style="font-size:32px;color:#6b7280;margin:0;max-width:80%;line-height:1.5;">
+        {subtitle}
+    </p>
+</div>
+'''
+
+    def _create_title_slide_html(self, presentation_title: str, slide: Dict[str, Any]) -> str:
+        """
+        Create HTML specifically for title slide (first slide).
+
+        v4.0.6: Dedicated handler for title slides with prominent presentation title
+        and gradient background for visual impact.
+
+        Args:
+            presentation_title: The main presentation title (from strawman.title or topic)
+            slide: Slide data with optional subtitle from topics/notes
+
+        Returns:
+            HTML string for hero_content field
+        """
+        topics = slide.get('topics', [])
+        notes = slide.get('notes', '')
+
+        # Use first topic as subtitle, or notes
+        subtitle = topics[0] if topics else notes
+
+        return f'''
+<div style="display:flex;flex-direction:column;justify-content:center;align-items:center;
+            text-align:center;height:100%;padding:60px;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);">
+    <h1 style="font-size:72px;font-weight:bold;color:#ffffff;margin:0 0 24px 0;line-height:1.2;
+               text-shadow:2px 2px 4px rgba(0,0,0,0.3);">
+        {presentation_title}
+    </h1>
+    <p style="font-size:28px;color:#f0f0f0;margin:0;max-width:80%;line-height:1.5;">
         {subtitle}
     </p>
 </div>
