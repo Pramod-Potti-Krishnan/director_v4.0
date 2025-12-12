@@ -188,7 +188,7 @@ You must return a structured decision with:
             self.agent = Agent(
                 model=model_id,
                 system_prompt=self.system_prompt,
-                result_type=DecisionOutput,
+                output_type=DecisionOutput,
                 model_settings=ModelSettings(
                     temperature=0.3,  # Lower temperature for more consistent decisions
                     max_tokens=2000
@@ -457,7 +457,7 @@ class StrawmanGenerator:
             self.agent = Agent(
                 model=model_id,
                 system_prompt=self._get_system_prompt(),
-                result_type=Strawman,
+                output_type=Strawman,
                 model_settings=ModelSettings(
                     temperature=0.5,
                     max_tokens=4000
