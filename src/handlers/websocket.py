@@ -24,6 +24,7 @@ from src.tools.registry import register_all_tools, ToolCall
 from src.storage.supabase import get_supabase_client
 from src.models.websocket_messages import (
     StreamlinedMessage,
+    StatusLevel,
     create_chat_message,
     create_status_update,
     create_slide_update,
@@ -534,9 +535,9 @@ Would you like me to proceed with this plan, or would you like to make any chang
         chat_msg = create_chat_message(session.id, message)
         await websocket.send_json(chat_msg.model_dump(mode='json'))
 
-    async def _send_status(self, websocket: WebSocket, session: SessionV4, message: str):
+    async def _send_status(self, websocket: WebSocket, session: SessionV4, message: str, status: StatusLevel = StatusLevel.THINKING):
         """Send status update."""
-        status_msg = create_status_update(session.id, message)
+        status_msg = create_status_update(session.id, status, message)
         await websocket.send_json(status_msg.model_dump(mode='json'))
 
     async def _send_slide_update(self, websocket: WebSocket, session: SessionV4, strawman: Dict):
