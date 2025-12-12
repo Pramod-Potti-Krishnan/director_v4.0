@@ -787,6 +787,35 @@ Would you like me to proceed with this plan, or would you like to make any chang
                 f"Sorry, content generation encountered an error: {str(e)[:100]}"
             )
 
+    def _select_variant_for_slide(self, slide: Dict[str, Any]) -> str:
+        """
+        Select appropriate text-service variant based on slide content.
+
+        v4.0.7: Simple count-based selection using valid variants from registry.
+        This fixes HTTP 422 errors caused by invalid variant_id.
+
+        Args:
+            slide: Slide dict with 'topics' list
+
+        Returns:
+            Valid variant_id for text-service v1.2
+        """
+        topics = slide.get('topics', [])
+        topic_count = len(topics)
+
+        # Select variant based on topic count
+        # All variants verified valid in config/unified_variant_registry.json
+        if topic_count <= 2:
+            return 'comparison_2col'  # Good for pros/cons, before/after
+        elif topic_count == 3:
+            return 'sequential_3col'  # Good for 3-step processes
+        elif topic_count == 4:
+            return 'grid_2x2_centered'  # 2x2 grid with icons
+        elif topic_count == 5:
+            return 'sequential_5col'  # 5-step process
+        else:
+            return 'grid_2x3'  # 6+ items, use 2x3 grid (default)
+
     async def _generate_slide_content(
         self,
         strawman: Dict[str, Any],
@@ -795,7 +824,7 @@ Would you like me to proceed with this plan, or would you like to make any chang
         """
         Generate content for all slides in strawman.
 
-        v4.0.6: Calls text-service for content slides, uses transformer for hero slides.
+        v4.0.7: Uses variant selector for content slides, uses transformer for hero slides.
 
         Args:
             strawman: Strawman dict with slides
@@ -834,13 +863,15 @@ Would you like me to proceed with this plan, or would you like to make any chang
                 # Content slides: Call text-service
                 logger.info(f"Slide {idx+1}/{len(slides)}: Content slide - calling text-service")
                 try:
-                    # Build v1.2 request with correct format
-                    # See text_service_client_v1_2.py for expected format
+                    # v4.0.7: Select variant based on topic count
+                    variant_id = self._select_variant_for_slide(slide)
                     topics = slide.get('topics', [])
+                    logger.info(f"  → Selected variant: {variant_id} ({len(topics)} topics)")
+
                     key_message = ' | '.join(topics[:3]) if topics else slide.get('title', '')
 
                     request = {
-                        'variant_id': slide.get('variant_id', 'bullet_list_3'),
+                        'variant_id': variant_id,  # v4.0.7: From selector, not hardcoded
                         'slide_spec': {
                             'slide_title': slide.get('title', 'Slide'),
                             'slide_purpose': slide.get('notes', f"Present key points about {slide.get('title', 'this topic')}"),
