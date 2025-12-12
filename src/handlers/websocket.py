@@ -63,13 +63,13 @@ class WebSocketHandlerV4:
         # Initialize Decision Engine
         self.decision_engine = DecisionEngine(
             tool_registry=self.tool_registry,
-            model_name=getattr(self.settings, 'GCP_MODEL_DECISION', 'gemini-2.5-flash-preview-05-20')
+            model_name=getattr(self.settings, 'GCP_MODEL_DECISION', 'gemini-2.0-flash-exp')
         )
         logger.info("Decision Engine initialized")
 
         # Initialize Strawman Generator
         self.strawman_generator = StrawmanGenerator(
-            model_name=getattr(self.settings, 'GCP_MODEL_STRAWMAN', 'gemini-2.5-flash-preview-05-20')
+            model_name=getattr(self.settings, 'GCP_MODEL_STRAWMAN', 'gemini-2.0-flash-exp')
         )
         logger.info("Strawman Generator initialized")
 
