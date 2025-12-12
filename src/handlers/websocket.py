@@ -129,9 +129,15 @@ class WebSocketHandlerV4:
             while True:
                 # Receive message
                 raw_data = await websocket.receive_text()
+
+                # v3.4 compatibility: Handle raw "ping" string (before JSON parsing)
+                if raw_data.strip() == "ping":
+                    await websocket.send_text("pong")
+                    continue
+
                 data = json.loads(raw_data)
 
-                # Handle ping/pong
+                # Handle JSON ping/pong
                 if data.get('type') == 'ping':
                     await websocket.send_json({'type': 'pong', 'timestamp': datetime.utcnow().isoformat()})
                     continue
@@ -158,26 +164,47 @@ class WebSocketHandlerV4:
         """
         Process incoming WebSocket message using Decision Engine.
 
+        Supports both v4.0 and v3.4 message formats for backward compatibility.
+
+        v4.0 format: {"type": "chat_message", "payload": {"content": "..."}}
+        v3.4 format: {"type": "user_message", "data": {"text": "..."}}
+
         Args:
             websocket: WebSocket connection
             session: Current session
             data: Incoming message data
         """
         message_type = data.get('type', 'chat_message')
-        payload = data.get('payload', {})
 
-        # Extract user message
+        # v3.4 compatibility: user_message -> chat_message
+        if message_type == 'user_message':
+            message_type = 'chat_message'
+
+        # Extract user message based on format
+        user_message = ''
+
         if message_type == 'chat_message':
+            # Try v4.0 format first: payload.content
+            payload = data.get('payload', {})
             user_message = payload.get('content', payload.get('message', ''))
+
+            # Fallback to v3.4 format: data.text
+            if not user_message:
+                v34_data = data.get('data', {})
+                user_message = v34_data.get('text', '')
+
         elif message_type == 'action_request':
             # Convert action to message
+            payload = data.get('payload', {})
             action = payload.get('action', '')
             user_message = f"[ACTION: {action}] {payload.get('message', '')}"
         else:
             logger.warning(f"Unknown message type: {message_type}")
             return
 
-        if not user_message:
+        # v3.4 compatibility: Validate non-empty input
+        if not user_message or not user_message.strip():
+            logger.warning(f"Received empty/whitespace user input, ignoring")
             return
 
         logger.info(f"Processing message: {user_message[:100]}...")
