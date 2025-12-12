@@ -815,7 +815,14 @@ Would you like me to proceed with this plan, or would you like to make any chang
             if is_hero or hero_type:
                 # Hero slides: Use strawman transformer HTML (no text-service needed)
                 logger.info(f"Slide {idx+1}/{len(slides)}: Hero slide ({hero_type or 'hero'})")
-                html_content = self.strawman_transformer._create_hero_html(slide, hero_type)
+
+                # v4.0.6: Use dedicated title slide handler for title_slide type
+                if hero_type == 'title_slide':
+                    presentation_title = session.topic or session.initial_request or 'Untitled Presentation'
+                    html_content = self.strawman_transformer._create_title_slide_html(presentation_title, slide)
+                else:
+                    html_content = self.strawman_transformer._create_hero_html(slide, hero_type)
+
                 enriched_slides.append({
                     'slide_id': slide_id,
                     'layout': 'L29',
@@ -827,21 +834,28 @@ Would you like me to proceed with this plan, or would you like to make any chang
                 # Content slides: Call text-service
                 logger.info(f"Slide {idx+1}/{len(slides)}: Content slide - calling text-service")
                 try:
-                    # Build v1.2 request
+                    # Build v1.2 request with correct format
+                    # See text_service_client_v1_2.py for expected format
+                    topics = slide.get('topics', [])
+                    key_message = ' | '.join(topics[:3]) if topics else slide.get('title', '')
+
                     request = {
-                        'variant_id': slide.get('variant_id', 'V01'),
+                        'variant_id': slide.get('variant_id', 'bullet_list_3'),
                         'slide_spec': {
-                            'generated_title': slide.get('title', '')[:50],
-                            'key_points': slide.get('topics', []),
-                            'narrative': slide.get('notes', ''),
-                            'layout_id': slide.get('layout', 'L01')
+                            'slide_title': slide.get('title', 'Slide'),
+                            'slide_purpose': slide.get('notes', f"Present key points about {slide.get('title', 'this topic')}"),
+                            'key_message': key_message,
+                            'tone': session.tone or 'professional',
+                            'audience': session.audience or 'general audience'
                         },
                         'presentation_spec': {
-                            'audience': session.audience or 'general',
-                            'tone': session.tone or 'professional'
+                            'presentation_title': session.topic or session.initial_request or 'Presentation',
+                            'presentation_type': session.purpose or 'Informational',
+                            'current_slide_number': idx + 1,
+                            'total_slides': len(slides)
                         },
                         'enable_parallel': True,
-                        'validate_character_counts': True
+                        'validate_character_counts': False
                     }
 
                     result = await self.text_service_client.generate(request)
@@ -945,6 +959,7 @@ Would you like me to proceed with this plan, or would you like to make any chang
             session_id=session.id,
             url=presentation_url,
             presentation_id=session.presentation_id or '',
+            slide_count=slide_count,
             message=f"Your presentation '{topic}' with {slide_count} slides is ready!"
         )
         await websocket.send_json(url_msg.model_dump(mode='json'))
