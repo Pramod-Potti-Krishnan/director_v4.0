@@ -227,9 +227,10 @@ You must return a structured decision with:
                 from src.utils.vertex_retry import call_with_retry
 
                 # Call agent with retry logic for 429 errors
+                # Note: call_with_retry expects a callable with no args
                 result = await call_with_retry(
-                    self.agent.run,
-                    prompt
+                    lambda: self.agent.run(prompt),
+                    operation_name="Decision Engine"
                 )
                 decision = result.data
 
@@ -511,7 +512,10 @@ Generate a complete strawman with appropriate number of slides for the duration.
 
         try:
             from src.utils.vertex_retry import call_with_retry
-            result = await call_with_retry(self.agent.run, prompt)
+            result = await call_with_retry(
+                lambda: self.agent.run(prompt),
+                operation_name="Strawman Generator"
+            )
             return result.data
         except Exception as e:
             logger.error(f"Strawman generation failed: {e}")
