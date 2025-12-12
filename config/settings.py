@@ -33,26 +33,21 @@ class Settings(BaseSettings):
     # For local development, use: gcloud auth application-default login
     GCP_SERVICE_ACCOUNT_JSON: Optional[str] = Field(None, env="GCP_SERVICE_ACCOUNT_JSON")
 
-    # v3.3: Granular AI Model Configuration (Gemini via Vertex AI Only)
-    # Each stage uses its own configurable model for maximum cost/performance optimization
+    # v4.0: AI Model Configuration (Gemini via Vertex AI Only)
+    # v4.0 uses a Decision Engine instead of per-stage models
     # Note: Model names should NOT include 'google-vertex:' prefix (added automatically by code)
 
-    # Stage 1: Greeting generation (simple, short response)
-    GCP_MODEL_GREETING: str = Field("gemini-1.5-flash", env="GCP_MODEL_GREETING")
+    # v4.0: Decision Engine model - the main AI that decides what action to take
+    GCP_MODEL_DECISION: str = Field("gemini-2.0-flash-exp", env="GCP_MODEL_DECISION")
 
-    # Stage 2: Clarifying questions (structured JSON output)
-    GCP_MODEL_QUESTIONS: str = Field("gemini-1.5-flash", env="GCP_MODEL_QUESTIONS")
-
-    # Stage 3: Confirmation plan (structured JSON output)
-    GCP_MODEL_PLAN: str = Field("gemini-1.5-flash", env="GCP_MODEL_PLAN")
-
-    # Stage 4: Strawman generation (complex, detailed presentation outline)
+    # Strawman generation (complex, detailed presentation outline)
     GCP_MODEL_STRAWMAN: str = Field("gemini-2.0-flash-exp", env="GCP_MODEL_STRAWMAN")
 
-    # Stage 5: Strawman refinement (complex, detailed modifications)
+    # Legacy v3.x model settings (kept for backward compatibility)
+    GCP_MODEL_GREETING: str = Field("gemini-1.5-flash", env="GCP_MODEL_GREETING")
+    GCP_MODEL_QUESTIONS: str = Field("gemini-1.5-flash", env="GCP_MODEL_QUESTIONS")
+    GCP_MODEL_PLAN: str = Field("gemini-1.5-flash", env="GCP_MODEL_PLAN")
     GCP_MODEL_REFINE: str = Field("gemini-2.0-flash-exp", env="GCP_MODEL_REFINE")
-
-    # Intent classification router (fast, high-volume classification)
     GCP_MODEL_ROUTER: str = Field("gemini-1.5-flash", env="GCP_MODEL_ROUTER")
     
     # Logging

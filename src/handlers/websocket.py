@@ -60,18 +60,20 @@ class WebSocketHandlerV4:
         self.tool_registry = register_all_tools()
         logger.info(f"Tool Registry initialized with {len(self.tool_registry.get_tool_ids())} tools")
 
-        # Initialize Decision Engine
+        # Initialize Decision Engine with configurable model
+        decision_model = self.settings.GCP_MODEL_DECISION
         self.decision_engine = DecisionEngine(
             tool_registry=self.tool_registry,
-            model_name=getattr(self.settings, 'GCP_MODEL_DECISION', 'gemini-2.0-flash-exp')
+            model_name=decision_model
         )
-        logger.info("Decision Engine initialized")
+        logger.info(f"Decision Engine initialized with model: {decision_model}")
 
-        # Initialize Strawman Generator
+        # Initialize Strawman Generator with configurable model
+        strawman_model = self.settings.GCP_MODEL_STRAWMAN
         self.strawman_generator = StrawmanGenerator(
-            model_name=getattr(self.settings, 'GCP_MODEL_STRAWMAN', 'gemini-2.0-flash-exp')
+            model_name=strawman_model
         )
-        logger.info("Strawman Generator initialized")
+        logger.info(f"Strawman Generator initialized with model: {strawman_model}")
 
         # Connection tracking
         self.active_connections: Dict[str, WebSocket] = {}
