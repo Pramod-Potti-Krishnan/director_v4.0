@@ -17,7 +17,6 @@ import logging
 from typing import Dict, Any, Optional, List
 from pathlib import Path
 from pydantic_ai import Agent
-from pydantic_ai.settings import ModelSettings
 
 from src.models.decision import (
     DecisionOutput, DecisionContext, ActionType,
@@ -188,11 +187,7 @@ You must return a structured decision with:
             self.agent = Agent(
                 model=model_id,
                 system_prompt=self.system_prompt,
-                output_type=DecisionOutput,
-                model_settings=ModelSettings(
-                    temperature=0.3,  # Lower temperature for more consistent decisions
-                    max_tokens=2000
-                )
+                output_type=DecisionOutput
             )
 
             logger.info(f"Decision Agent initialized with Vertex AI model: {model_id}")
@@ -457,11 +452,7 @@ class StrawmanGenerator:
             self.agent = Agent(
                 model=model_id,
                 system_prompt=self._get_system_prompt(),
-                output_type=Strawman,
-                model_settings=ModelSettings(
-                    temperature=0.5,
-                    max_tokens=4000
-                )
+                output_type=Strawman
             )
             logger.info("StrawmanGenerator agent initialized")
         except Exception as e:
