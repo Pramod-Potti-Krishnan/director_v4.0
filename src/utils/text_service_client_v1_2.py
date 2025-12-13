@@ -52,9 +52,13 @@ class TextServiceClientV1_2:
             f"(url: {self.base_url}, timeout: {self.timeout}s)"
         )
 
-    async def generate(self, request: Dict[str, Any]) -> GeneratedText:
+    async def generate(self, request: Dict[str, Any], max_retries: int = 2) -> GeneratedText:
         """
-        Generate slide content using v1.2 element-based API.
+        Generate slide content using v1.2 element-based API with retry logic.
+
+        v4.0.17: Added retry logic for transient LLM generation failures.
+        When Text Service LLM generates incomplete content (missing sentence_5, etc.),
+        it returns HTTP 400/422. This method retries such failures.
 
         Args:
             request: V1_2_GenerationRequest dict with:
@@ -63,6 +67,7 @@ class TextServiceClientV1_2:
                 - presentation_spec: PresentationSpecification dict
                 - enable_parallel: bool (default: True)
                 - validate_character_counts: bool (default: True)
+            max_retries: Maximum retry attempts for LLM generation errors (default: 2)
 
         Returns:
             GeneratedText with:
@@ -70,12 +75,54 @@ class TextServiceClientV1_2:
                 - metadata: Generation metadata
 
         Raises:
-            Exception: On API errors or timeouts
+            Exception: On API errors or timeouts after all retries exhausted
         """
-        endpoint = f"{self.base_url}/v1.2/generate"
+        last_exception = None
 
-        # v4.0.14: Add timing
+        for attempt in range(max_retries + 1):
+            try:
+                return await self._generate_once(request)
+            except Exception as e:
+                last_exception = e
+                error_msg = str(e).lower()
+
+                # v4.0.17: Check if this is a retryable LLM generation error
+                is_retryable = (
+                    "sentence_" in error_msg or
+                    "generated_content" in error_msg or
+                    "llm generation failed" in error_msg or
+                    "elementcontent" in error_msg or
+                    "input should be a valid string" in error_msg
+                )
+
+                if is_retryable and attempt < max_retries:
+                    wait_time = 2 ** attempt  # 1s, 2s exponential backoff
+                    logger.warning(
+                        f"Text Service LLM generation incomplete "
+                        f"(attempt {attempt + 1}/{max_retries + 1}), "
+                        f"retrying in {wait_time}s: {str(e)[:150]}"
+                    )
+                    await asyncio.sleep(wait_time)
+                    continue
+                else:
+                    # Non-retryable or max retries exceeded
+                    if attempt > 0:
+                        logger.error(
+                            f"Text Service failed after {attempt + 1} attempts: {e}"
+                        )
+                    break
+
+        # All retries failed
+        raise last_exception
+
+    async def _generate_once(self, request: Dict[str, Any]) -> GeneratedText:
+        """
+        Single attempt at content generation (internal method).
+
+        v4.0.17: Extracted from generate() to support retry logic.
+        """
         import time
+        endpoint = f"{self.base_url}/v1.2/generate"
         start_time = time.time()
 
         try:

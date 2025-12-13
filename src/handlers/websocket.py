@@ -1126,20 +1126,13 @@ class WebSocketHandlerV4:
                     logger.info(f"  ✅ Text service generated content for slide {idx+1}")
 
                 except Exception as e:
-                    # v4.0.14: Enhanced error logging with exception type and traceback
-                    import traceback
-                    tb = traceback.format_exc()
-                    logger.error(
-                        f"  ❌ Text service failed for slide {idx+1}:\n"
+                    # v4.0.17: Changed from error to warning - fallback is graceful degradation
+                    logger.warning(
+                        f"  ⚠️ Text service failed for slide {idx+1}, using fallback:\n"
                         f"      Exception type: {type(e).__name__}\n"
-                        f"      Message: {e}\n"
-                        f"      Request details:\n"
-                        f"        variant_id: {request.get('variant_id')}\n"
-                        f"        slide_title: {request.get('slide_spec', {}).get('slide_title')}\n"
-                        f"        key_message: {request.get('slide_spec', {}).get('key_message')[:50] if request.get('slide_spec', {}).get('key_message') else 'N/A'}...\n"
-                        f"        tone: {request.get('slide_spec', {}).get('tone')}\n"
-                        f"        audience: {request.get('slide_spec', {}).get('audience')}\n"
-                        f"      Traceback:\n{tb}"
+                        f"      Message: {str(e)[:200]}\n"
+                        f"      Variant: {request.get('variant_id')}\n"
+                        f"      Title: {request.get('slide_spec', {}).get('slide_title')}"
                     )
                     # Fallback: use strawman transformer content
                     fallback_html = self.strawman_transformer._create_content_html(slide)
@@ -1149,8 +1142,18 @@ class WebSocketHandlerV4:
                         'content': fallback_html,
                         'is_hero': False,
                         'title': slide.get('title', ''),
-                        'fallback': True
+                        'fallback': True  # v4.0.17: Track fallback usage
                     })
+
+        # v4.0.17: Log fallback usage summary
+        fallback_count = sum(1 for s in enriched_slides if s.get('fallback'))
+        total_count = len(enriched_slides)
+        if fallback_count > 0:
+            logger.warning(
+                f"Content generation complete: {fallback_count}/{total_count} slides used fallback HTML"
+            )
+        else:
+            logger.info(f"Content generation complete: All {total_count} slides used Text Service")
 
         return enriched_slides
 

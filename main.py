@@ -47,6 +47,15 @@ v4.0.16: Belt-and-suspenders null response handling
 - Restructured validation order: null check -> type check -> logging -> success check
 - Added redundant null guard before validation check (defense in depth)
 - Better error messages showing raw response body when null is detected
+
+v4.0.17: Text Service HTTP error handling + retry logic
+- Added retry logic for transient LLM generation failures (HTTP 400/422)
+- Text Service LLM sometimes generates incomplete content (missing sentence_5/6)
+- Retry up to 2 times with exponential backoff (1s, 2s) for retryable errors
+- Detects retryable errors: sentence_, generated_content, LLM generation failed
+- Changed exception logging from error to warning (fallback is graceful degradation)
+- Added fallback usage summary at end of content generation
+- Better visibility into which slides used Text Service vs fallback HTML
 """
 
 import asyncio

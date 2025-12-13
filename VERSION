@@ -1,4 +1,4 @@
-v4.0.16-build-20251213-r3
-commit: a477275
-features: topic_extraction_fix, text_service_null_handling, context_overwrite_guards, enhanced_logging
+v4.0.17-build-20251213-r1
+commit: f6af3e7
+features: retry_logic, fallback_tracking, graceful_degradation, enhanced_text_service_client
 deployed: pending
