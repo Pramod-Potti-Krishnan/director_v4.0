@@ -96,7 +96,11 @@ class WebSocketHandlerV4:
         logger.info(f"Text Service Client initialized: {self.settings.TEXT_SERVICE_URL}")
 
         # v4.0.6: Explicit approval phrases for content generation bypass
-        self.explicit_approval_phrases = ['generate', 'create it', 'proceed', 'go ahead', 'make it', 'do it']
+        # v4.0.8: Added button values for action_request handling
+        self.explicit_approval_phrases = [
+            'generate', 'create it', 'proceed', 'go ahead', 'make it', 'do it',
+            'accept_strawman', 'looks perfect'  # v4.0.8: Button values
+        ]
 
         # Connection tracking
         self.active_connections: Dict[str, WebSocket] = {}
@@ -241,6 +245,19 @@ class WebSocketHandlerV4:
         # Refresh session
         session = await self.session_manager.get_or_create(session.id, session.user_id)
 
+        # v4.0.8: Check for plan acceptance button click - trigger strawman generation
+        # This handles the "Yes, let's build it!" button click
+        if 'accept_plan' in user_message.lower() and session.has_plan and not session.has_strawman:
+            logger.info("Plan acceptance detected - generating strawman (bypassing Decision Engine)")
+            from src.models.decision import DecisionOutput
+            mock_decision = DecisionOutput(
+                action_type=ActionType.GENERATE_STRAWMAN,
+                reasoning="User accepted plan via button click",
+                confidence=1.0
+            )
+            await self._execute_decision(websocket, session, mock_decision)
+            return
+
         # v4.0.6: Check for explicit approval with strawman - bypass Decision Engine
         # This ensures content generation works deterministically like v3.4
         if self._is_explicit_approval(user_message) and session.has_strawman and not session.has_content:
@@ -368,7 +385,11 @@ class WebSocketHandlerV4:
         await self._send_chat(websocket, session, message)
 
     async def _handle_propose_plan(self, websocket: WebSocket, session: SessionV4, decision):
-        """Handle PROPOSE_PLAN action - propose presentation structure."""
+        """
+        Handle PROPOSE_PLAN action - propose presentation structure.
+
+        v4.0.8: Added action buttons for plan confirmation (like v3.4 Stage 3).
+        """
         plan_data = decision.plan_data or {}
 
         message = decision.response_text or f"""Here's my proposed plan for your presentation:
@@ -378,9 +399,7 @@ class WebSocketHandlerV4:
 **Proposed Slides:** {plan_data.get('proposed_slide_count', 10)} slides
 
 **Key Assumptions:**
-{chr(10).join(['• ' + a for a in plan_data.get('key_assumptions', [])])}
-
-Would you like me to proceed with this plan, or would you like to make any changes?"""
+{chr(10).join(['• ' + a for a in plan_data.get('key_assumptions', [])])}"""
 
         # Update session
         await self.session_manager.update_progress(
@@ -389,6 +408,27 @@ Would you like me to proceed with this plan, or would you like to make any chang
         )
 
         await self._send_chat(websocket, session, message)
+
+        # v4.0.8: Add action buttons for plan confirmation (like v3.4 Stage 3)
+        action_msg = create_action_request(
+            session_id=session.id,
+            prompt_text="Does this structure work for you?",
+            actions=[
+                {
+                    "label": "Yes, let's build it!",
+                    "value": "accept_plan",
+                    "primary": True,
+                    "requires_input": False
+                },
+                {
+                    "label": "I'd like to make changes",
+                    "value": "reject_plan",
+                    "primary": False,
+                    "requires_input": True
+                }
+            ]
+        )
+        await websocket.send_json(action_msg.model_dump(mode='json'))
 
     async def _handle_generate_strawman(self, websocket: WebSocket, session: SessionV4, decision):
         """Handle GENERATE_STRAWMAN action - create presentation outline."""
@@ -975,6 +1015,7 @@ Would you like me to proceed with this plan, or would you like to make any chang
         Send presentation completion message with URL.
 
         v4.0.6: Sends both chat message and presentation_url message.
+        v4.0.8: Added completion action buttons.
 
         Args:
             websocket: WebSocket connection
@@ -1002,6 +1043,27 @@ Would you like me to proceed with this plan, or would you like to make any chang
             f"**{topic}** - {slide_count} slides\n\n"
             f"[View Presentation]({presentation_url})"
         )
+
+        # v4.0.8: Add completion action buttons
+        action_msg = create_action_request(
+            session_id=session.id,
+            prompt_text="What would you like to do next?",
+            actions=[
+                {
+                    "label": "Done, looks great!",
+                    "value": "complete_presentation",
+                    "primary": True,
+                    "requires_input": False
+                },
+                {
+                    "label": "Make adjustments",
+                    "value": "request_adjustments",
+                    "primary": False,
+                    "requires_input": True
+                }
+            ]
+        )
+        await websocket.send_json(action_msg.model_dump(mode='json'))
 
 
 # Compatibility alias
