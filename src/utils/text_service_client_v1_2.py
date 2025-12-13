@@ -14,6 +14,7 @@ Service Details:
 """
 
 import asyncio
+import json
 import httpx
 from typing import Dict, Any, Optional
 from src.utils.logger import setup_logger
@@ -74,9 +75,11 @@ class TextServiceClientV1_2:
         endpoint = f"{self.base_url}/v1.2/generate"
 
         try:
+            # v4.0.9: Log request details for debugging
             logger.info(
                 f"Calling v1.2 generate endpoint for variant '{request.get('variant_id')}'"
             )
+            logger.debug(f"Request payload: {json.dumps(request, indent=2)}")
 
             async with httpx.AsyncClient(timeout=self.timeout) as client:
                 response = await client.post(endpoint, json=request)
@@ -107,11 +110,25 @@ class TextServiceClientV1_2:
                 return self._transform_response(result)
 
         except httpx.HTTPStatusError as e:
+            # v4.0.9: Enhanced error logging for 422 validation errors
+            error_body = e.response.text
+            try:
+                error_json = e.response.json()
+                error_body = json.dumps(error_json, indent=2)
+            except Exception:
+                pass  # Keep raw text if JSON parsing fails
+
             logger.error(
-                f"HTTP {e.response.status_code} error calling v1.2: {e.response.text}"
+                f"HTTP {e.response.status_code} error calling v1.2:\n"
+                f"  URL: {endpoint}\n"
+                f"  Variant: {request.get('variant_id')}\n"
+                f"  Response: {error_body}"
             )
+
+            # Include error details in exception message
+            error_msg = error_body[:500] if len(error_body) > 500 else error_body
             raise Exception(
-                f"Text Service v1.2 HTTP error: {e.response.status_code}"
+                f"Text Service v1.2 HTTP error: {e.response.status_code} - {error_msg}"
             )
 
         except httpx.RequestError as e:

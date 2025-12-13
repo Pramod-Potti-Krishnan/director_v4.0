@@ -856,6 +856,32 @@ class WebSocketHandlerV4:
         else:
             return 'grid_2x3'  # 6+ items, use 2x3 grid (default)
 
+    def _validate_text_request(self, request: Dict[str, Any]) -> tuple:
+        """
+        v4.0.9: Validate request before sending to Text Service v1.2.
+
+        Args:
+            request: Request dict to validate
+
+        Returns:
+            Tuple of (is_valid: bool, error_message: str or None)
+        """
+        # Required fields in slide_spec
+        required_slide_fields = ['slide_title', 'slide_purpose', 'key_message', 'tone', 'audience']
+        slide_spec = request.get('slide_spec', {})
+
+        for field in required_slide_fields:
+            if field not in slide_spec:
+                return False, f"Missing required field: slide_spec.{field}"
+            if slide_spec[field] is None or slide_spec[field] == '':
+                return False, f"Empty required field: slide_spec.{field}"
+
+        # Required top-level fields
+        if not request.get('variant_id'):
+            return False, "Missing required field: variant_id"
+
+        return True, None
+
     async def _generate_slide_content(
         self,
         strawman: Dict[str, Any],
@@ -929,6 +955,12 @@ class WebSocketHandlerV4:
                         'validate_character_counts': False
                     }
 
+                    # v4.0.9: Validate request before sending
+                    is_valid, error_msg = self._validate_text_request(request)
+                    if not is_valid:
+                        logger.error(f"  ❌ Request validation failed: {error_msg}")
+                        raise ValueError(f"Request validation failed: {error_msg}")
+
                     result = await self.text_service_client.generate(request)
 
                     enriched_slides.append({
@@ -941,7 +973,16 @@ class WebSocketHandlerV4:
                     logger.info(f"  ✅ Text service generated content for slide {idx+1}")
 
                 except Exception as e:
-                    logger.error(f"  ❌ Text service failed for slide {idx+1}: {e}")
+                    # v4.0.9: Enhanced error logging with request details
+                    logger.error(
+                        f"  ❌ Text service failed for slide {idx+1}: {e}\n"
+                        f"      Request details:\n"
+                        f"        variant_id: {request.get('variant_id')}\n"
+                        f"        slide_title: {request.get('slide_spec', {}).get('slide_title')}\n"
+                        f"        key_message: {request.get('slide_spec', {}).get('key_message')[:50] if request.get('slide_spec', {}).get('key_message') else 'N/A'}...\n"
+                        f"        tone: {request.get('slide_spec', {}).get('tone')}\n"
+                        f"        audience: {request.get('slide_spec', {}).get('audience')}"
+                    )
                     # Fallback: use strawman transformer content
                     fallback_html = self.strawman_transformer._create_content_html(slide)
                     enriched_slides.append({
