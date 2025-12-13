@@ -1101,15 +1101,20 @@ class WebSocketHandlerV4:
                     logger.info(f"  ✅ Text service generated content for slide {idx+1}")
 
                 except Exception as e:
-                    # v4.0.9: Enhanced error logging with request details
+                    # v4.0.14: Enhanced error logging with exception type and traceback
+                    import traceback
+                    tb = traceback.format_exc()
                     logger.error(
-                        f"  ❌ Text service failed for slide {idx+1}: {e}\n"
+                        f"  ❌ Text service failed for slide {idx+1}:\n"
+                        f"      Exception type: {type(e).__name__}\n"
+                        f"      Message: {e}\n"
                         f"      Request details:\n"
                         f"        variant_id: {request.get('variant_id')}\n"
                         f"        slide_title: {request.get('slide_spec', {}).get('slide_title')}\n"
                         f"        key_message: {request.get('slide_spec', {}).get('key_message')[:50] if request.get('slide_spec', {}).get('key_message') else 'N/A'}...\n"
                         f"        tone: {request.get('slide_spec', {}).get('tone')}\n"
-                        f"        audience: {request.get('slide_spec', {}).get('audience')}"
+                        f"        audience: {request.get('slide_spec', {}).get('audience')}\n"
+                        f"      Traceback:\n{tb}"
                     )
                     # Fallback: use strawman transformer content
                     fallback_html = self.strawman_transformer._create_content_html(slide)

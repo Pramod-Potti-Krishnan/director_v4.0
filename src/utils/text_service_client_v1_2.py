@@ -74,6 +74,10 @@ class TextServiceClientV1_2:
         """
         endpoint = f"{self.base_url}/v1.2/generate"
 
+        # v4.0.14: Add timing
+        import time
+        start_time = time.time()
+
         try:
             # v4.0.9: Log request details for debugging
             logger.info(
@@ -83,9 +87,36 @@ class TextServiceClientV1_2:
 
             async with httpx.AsyncClient(timeout=self.timeout) as client:
                 response = await client.post(endpoint, json=request)
+
+                # v4.0.14: Log HTTP response details before parsing
+                elapsed_http = time.time() - start_time
+                logger.info(
+                    f"Text Service HTTP response received ({elapsed_http:.2f}s):\n"
+                    f"  Status: {response.status_code}\n"
+                    f"  Content-Length: {response.headers.get('content-length', 'N/A')}\n"
+                    f"  Content-Type: {response.headers.get('content-type', 'N/A')}"
+                )
+
                 response.raise_for_status()
 
+                # v4.0.14: Log raw body before parsing (for debugging)
+                raw_body = response.text
+                logger.debug(f"Raw response body ({len(raw_body)} chars): {raw_body[:500]}...")
+
                 result = response.json()
+
+                # v4.0.14: Log parsed result structure
+                result_type = type(result).__name__
+                result_keys = list(result.keys()) if isinstance(result, dict) else 'N/A'
+                result_success = result.get('success') if isinstance(result, dict) else 'N/A'
+                result_html_len = len(result.get('html', '')) if isinstance(result, dict) and result.get('html') else 0
+                logger.info(
+                    f"Text Service parsed response:\n"
+                    f"  Type: {result_type}\n"
+                    f"  Keys: {result_keys}\n"
+                    f"  success: {result_success}\n"
+                    f"  html length: {result_html_len}"
+                )
 
                 # v4.0.12: Defensive check for null/empty response
                 if result is None:
@@ -107,9 +138,13 @@ class TextServiceClientV1_2:
                     logger.error(f"Text Service returned success=false: {error_detail}")
                     raise Exception(f"Text Service error: {error_detail}")
 
+                # v4.0.14: Include timing in success log
+                elapsed_total = time.time() - start_time
                 logger.info(
                     f"✅ v1.2 generation successful "
                     f"(variant: {request.get('variant_id')}, "
+                    f"time: {elapsed_total:.2f}s, "
+                    f"html_size: {result_html_len} chars, "
                     f"mode: {result.get('metadata', {}).get('generation_mode', 'unknown')})"
                 )
 
@@ -186,6 +221,15 @@ class TextServiceClientV1_2:
         Returns:
             GeneratedText with content and metadata
         """
+        # v4.0.14: Log transform input
+        logger.debug(
+            f"Transforming Text Service response:\n"
+            f"  success: {v1_2_response.get('success')}\n"
+            f"  html present: {bool(v1_2_response.get('html'))}\n"
+            f"  html length: {len(v1_2_response.get('html', ''))}\n"
+            f"  metadata: {v1_2_response.get('metadata', {})}"
+        )
+
         # Extract HTML (primary content)
         html_content = v1_2_response.get("html", "")
 
@@ -202,6 +246,15 @@ class TextServiceClientV1_2:
             "character_validation_violations": len(validation.get("violations", [])),
             "source": "text_service_v1.2"
         }
+
+        # v4.0.14: Log extracted content
+        logger.debug(
+            f"Transform complete:\n"
+            f"  HTML content length: {len(html_content)} chars\n"
+            f"  Variant: {metadata.get('variant_id')}\n"
+            f"  Mode: {metadata.get('generation_mode')}\n"
+            f"  Validation valid: {metadata.get('character_validation_valid')}"
+        )
 
         return GeneratedText(
             content=html_content,  # Complete HTML string

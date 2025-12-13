@@ -27,6 +27,13 @@ v4.0.13: Multi-layer topic extraction fix + deck-builder null checks
 - Layer 3: Fallback topic parser from response_text when Gemini fails
 - Layer 4: Guard in _handle_generate_strawman to prevent "Untitled"
 - Defensive null checks for deck-builder API responses
+
+v4.0.14: Enhanced Text Service response logging
+- Added HTTP response logging (status, content-length, content-type)
+- Added timing information for Text Service calls
+- Added parsed response structure logging (type, keys, success, html length)
+- Added transform logging in _transform_response
+- Enhanced exception handler with exception type and full traceback
 """
 
 import asyncio
