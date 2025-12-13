@@ -1,4 +1,4 @@
-v3.4-build-20251108-193000
-commit: 976a0cb
-features: comprehensive_diagnostic_logging, preview_url_fix, button_mapping_fix, version_endpoint, retry_logic
+v4.0.16-build-20251213
+commit: 5abf2de
+features: topic_extraction_fix, text_service_null_handling, context_overwrite_guards, enhanced_logging
 deployed: pending
