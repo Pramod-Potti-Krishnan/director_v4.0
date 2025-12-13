@@ -8,6 +8,10 @@ Key Changes from v3.4:
 - Tool registry for service invocations
 - Guidance system (director_guidance.md) instead of hardcoded states
 - Flexible session with progress flags
+
+v4.0.10: Fixed topic extraction and content generation
+- ExtractedContext typed model replaces Dict[str, Any] (Gemini compatible)
+- Fixed slide_purpose fallback for empty notes field
 """
 
 import asyncio

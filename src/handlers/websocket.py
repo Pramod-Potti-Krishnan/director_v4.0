@@ -597,6 +597,7 @@ class WebSocketHandlerV4:
 
         v4.0.1: The Decision Engine now extracts context (topic, audience, etc.)
         from user messages and returns them in decision.extracted_context.
+        v4.0.10: Updated to handle typed ExtractedContext model (Gemini compatible).
         """
         extracted = getattr(decision, 'extracted_context', None)
         if not extracted:
@@ -604,35 +605,52 @@ class WebSocketHandlerV4:
 
         updates = {}
 
+        # v4.0.10: Handle typed ExtractedContext model (has attributes, not dict keys)
+        # Use getattr for model, get() for dict fallback
+        def get_value(obj, key, default=None):
+            """Get value from either typed model or dict."""
+            if hasattr(obj, key):
+                return getattr(obj, key, default)
+            elif isinstance(obj, dict):
+                return obj.get(key, default)
+            return default
+
         # Extract key session data
-        if extracted.get('topic'):
-            updates['topic'] = extracted['topic']
+        topic = get_value(extracted, 'topic')
+        if topic:
+            updates['topic'] = topic
             updates['has_topic'] = True
             # Also set as initial_request if not set
             if not session.initial_request:
-                updates['initial_request'] = extracted['topic']
+                updates['initial_request'] = topic
+            logger.info(f"  → Extracted topic: {topic}")
 
-        if extracted.get('audience'):
-            updates['audience'] = extracted['audience']
+        audience = get_value(extracted, 'audience')
+        if audience:
+            updates['audience'] = audience
             updates['has_audience'] = True
 
-        if extracted.get('duration'):
+        duration = get_value(extracted, 'duration')
+        if duration:
             try:
-                updates['duration'] = int(extracted['duration'])
+                updates['duration'] = int(duration)
                 updates['has_duration'] = True
             except (ValueError, TypeError):
                 pass
 
-        if extracted.get('purpose'):
-            updates['purpose'] = extracted['purpose']
+        purpose = get_value(extracted, 'purpose')
+        if purpose:
+            updates['purpose'] = purpose
             updates['has_purpose'] = True
 
-        if extracted.get('tone'):
-            updates['tone'] = extracted['tone']
+        tone = get_value(extracted, 'tone')
+        if tone:
+            updates['tone'] = tone
 
         # Also accept explicit boolean flags from the AI
         for flag in ['has_topic', 'has_audience', 'has_duration', 'has_purpose']:
-            if extracted.get(flag) is True and flag not in updates:
+            flag_value = get_value(extracted, flag)
+            if flag_value is True and flag not in updates:
                 updates[flag] = True
 
         # Update session if we have changes
@@ -936,11 +954,17 @@ class WebSocketHandlerV4:
 
                     key_message = ' | '.join(topics[:3]) if topics else slide.get('title', '')
 
+                    # v4.0.10: Fix slide_purpose fallback - handle empty notes
+                    # dict.get() only uses default if key is missing, not if value is empty
+                    slide_title = slide.get('title', 'this topic')
+                    notes = slide.get('notes')
+                    slide_purpose = notes if notes else f"Present key points about {slide_title}"
+
                     request = {
                         'variant_id': variant_id,  # v4.0.7: From selector, not hardcoded
                         'slide_spec': {
                             'slide_title': slide.get('title', 'Slide'),
-                            'slide_purpose': slide.get('notes', f"Present key points about {slide.get('title', 'this topic')}"),
+                            'slide_purpose': slide_purpose,
                             'key_message': key_message,
                             'tone': session.tone or 'professional',
                             'audience': session.audience or 'general audience'

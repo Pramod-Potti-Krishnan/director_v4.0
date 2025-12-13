@@ -21,6 +21,28 @@ class ActionType(str, Enum):
     COMPLETE = "complete"                  # Presentation finished
 
 
+class ExtractedContext(BaseModel):
+    """
+    Typed model for context extraction - Gemini compatible.
+
+    v4.0.10: Replaces Dict[str, Any] which Gemini strips due to
+    additionalProperties not being supported. Using explicit typed fields
+    ensures Gemini can properly return extracted context values.
+    """
+    # Core presentation context
+    topic: Optional[str] = Field(None, description="The presentation topic extracted from user message")
+    audience: Optional[str] = Field(None, description="Target audience mentioned by user")
+    duration: Optional[int] = Field(None, description="Duration in minutes if specified")
+    purpose: Optional[str] = Field(None, description="Goal: inform, persuade, teach, inspire")
+    tone: Optional[str] = Field(None, description="Style: professional, casual, inspiring")
+
+    # Detection flags - set to True when corresponding field is detected
+    has_topic: bool = Field(default=False, description="True if user provided a topic")
+    has_audience: bool = Field(default=False, description="True if user mentioned audience")
+    has_duration: bool = Field(default=False, description="True if user specified duration")
+    has_purpose: bool = Field(default=False, description="True if user stated the goal/purpose")
+
+
 class ToolCallRequest(BaseModel):
     """A request to invoke a tool."""
     tool_id: str = Field(..., description="The tool identifier to invoke")
@@ -86,10 +108,11 @@ class DecisionOutput(BaseModel):
         description="Whether this action requires explicit user approval"
     )
 
-    # v4.0.1: Extracted context for session updates
-    extracted_context: Optional[Dict[str, Any]] = Field(
+    # v4.0.10: Typed model for context extraction (Gemini compatible)
+    # Replaced Dict[str, Any] which Gemini strips due to additionalProperties not supported
+    extracted_context: Optional[ExtractedContext] = Field(
         default=None,
-        description="Context extracted from conversation. Include any of: topic, audience, duration, purpose, tone. Also include boolean flags: has_topic, has_audience, has_duration, has_purpose if you detect these from the user's message."
+        description="Context extracted from user message. Set topic/audience/duration/purpose/tone fields and corresponding has_* flags when detected."
     )
 
     class Config:
