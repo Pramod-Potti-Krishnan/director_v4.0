@@ -1,4 +1,4 @@
-v4.0.16-build-20251213
-commit: 5abf2de
+v4.0.16-build-20251213-r2
+commit: 5d97908
 features: topic_extraction_fix, text_service_null_handling, context_overwrite_guards, enhanced_logging
 deployed: pending
