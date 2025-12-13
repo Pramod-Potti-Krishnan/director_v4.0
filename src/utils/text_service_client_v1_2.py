@@ -87,6 +87,26 @@ class TextServiceClientV1_2:
 
                 result = response.json()
 
+                # v4.0.12: Defensive check for null/empty response
+                if result is None:
+                    logger.error(
+                        f"Text Service returned null response for variant '{request.get('variant_id')}'\n"
+                        f"HTTP Status: {response.status_code}\n"
+                        f"Response headers: {dict(response.headers)}"
+                    )
+                    raise Exception("Text Service returned null response - check Text Service logs")
+
+                if not isinstance(result, dict):
+                    logger.error(
+                        f"Text Service returned non-dict: {type(result).__name__} = {str(result)[:200]}"
+                    )
+                    raise Exception(f"Text Service returned invalid response type: {type(result).__name__}")
+
+                if not result.get("success", False):
+                    error_detail = result.get("error", result.get("detail", "Unknown error"))
+                    logger.error(f"Text Service returned success=false: {error_detail}")
+                    raise Exception(f"Text Service error: {error_detail}")
+
                 logger.info(
                     f"✅ v1.2 generation successful "
                     f"(variant: {request.get('variant_id')}, "

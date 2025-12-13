@@ -15,6 +15,11 @@ v4.0.10: Fixed topic extraction and content generation
 
 v4.0.11: Fixed Text Service API request format
 - Added target_points to slide_spec (required by Text Service v1.2)
+
+v4.0.12: Fixed NoneType error in Text Service response handling
+- Added defensive null check before processing Text Service responses
+- Added type validation (must be dict) and success field check
+- Better error logging for debugging null/malformed responses
 """
 
 import asyncio
