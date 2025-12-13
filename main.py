@@ -40,6 +40,13 @@ v4.0.15: Context overwrite prevention guards
 - Once topic/audience/duration/purpose/tone is set, subsequent extractions are ignored
 - Fixes bug where multi-part answers could overwrite previously set topic
 - Added logging for ignored extractions for debugging
+
+v4.0.16: Belt-and-suspenders null response handling
+- Log raw response at INFO level BEFORE json() parsing for visibility
+- Move null check IMMEDIATELY after json() - before any logging that accesses result
+- Restructured validation order: null check -> type check -> logging -> success check
+- Added redundant null guard before validation check (defense in depth)
+- Better error messages showing raw response body when null is detected
 """
 
 import asyncio

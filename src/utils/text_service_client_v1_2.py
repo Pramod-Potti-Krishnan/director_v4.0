@@ -99,39 +99,42 @@ class TextServiceClientV1_2:
 
                 response.raise_for_status()
 
-                # v4.0.14: Log raw body before parsing (for debugging)
+                # v4.0.16: Log raw response BEFORE json() parsing - at INFO level for visibility
                 raw_body = response.text
-                logger.debug(f"Raw response body ({len(raw_body)} chars): {raw_body[:500]}...")
+                logger.info(f"Text Service raw response ({len(raw_body)} chars): {raw_body[:200]}...")
 
                 result = response.json()
 
-                # v4.0.14: Log parsed result structure
-                result_type = type(result).__name__
-                result_keys = list(result.keys()) if isinstance(result, dict) else 'N/A'
-                result_success = result.get('success') if isinstance(result, dict) else 'N/A'
-                result_html_len = len(result.get('html', '')) if isinstance(result, dict) and result.get('html') else 0
-                logger.info(
-                    f"Text Service parsed response:\n"
-                    f"  Type: {result_type}\n"
-                    f"  Keys: {result_keys}\n"
-                    f"  success: {result_success}\n"
-                    f"  html length: {result_html_len}"
-                )
-
-                # v4.0.12: Defensive check for null/empty response
+                # v4.0.16: IMMEDIATE null check - must be FIRST thing after json()
+                # This catches the case where Text Service returns literal "null"
                 if result is None:
                     logger.error(
-                        f"Text Service returned null response for variant '{request.get('variant_id')}'\n"
-                        f"HTTP Status: {response.status_code}\n"
-                        f"Response headers: {dict(response.headers)}"
+                        f"⚠️ Text Service returned literal 'null' response!\n"
+                        f"  Variant: {request.get('variant_id')}\n"
+                        f"  HTTP Status: {response.status_code}\n"
+                        f"  Content-Length: {response.headers.get('content-length', 'N/A')}\n"
+                        f"  Raw body was: {raw_body[:100]}"
                     )
-                    raise Exception("Text Service returned null response - check Text Service logs")
+                    raise Exception("Text Service returned null response body - check Text Service health")
 
+                # v4.0.16: Type check - after null check
                 if not isinstance(result, dict):
                     logger.error(
                         f"Text Service returned non-dict: {type(result).__name__} = {str(result)[:200]}"
                     )
                     raise Exception(f"Text Service returned invalid response type: {type(result).__name__}")
+
+                # v4.0.14: Log parsed result structure (safe now - we know result is a dict)
+                result_keys = list(result.keys())
+                result_success = result.get('success')
+                result_html_len = len(result.get('html', '')) if result.get('html') else 0
+                logger.info(
+                    f"Text Service parsed response:\n"
+                    f"  Type: dict\n"
+                    f"  Keys: {result_keys}\n"
+                    f"  success: {result_success}\n"
+                    f"  html length: {result_html_len}"
+                )
 
                 if not result.get("success", False):
                     error_detail = result.get("error", result.get("detail", "Unknown error"))
@@ -147,6 +150,10 @@ class TextServiceClientV1_2:
                     f"html_size: {result_html_len} chars, "
                     f"mode: {result.get('metadata', {}).get('generation_mode', 'unknown')})"
                 )
+
+                # v4.0.16: Belt-and-suspenders null check (should never trigger)
+                if result is None:
+                    raise Exception("Result became None unexpectedly - should have been caught earlier")
 
                 # Handle character count validation warnings
                 if result.get("validation", {}).get("valid") is False:
