@@ -12,6 +12,9 @@ Key Changes from v3.4:
 v4.0.10: Fixed topic extraction and content generation
 - ExtractedContext typed model replaces Dict[str, Any] (Gemini compatible)
 - Fixed slide_purpose fallback for empty notes field
+
+v4.0.11: Fixed Text Service API request format
+- Added target_points to slide_spec (required by Text Service v1.2)
 """
 
 import asyncio

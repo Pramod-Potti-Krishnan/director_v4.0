@@ -966,6 +966,7 @@ class WebSocketHandlerV4:
                             'slide_title': slide.get('title', 'Slide'),
                             'slide_purpose': slide_purpose,
                             'key_message': key_message,
+                            'target_points': topics,  # v4.0.11: Required by Text Service v1.2
                             'tone': session.tone or 'professional',
                             'audience': session.audience or 'general audience'
                         },
