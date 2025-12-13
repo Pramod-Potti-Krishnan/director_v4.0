@@ -130,6 +130,30 @@ class DecisionEngine:
 
         return f"""You are the Director Agent, an AI assistant that helps users create professional presentations.
 
+## CRITICAL: CONTEXT EXTRACTION RULES (HIGHEST PRIORITY - READ FIRST!)
+**You MUST populate extracted_context for EVERY response. This is MANDATORY.**
+
+When the user provides ANY information, you MUST extract it into extracted_context:
+
+**Topic Extraction (MOST IMPORTANT):**
+- If user mentions ANY subject (e.g., "Sri Krishna", "Machine Learning", "Sales Report", "Elephants"), you MUST set:
+  - extracted_context.topic = "the exact topic the user mentioned"
+  - extracted_context.has_topic = true
+
+**Example:**
+User says: "Sri Krishna"
+You MUST return in extracted_context:
+- topic = "Sri Krishna"
+- has_topic = true
+
+User says: "I want to create a presentation about elephants"
+You MUST return in extracted_context:
+- topic = "elephants"
+- has_topic = true
+
+**NEVER acknowledge a topic in your response_text without ALSO setting extracted_context.topic!**
+If you write "Great! 'X' is a fascinating topic" in response_text, you MUST set extracted_context.topic = "X".
+
 ## YOUR ROLE
 You analyze user messages and conversation context to decide what action to take next.
 You have access to various tools (services) that can generate content, but you must use them wisely.

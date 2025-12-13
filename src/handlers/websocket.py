@@ -431,12 +431,26 @@ class WebSocketHandlerV4:
         await websocket.send_json(action_msg.model_dump(mode='json'))
 
     async def _handle_generate_strawman(self, websocket: WebSocket, session: SessionV4, decision):
-        """Handle GENERATE_STRAWMAN action - create presentation outline."""
+        """Handle GENERATE_STRAWMAN action - create presentation outline.
+
+        v4.0.13: Added topic validation guard to prevent "Untitled" presentations.
+        """
+        # v4.0.13: LAYER 4 - Guard: Refuse to generate without valid topic
+        topic = session.topic or session.initial_request
+
+        invalid_topics = ['untitled', 'presentation', 'unknown', 'your presentation', '']
+        if not topic or topic.lower().strip() in invalid_topics:
+            logger.warning(f"Attempted strawman generation without valid topic: '{topic}'")
+            await self._send_chat(
+                websocket, session,
+                "I'd love to create a presentation outline for you! "
+                "Could you tell me what topic you'd like to present on?"
+            )
+            return
+
         # Send status
         await self._send_status(websocket, session, "Generating presentation outline...")
 
-        # v4.0.4: Get topic, prioritizing session.topic, then initial_request
-        topic = session.topic or session.initial_request or "Untitled"
         logger.info(f"Generating strawman for topic: {topic}")
 
         # Generate strawman
@@ -464,8 +478,19 @@ class WebSocketHandlerV4:
 
             # Call deck-builder API
             api_response = await self.deck_builder_client.create_presentation(api_payload)
-            preview_url = self.deck_builder_client.get_full_url(api_response['url'])
-            preview_presentation_id = api_response['id']
+
+            # v4.0.13: Defensive null check for deck-builder response
+            if not api_response or not isinstance(api_response, dict):
+                logger.error(f"Deck-builder returned invalid response for preview: {type(api_response)}")
+                raise ValueError("Deck-builder API returned invalid response")
+
+            url_path = api_response.get('url')
+            if not url_path:
+                logger.error(f"Deck-builder preview response missing 'url': {api_response}")
+                raise ValueError("Deck-builder response missing 'url' field")
+
+            preview_url = self.deck_builder_client.get_full_url(url_path)
+            preview_presentation_id = api_response.get('id', '')
 
             logger.info(f"Preview created: {preview_url} (id: {preview_presentation_id})")
 
@@ -598,12 +623,13 @@ class WebSocketHandlerV4:
         v4.0.1: The Decision Engine now extracts context (topic, audience, etc.)
         from user messages and returns them in decision.extracted_context.
         v4.0.10: Updated to handle typed ExtractedContext model (Gemini compatible).
+        v4.0.13: Added diagnostic logging and fallback topic extraction.
         """
-        extracted = getattr(decision, 'extracted_context', None)
-        if not extracted:
-            return
-
-        updates = {}
+        # v4.0.13: Diagnostic logging to trace topic extraction
+        logger.info(f"=== _update_session_from_response DEBUG ===")
+        logger.info(f"  decision.action_type: {decision.action_type}")
+        response_preview = decision.response_text[:100] if decision.response_text else 'None'
+        logger.info(f"  response_text[:100]: {response_preview}...")
 
         # v4.0.10: Handle typed ExtractedContext model (has attributes, not dict keys)
         # Use getattr for model, get() for dict fallback
@@ -614,6 +640,35 @@ class WebSocketHandlerV4:
             elif isinstance(obj, dict):
                 return obj.get(key, default)
             return default
+
+        extracted = getattr(decision, 'extracted_context', None)
+
+        # v4.0.13: Log extracted context details
+        if extracted:
+            logger.info(f"  extracted.topic: {get_value(extracted, 'topic', 'N/A')}")
+            logger.info(f"  extracted.has_topic: {get_value(extracted, 'has_topic', 'N/A')}")
+        else:
+            logger.warning(f"  extracted_context is None/missing!")
+
+        # v4.0.13: LAYER 3 - Fallback: Parse topic from response_text if not in extracted_context
+        if not extracted or not get_value(extracted, 'topic'):
+            fallback_topic = self._extract_topic_from_response(decision.response_text)
+            if fallback_topic:
+                logger.info(f"  -> Fallback extracted topic from response_text: {fallback_topic}")
+                if not extracted:
+                    from src.models.decision import ExtractedContext
+                    extracted = ExtractedContext(topic=fallback_topic, has_topic=True)
+                else:
+                    # Update existing extracted context (model has mutable fields)
+                    if hasattr(extracted, 'topic'):
+                        extracted.topic = fallback_topic
+                        extracted.has_topic = True
+
+        if not extracted:
+            logger.info("  -> No extracted context to process (even after fallback)")
+            return
+
+        updates = {}
 
         # Extract key session data
         topic = get_value(extracted, 'topic')
@@ -792,6 +847,54 @@ class WebSocketHandlerV4:
                 return True
 
         return False
+
+    def _extract_topic_from_response(self, response_text: str) -> Optional[str]:
+        """
+        v4.0.13: Fallback topic extraction from AI response text.
+
+        Parses common patterns where AI acknowledges a topic but didn't populate
+        extracted_context.topic (Gemini sometimes fails to do this).
+
+        Patterns detected:
+        - "Great! 'Sri Krishna' is a fascinating topic"
+        - "'Machine Learning' sounds like an interesting topic"
+        - "presentation on 'Climate Change'"
+
+        Args:
+            response_text: The AI's response text
+
+        Returns:
+            Extracted topic string or None
+        """
+        if not response_text:
+            return None
+
+        import re
+
+        # Pattern 1: Quoted topic (single or double quotes) followed by topic-related words
+        quoted_patterns = [
+            r"['\"]([^'\"]{2,50})['\"].*(?:is|sounds|as).*(?:topic|subject|interesting|great|fascinating)",
+            r"(?:topic|presentation|deck).*(?:about|on|for).*['\"]([^'\"]{2,50})['\"]",
+            r"['\"]([^'\"]{2,50})['\"].*(?:presentation|deck|slides)",
+        ]
+
+        for pattern in quoted_patterns:
+            match = re.search(pattern, response_text, re.IGNORECASE)
+            if match:
+                topic = match.group(1).strip()
+                logger.info(f"Fallback parser found quoted topic: '{topic}'")
+                return topic
+
+        # Pattern 2: "about X" patterns without quotes (less reliable, only use if starts with capital)
+        about_pattern = r"(?:presentation|deck|slides).*(?:about|on|for)\s+([A-Z][^\.,!?]{2,40})"
+        match = re.search(about_pattern, response_text)
+        if match:
+            topic = match.group(1).strip()
+            logger.info(f"Fallback parser found 'about' topic: '{topic}'")
+            return topic
+
+        logger.debug(f"Fallback parser found no topic in response")
+        return None
 
     async def _handle_content_generation(self, websocket: WebSocket, session: SessionV4):
         """
@@ -1065,8 +1168,21 @@ class WebSocketHandlerV4:
         logger.info(f"Creating final presentation with {len(slides_payload)} slides...")
         api_response = await self.deck_builder_client.create_presentation(presentation_data)
 
-        final_url = self.deck_builder_client.get_full_url(api_response['url'])
-        final_id = api_response['id']
+        # v4.0.13: Defensive null check for deck-builder response
+        if not api_response or not isinstance(api_response, dict):
+            logger.error(f"Deck-builder returned invalid response for final presentation: {type(api_response)}")
+            raise ValueError("Deck-builder API returned invalid response for final presentation")
+
+        url_path = api_response.get('url')
+        if not url_path:
+            logger.error(f"Deck-builder final response missing 'url': {api_response}")
+            raise ValueError("Deck-builder response missing 'url' field")
+
+        final_url = self.deck_builder_client.get_full_url(url_path)
+        final_id = api_response.get('id', '')
+
+        if not final_id:
+            logger.warning("Deck-builder final response missing 'id', using empty string")
 
         logger.info(f"Final presentation created: {final_url} (id: {final_id})")
         return final_url, final_id

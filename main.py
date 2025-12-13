@@ -20,6 +20,13 @@ v4.0.12: Fixed NoneType error in Text Service response handling
 - Added defensive null check before processing Text Service responses
 - Added type validation (must be dict) and success field check
 - Better error logging for debugging null/malformed responses
+
+v4.0.13: Multi-layer topic extraction fix + deck-builder null checks
+- Layer 1: Enhanced system prompt with explicit topic extraction rules
+- Layer 2: Diagnostic logging for extracted_context debugging
+- Layer 3: Fallback topic parser from response_text when Gemini fails
+- Layer 4: Guard in _handle_generate_strawman to prevent "Untitled"
+- Defensive null checks for deck-builder API responses
 """
 
 import asyncio
