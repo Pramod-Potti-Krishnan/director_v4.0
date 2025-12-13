@@ -34,6 +34,12 @@ v4.0.14: Enhanced Text Service response logging
 - Added parsed response structure logging (type, keys, success, html length)
 - Added transform logging in _transform_response
 - Enhanced exception handler with exception type and full traceback
+
+v4.0.15: Context overwrite prevention guards
+- Added guards to prevent overwriting already-established session fields
+- Once topic/audience/duration/purpose/tone is set, subsequent extractions are ignored
+- Fixes bug where multi-part answers could overwrite previously set topic
+- Added logging for ignored extractions for debugging
 """
 
 import asyncio

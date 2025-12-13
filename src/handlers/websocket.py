@@ -670,37 +670,62 @@ class WebSocketHandlerV4:
 
         updates = {}
 
-        # Extract key session data
+        # v4.0.15: Extract key session data with GUARDS against overwriting
+        # Once a field is set, don't overwrite it from subsequent messages
         topic = get_value(extracted, 'topic')
         if topic:
-            updates['topic'] = topic
-            updates['has_topic'] = True
-            # Also set as initial_request if not set
-            if not session.initial_request:
-                updates['initial_request'] = topic
-            logger.info(f"  → Extracted topic: {topic}")
+            # Only set topic if not already established
+            if not session.topic:
+                updates['topic'] = topic
+                updates['has_topic'] = True
+                # Also set as initial_request if not set
+                if not session.initial_request:
+                    updates['initial_request'] = topic
+                logger.info(f"  → Extracted topic: {topic}")
+            else:
+                logger.info(f"  → Ignoring extracted topic '{topic}' - session already has topic '{session.topic}'")
 
         audience = get_value(extracted, 'audience')
         if audience:
-            updates['audience'] = audience
-            updates['has_audience'] = True
+            # Only set audience if not already established
+            if not session.audience:
+                updates['audience'] = audience
+                updates['has_audience'] = True
+                logger.info(f"  → Extracted audience: {audience}")
+            else:
+                logger.info(f"  → Ignoring extracted audience - session already has: '{session.audience}'")
 
         duration = get_value(extracted, 'duration')
         if duration:
-            try:
-                updates['duration'] = int(duration)
-                updates['has_duration'] = True
-            except (ValueError, TypeError):
-                pass
+            # Only set duration if not already established
+            if not session.duration:
+                try:
+                    updates['duration'] = int(duration)
+                    updates['has_duration'] = True
+                    logger.info(f"  → Extracted duration: {duration}")
+                except (ValueError, TypeError):
+                    pass
+            else:
+                logger.info(f"  → Ignoring extracted duration - session already has: {session.duration}")
 
         purpose = get_value(extracted, 'purpose')
         if purpose:
-            updates['purpose'] = purpose
-            updates['has_purpose'] = True
+            # Only set purpose if not already established
+            if not session.purpose:
+                updates['purpose'] = purpose
+                updates['has_purpose'] = True
+                logger.info(f"  → Extracted purpose: {purpose}")
+            else:
+                logger.info(f"  → Ignoring extracted purpose - session already has: '{session.purpose}'")
 
         tone = get_value(extracted, 'tone')
         if tone:
-            updates['tone'] = tone
+            # Only set tone if not already established
+            if not session.tone:
+                updates['tone'] = tone
+                logger.info(f"  → Extracted tone: {tone}")
+            else:
+                logger.info(f"  → Ignoring extracted tone - session already has: '{session.tone}'")
 
         # Also accept explicit boolean flags from the AI
         for flag in ['has_topic', 'has_audience', 'has_duration', 'has_purpose']:
