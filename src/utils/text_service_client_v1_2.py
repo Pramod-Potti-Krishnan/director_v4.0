@@ -202,9 +202,11 @@ class TextServiceClientV1_2:
                 if result is None:
                     raise Exception("Result became None unexpectedly - should have been caught earlier")
 
-                # Handle character count validation warnings
-                if result.get("validation", {}).get("valid") is False:
-                    violations = result["validation"].get("violations", [])
+                # v4.0.19: Handle character count validation warnings with defensive None check
+                # Railway logs showed AttributeError at this line despite earlier null checks
+                validation = result.get("validation") if result else None
+                if validation and validation.get("valid") is False:
+                    violations = validation.get("violations", [])
                     logger.warning(
                         f"Character count violations detected: {len(violations)} violations"
                     )

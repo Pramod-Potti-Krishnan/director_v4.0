@@ -63,6 +63,13 @@ v4.0.18: Enhanced diagnostic logging for Text Service failures
 - Log target_points (topics) that were sent in the request
 - Helps diagnose why presentations fall back to strawman HTML
 - CLI debug tools added: tools/director_cli.py, tools/test_text_service.py
+
+v4.0.19: Fix AttributeError in Text Service null response handling
+- ROOT CAUSE IDENTIFIED: Text Service sometimes returns null JSON body
+- Railway logs showed: 'NoneType' object has no attribute 'get' at validation check
+- Added defensive None check for validation access in text_service_client_v1_2.py
+- Fixes line 206-209 where result could be None despite earlier null checks
+- Changed: validation = result.get("validation") if result else None
 """
 
 import asyncio
