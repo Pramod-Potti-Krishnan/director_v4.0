@@ -1,4 +1,4 @@
 v4.0.21-build-20251214-r1
-commit: pending
+commit: f5ffe60
 features: validation_null_fix, defensive_null_checks
 deployed: pending
