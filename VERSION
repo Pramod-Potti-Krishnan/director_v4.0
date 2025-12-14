@@ -1,4 +1,4 @@
 v4.0.23-build-20251214-r1
-commit: pending
+commit: 3cc8696
 features: variant_selection_strawman, parallel_generation, l29_layout_fix
 deployed: pending
