@@ -6,10 +6,10 @@ by implementing exponential backoff retry logic.
 """
 
 import asyncio
-import logging
 from typing import Callable, TypeVar, Any
+from src.utils.logger import setup_logger
 
-logger = logging.getLogger(__name__)
+logger = setup_logger(__name__)
 
 T = TypeVar('T')
 

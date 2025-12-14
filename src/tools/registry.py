@@ -6,7 +6,6 @@ Handles tool registration, lookup, validation, and cost control enforcement.
 """
 
 import json
-import logging
 from typing import Dict, Any, Optional, List
 from pathlib import Path
 
@@ -14,8 +13,9 @@ from .base_tool import (
     BaseTool, ToolDefinition, ToolResult, ToolCall, CostTier,
     ToolExecutionError, ToolValidationError, ToolPrerequisiteError
 )
+from src.utils.logger import setup_logger
 
-logger = logging.getLogger(__name__)
+logger = setup_logger(__name__)
 
 
 class ToolRegistry:

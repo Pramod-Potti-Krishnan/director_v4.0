@@ -85,6 +85,15 @@ v4.0.21: Fix validation null causing AttributeError in _transform_response
 - Railway logs showed: 'NoneType' object has no attribute 'get' at line 301
 - FIX: Changed to `validation = v1_2_response.get("validation") or {}` pattern
 - Also added extra null checks on validation.get() calls as belt-and-suspenders
+
+v4.0.22: Enable INFO-level logging across all components
+- ROOT CAUSE: Multiple files used logging.getLogger() which defaults to WARNING level
+- Railway logs were missing Stage 6 content generation info (📤 Text Service request)
+- Only WARNING and ERROR logs were visible, INFO logs were filtered out
+- FIX: Switched 18 files to use setup_logger() from src/utils/logger.py
+- Components updated: websocket.py, decision_engine.py, all utils/*, all tools/*
+- Now all stages (1-6) output INFO logs visible in Railway
+- Enables debugging of Stage 6 Text Service requests and responses
 """
 
 import asyncio

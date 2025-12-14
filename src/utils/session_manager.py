@@ -12,12 +12,12 @@ Key changes from v3.4:
 from typing import Optional, Dict, Any, List
 from datetime import datetime
 import traceback
-import logging
 from supabase import AsyncClient
 
 from src.models.session import SessionV4
+from src.utils.logger import setup_logger
 
-logger = logging.getLogger(__name__)
+logger = setup_logger(__name__)
 
 
 class SessionManagerV4:

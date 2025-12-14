@@ -7,12 +7,12 @@ HIGH-cost tools that wrap Analytics Service v3 for data visualization:
 These tools require approved strawman and explicit user approval before execution.
 """
 
-import logging
 from typing import Dict, Any, Optional, List
 
 from .base_tool import BaseTool, ToolDefinition, ToolResult, CostTier
+from src.utils.logger import setup_logger
 
-logger = logging.getLogger(__name__)
+logger = setup_logger(__name__)
 
 
 class GenerateChartTool(BaseTool):

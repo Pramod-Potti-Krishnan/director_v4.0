@@ -130,8 +130,8 @@ class RefineStrawmanStrategy(StateContextStrategy):
                     return content
         
         # Log warning if not found
-        import logging
-        logger = logging.getLogger(__name__)
+        from src.utils.logger import setup_logger
+        logger = setup_logger(__name__)
         logger.warning("No strawman found in session data or conversation history")
         return {}
     
@@ -175,8 +175,8 @@ class LayoutGenerationStrategy(StateContextStrategy):
                 return strawman
 
         # Log warning if not found
-        import logging
-        logger = logging.getLogger(__name__)
+        from src.utils.logger import setup_logger
+        logger = setup_logger(__name__)
         logger.warning("No strawman found in session data for layout generation")
         return {}
 
@@ -206,8 +206,8 @@ class ContentGenerationStrategy(StateContextStrategy):
                 return strawman
 
         # Log warning if not found
-        import logging
-        logger = logging.getLogger(__name__)
+        from src.utils.logger import setup_logger
+        logger = setup_logger(__name__)
         logger.warning("No strawman found in session data for content generation")
         return {}
 

@@ -13,7 +13,6 @@ Uses:
 
 import os
 import json
-import logging
 from typing import Dict, Any, Optional, List
 from pathlib import Path
 from pydantic_ai import Agent
@@ -24,8 +23,9 @@ from src.models.decision import (
     Strawman, StrawmanSlide, PresentationPlan
 )
 from src.tools.registry import ToolRegistry, get_registry
+from src.utils.logger import setup_logger
 
-logger = logging.getLogger(__name__)
+logger = setup_logger(__name__)
 
 
 class DecisionEngine:

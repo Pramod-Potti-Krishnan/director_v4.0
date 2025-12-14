@@ -13,7 +13,6 @@ Key Logic:
 - Visual style: professional (default), illustrated (creative/Ghibli), kids (children audience)
 """
 
-import logging
 from typing import Optional
 from src.models.visual_styles import (
     VisualStylePreferences,
@@ -21,8 +20,9 @@ from src.models.visual_styles import (
     VisualStyleAssignment
 )
 from src.models.agents import Slide, PresentationStrawman
+from src.utils.logger import setup_logger
 
-logger = logging.getLogger(__name__)
+logger = setup_logger(__name__)
 
 
 class VisualStyleAssigner:

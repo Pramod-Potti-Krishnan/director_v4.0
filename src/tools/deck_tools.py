@@ -8,12 +8,12 @@ MEDIUM-cost tools that wrap Deck Builder API:
 These tools require strawman context but not explicit user approval.
 """
 
-import logging
 from typing import Dict, Any, Optional, List
 
 from .base_tool import BaseTool, ToolDefinition, ToolResult, CostTier
+from src.utils.logger import setup_logger
 
-logger = logging.getLogger(__name__)
+logger = setup_logger(__name__)
 
 
 class CreatePresentationTool(BaseTool):

@@ -7,7 +7,6 @@ Preserves connection management and message protocol from v3.4.
 
 import json
 import asyncio
-import logging
 from datetime import datetime
 from typing import Dict, Any, List, Optional
 from fastapi import WebSocket
@@ -36,7 +35,8 @@ from src.models.websocket_messages import (
     create_action_request  # v4.0.4: For strawman approval buttons
 )
 
-logger = logging.getLogger(__name__)
+from src.utils.logger import setup_logger
+logger = setup_logger(__name__)
 
 
 class WebSocketHandlerV4:

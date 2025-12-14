@@ -12,10 +12,10 @@ Layouts:
 
 v4.0.6: Enhanced title slide handling with dedicated method.
 """
-import logging
 from typing import Dict, Any, List
+from src.utils.logger import setup_logger
 
-logger = logging.getLogger(__name__)
+logger = setup_logger(__name__)
 
 
 class StrawmanTransformer:

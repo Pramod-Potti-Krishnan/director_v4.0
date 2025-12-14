@@ -9,12 +9,12 @@ MEDIUM-cost tools that wrap Illustrator Service v1.0 for visualizations:
 These tools require strawman context but not explicit user approval.
 """
 
-import logging
 from typing import Dict, Any, Optional
 
 from .base_tool import BaseTool, ToolDefinition, ToolResult, CostTier
+from src.utils.logger import setup_logger
 
-logger = logging.getLogger(__name__)
+logger = setup_logger(__name__)
 
 
 class GeneratePyramidTool(BaseTool):

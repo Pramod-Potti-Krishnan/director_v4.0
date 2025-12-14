@@ -7,12 +7,12 @@ Low-cost internal tools for conversational interactions:
 - ProposePlanTool: Generate presentation plan proposals
 """
 
-import logging
 from typing import Dict, Any, Optional, List
 
 from .base_tool import BaseTool, ToolDefinition, ToolResult, CostTier
+from src.utils.logger import setup_logger
 
-logger = logging.getLogger(__name__)
+logger = setup_logger(__name__)
 
 
 class RespondTool(BaseTool):

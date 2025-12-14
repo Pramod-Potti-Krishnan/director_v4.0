@@ -10,12 +10,12 @@ HIGH-cost tools that wrap Text Service v1.2 for content generation:
 These tools require approved strawman and explicit user approval before execution.
 """
 
-import logging
 from typing import Dict, Any, Optional
 
 from .base_tool import BaseTool, ToolDefinition, ToolResult, CostTier
+from src.utils.logger import setup_logger
 
-logger = logging.getLogger(__name__)
+logger = setup_logger(__name__)
 
 
 class GenerateContentTool(BaseTool):
