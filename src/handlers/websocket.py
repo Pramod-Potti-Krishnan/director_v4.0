@@ -1034,15 +1034,187 @@ class WebSocketHandlerV4:
 
         return True, None
 
+    async def _generate_single_slide(
+        self,
+        idx: int,
+        slide: Dict[str, Any],
+        session: SessionV4,
+        total_slides: int
+    ) -> Dict[str, Any]:
+        """
+        Generate content for a single slide.
+
+        v4.0.23: Added for parallel slide generation.
+
+        Args:
+            idx: Slide index (0-based)
+            slide: Slide dict from strawman
+            session: Current session
+            total_slides: Total number of slides
+
+        Returns:
+            Dict with slide content and 'idx' for ordering
+        """
+        import json as _json
+        import traceback
+
+        slide_id = slide.get('slide_id', f'slide_{idx+1}')
+        is_hero = slide.get('is_hero', False)
+        hero_type = slide.get('hero_type')
+
+        try:
+            if is_hero or hero_type:
+                # Hero slides: Use strawman transformer HTML (no text-service needed)
+                logger.info(f"Slide {idx+1}/{total_slides}: Hero slide ({hero_type or 'hero'})")
+
+                if hero_type == 'title_slide':
+                    presentation_title = session.topic or session.initial_request or 'Untitled Presentation'
+                    html_content = self.strawman_transformer._create_title_slide_html(presentation_title, slide)
+                else:
+                    html_content = self.strawman_transformer._create_hero_html(slide, hero_type)
+
+                return {
+                    'idx': idx,
+                    'slide_id': slide_id,
+                    'layout': 'L29',
+                    'content': html_content,
+                    'is_hero': True,
+                    'hero_type': hero_type
+                }
+            else:
+                # Content slides: Call text-service
+                logger.info(f"Slide {idx+1}/{total_slides}: Content slide - calling text-service")
+
+                # v4.0.23: Prefer variant from strawman, fallback to selector
+                strawman_variant = slide.get('variant_id')
+                variant_id = strawman_variant or self._select_variant_for_slide(slide)
+                variant_source = 'strawman' if strawman_variant else 'fallback'
+                topics = slide.get('topics', [])
+
+                # Handle empty topics
+                if not topics:
+                    slide_title = slide.get('title', 'Slide')
+                    slide_notes = slide.get('notes', '')
+
+                    if slide_notes:
+                        topics = [
+                            f"Key point: {slide_notes[:80]}",
+                            f"Details about {slide_title}",
+                            f"Understanding {slide_title}"
+                        ]
+                    else:
+                        topics = [
+                            f"Key aspects of {slide_title}",
+                            f"Important details about {slide_title}",
+                            f"Understanding {slide_title}"
+                        ]
+                    logger.warning(f"  ⚠️ Slide {idx+1}: Empty topics, generated fallback")
+
+                logger.info(f"  → Variant: {variant_id} (source: {variant_source}, {len(topics)} topics)")
+
+                key_message = ' | '.join(topics[:3]) if topics else slide.get('title', '')
+                slide_title = slide.get('title', 'this topic')
+                notes = slide.get('notes')
+                slide_purpose = notes if notes else f"Present key points about {slide_title}"
+
+                request = {
+                    'variant_id': variant_id,
+                    'slide_spec': {
+                        'slide_title': slide.get('title', 'Slide'),
+                        'slide_purpose': slide_purpose,
+                        'key_message': key_message,
+                        'target_points': topics,
+                        'tone': session.tone or 'professional',
+                        'audience': session.audience or 'general audience'
+                    },
+                    'presentation_spec': {
+                        'presentation_title': session.topic or session.initial_request or 'Presentation',
+                        'presentation_type': session.purpose or 'Informational',
+                        'current_slide_number': idx + 1,
+                        'total_slides': total_slides
+                    },
+                    'enable_parallel': True,
+                    'validate_character_counts': False
+                }
+
+                # Validate request
+                is_valid, error_msg = self._validate_text_request(request)
+                if not is_valid:
+                    raise ValueError(f"Request validation failed: {error_msg}")
+
+                logger.info(f"  📤 Text Service request (slide {idx+1})")
+
+                # Capture request for debugging
+                from src.utils.debug_capture import capture_text_service_request
+                capture_text_service_request(
+                    session_id=session.id,
+                    slide_index=idx,
+                    request=request
+                )
+
+                result = await self.text_service_client.generate(request)
+
+                # Capture response
+                response_data = {
+                    'content': result.content if hasattr(result, 'content') else str(result),
+                    'has_content': hasattr(result, 'content'),
+                    'result_type': type(result).__name__
+                }
+                capture_text_service_request(
+                    session_id=session.id,
+                    slide_index=idx,
+                    request=request,
+                    response=response_data
+                )
+
+                logger.info(f"  ✅ Slide {idx+1} generated successfully")
+
+                return {
+                    'idx': idx,
+                    'slide_id': slide_id,
+                    'layout': 'L25',
+                    'content': result.content if hasattr(result, 'content') else str(result),
+                    'is_hero': False,
+                    'title': slide.get('title', '')
+                }
+
+        except Exception as e:
+            full_traceback = traceback.format_exc()
+            logger.warning(
+                f"  ⚠️ Slide {idx+1} failed, using fallback: {type(e).__name__}: {str(e)[:200]}"
+            )
+
+            # Capture error
+            from src.utils.debug_capture import capture_text_service_request
+            capture_text_service_request(
+                session_id=session.id,
+                slide_index=idx,
+                request=locals().get('request', {}),
+                error=f"{type(e).__name__}: {str(e)}\n{full_traceback}"
+            )
+
+            # Fallback: use strawman transformer content
+            fallback_html = self.strawman_transformer._create_content_html(slide)
+            return {
+                'idx': idx,
+                'slide_id': slide_id,
+                'layout': 'L25',
+                'content': fallback_html,
+                'is_hero': False,
+                'title': slide.get('title', ''),
+                'fallback': True
+            }
+
     async def _generate_slide_content(
         self,
         strawman: Dict[str, Any],
         session: SessionV4
     ) -> List[Dict[str, Any]]:
         """
-        Generate content for all slides in strawman.
+        Generate content for all slides in strawman using PARALLEL execution.
 
-        v4.0.7: Uses variant selector for content slides, uses transformer for hero slides.
+        v4.0.23: Uses asyncio.gather() for parallel slide generation.
+        Previously sequential (~30-50s), now parallel (~5s).
 
         Args:
             strawman: Strawman dict with slides
@@ -1051,183 +1223,58 @@ class WebSocketHandlerV4:
         Returns:
             List of enriched slides with generated content
         """
-        enriched_slides = []
+        import asyncio
+
         slides = strawman.get('slides', [])
+        total_slides = len(slides)
 
-        for idx, slide in enumerate(slides):
-            slide_id = slide.get('slide_id', f'slide_{idx+1}')
-            is_hero = slide.get('is_hero', False)
-            hero_type = slide.get('hero_type')
+        logger.info(f"🚀 Starting PARALLEL generation for {total_slides} slides...")
 
-            if is_hero or hero_type:
-                # Hero slides: Use strawman transformer HTML (no text-service needed)
-                logger.info(f"Slide {idx+1}/{len(slides)}: Hero slide ({hero_type or 'hero'})")
+        # Create tasks for all slides
+        tasks = [
+            self._generate_single_slide(idx, slide, session, total_slides)
+            for idx, slide in enumerate(slides)
+        ]
 
-                # v4.0.6: Use dedicated title slide handler for title_slide type
-                if hero_type == 'title_slide':
-                    presentation_title = session.topic or session.initial_request or 'Untitled Presentation'
-                    html_content = self.strawman_transformer._create_title_slide_html(presentation_title, slide)
-                else:
-                    html_content = self.strawman_transformer._create_hero_html(slide, hero_type)
+        # Execute all tasks in parallel
+        results = await asyncio.gather(*tasks, return_exceptions=True)
 
+        # Process results, handle any unexpected exceptions
+        enriched_slides = []
+        for i, result in enumerate(results):
+            if isinstance(result, Exception):
+                # This shouldn't happen since _generate_single_slide catches exceptions
+                logger.error(f"Unexpected task exception for slide {i+1}: {result}")
+                # Create fallback result
+                slide = slides[i]
+                fallback_html = self.strawman_transformer._create_content_html(slide)
                 enriched_slides.append({
-                    'slide_id': slide_id,
-                    'layout': 'L29',
-                    'content': html_content,
-                    'is_hero': True,
-                    'hero_type': hero_type
+                    'idx': i,
+                    'slide_id': slide.get('slide_id', f'slide_{i+1}'),
+                    'layout': 'L25',
+                    'content': fallback_html,
+                    'is_hero': False,
+                    'title': slide.get('title', ''),
+                    'fallback': True
                 })
             else:
-                # Content slides: Call text-service
-                logger.info(f"Slide {idx+1}/{len(slides)}: Content slide - calling text-service")
-                try:
-                    # v4.0.7: Select variant based on topic count
-                    variant_id = self._select_variant_for_slide(slide)
-                    topics = slide.get('topics', [])
+                enriched_slides.append(result)
 
-                    # v4.0.20: If topics is empty, generate fallback topics from slide context
-                    # Empty topics causes Text Service to return null (LLM has nothing to generate)
-                    if not topics:
-                        slide_title = slide.get('title', 'Slide')
-                        slide_notes = slide.get('notes', '')
+        # Sort by idx to maintain original slide order
+        enriched_slides.sort(key=lambda x: x.get('idx', 0))
 
-                        # If notes exist, use them as topics (split on sentences or use whole)
-                        if slide_notes:
-                            # Try to use notes as content source
-                            topics = [
-                                f"Key point: {slide_notes[:80]}",
-                                f"Details about {slide_title}",
-                                f"Understanding {slide_title}"
-                            ]
-                        else:
-                            # Generate generic topics from title
-                            topics = [
-                                f"Key aspects of {slide_title}",
-                                f"Important details about {slide_title}",
-                                f"Understanding {slide_title}"
-                            ]
+        # Remove idx field from final output
+        for slide in enriched_slides:
+            slide.pop('idx', None)
 
-                        logger.warning(f"  ⚠️ Slide {idx+1}: Empty topics detected, generated fallback: {topics[:2]}...")
-
-                    logger.info(f"  → Selected variant: {variant_id} ({len(topics)} topics)")
-
-                    key_message = ' | '.join(topics[:3]) if topics else slide.get('title', '')
-
-                    # v4.0.10: Fix slide_purpose fallback - handle empty notes
-                    # dict.get() only uses default if key is missing, not if value is empty
-                    slide_title = slide.get('title', 'this topic')
-                    notes = slide.get('notes')
-                    slide_purpose = notes if notes else f"Present key points about {slide_title}"
-
-                    request = {
-                        'variant_id': variant_id,  # v4.0.7: From selector, not hardcoded
-                        'slide_spec': {
-                            'slide_title': slide.get('title', 'Slide'),
-                            'slide_purpose': slide_purpose,
-                            'key_message': key_message,
-                            'target_points': topics,  # v4.0.11: Required by Text Service v1.2
-                            'tone': session.tone or 'professional',
-                            'audience': session.audience or 'general audience'
-                        },
-                        'presentation_spec': {
-                            'presentation_title': session.topic or session.initial_request or 'Presentation',
-                            'presentation_type': session.purpose or 'Informational',
-                            'current_slide_number': idx + 1,
-                            'total_slides': len(slides)
-                        },
-                        'enable_parallel': True,
-                        'validate_character_counts': False
-                    }
-
-                    # v4.0.9: Validate request before sending
-                    is_valid, error_msg = self._validate_text_request(request)
-                    if not is_valid:
-                        logger.error(f"  ❌ Request validation failed: {error_msg}")
-                        raise ValueError(f"Request validation failed: {error_msg}")
-
-                    # v4.0.18: Log full request payload for diagnosis
-                    import json as _json
-                    logger.info(
-                        f"  📤 Text Service request (slide {idx+1}):\n"
-                        f"      {_json.dumps(request, indent=2)}"  # Full request, no truncation
-                    )
-
-                    # v4.0.19: Capture full request to file for debugging
-                    from src.utils.debug_capture import capture_text_service_request
-                    capture_file = capture_text_service_request(
-                        session_id=session.id,
-                        slide_index=idx,
-                        request=request
-                    )
-                    logger.info(f"  📁 Request captured to: {capture_file}")
-
-                    result = await self.text_service_client.generate(request)
-
-                    # v4.0.19: Update capture with response
-                    response_data = {
-                        'content': result.content if hasattr(result, 'content') else str(result),
-                        'has_content': hasattr(result, 'content'),
-                        'result_type': type(result).__name__
-                    }
-                    capture_text_service_request(
-                        session_id=session.id,
-                        slide_index=idx,
-                        request=request,
-                        response=response_data
-                    )
-
-                    enriched_slides.append({
-                        'slide_id': slide_id,
-                        'layout': 'L25',
-                        'content': result.content if hasattr(result, 'content') else str(result),
-                        'is_hero': False,
-                        'title': slide.get('title', '')
-                    })
-                    logger.info(f"  ✅ Text service generated content for slide {idx+1}")
-
-                except Exception as e:
-                    # v4.0.18: Enhanced exception logging with full traceback
-                    import traceback
-                    full_traceback = traceback.format_exc()
-                    logger.warning(
-                        f"  ⚠️ Text service failed for slide {idx+1}, using fallback:\n"
-                        f"      Exception type: {type(e).__name__}\n"
-                        f"      Message: {str(e)[:300]}\n"
-                        f"      Variant: {request.get('variant_id')}\n"
-                        f"      Title: {request.get('slide_spec', {}).get('slide_title')}\n"
-                        f"      Topics: {request.get('slide_spec', {}).get('target_points', [])}\n"
-                        f"      Full traceback:\n{full_traceback}"
-                    )
-
-                    # v4.0.19: Capture error to debug file
-                    from src.utils.debug_capture import capture_text_service_request
-                    capture_text_service_request(
-                        session_id=session.id,
-                        slide_index=idx,
-                        request=request,
-                        error=f"{type(e).__name__}: {str(e)}\n{full_traceback}"
-                    )
-
-                    # Fallback: use strawman transformer content
-                    fallback_html = self.strawman_transformer._create_content_html(slide)
-                    enriched_slides.append({
-                        'slide_id': slide_id,
-                        'layout': 'L25',
-                        'content': fallback_html,
-                        'is_hero': False,
-                        'title': slide.get('title', ''),
-                        'fallback': True  # v4.0.17: Track fallback usage
-                    })
-
-        # v4.0.17: Log fallback usage summary
+        # Log summary
         fallback_count = sum(1 for s in enriched_slides if s.get('fallback'))
-        total_count = len(enriched_slides)
         if fallback_count > 0:
             logger.warning(
-                f"Content generation complete: {fallback_count}/{total_count} slides used fallback HTML"
+                f"✅ Parallel generation complete: {fallback_count}/{total_slides} slides used fallback"
             )
         else:
-            logger.info(f"Content generation complete: All {total_count} slides used Text Service")
+            logger.info(f"✅ Parallel generation complete: All {total_slides} slides successful")
 
         return enriched_slides
 

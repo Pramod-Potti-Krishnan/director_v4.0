@@ -1,4 +1,4 @@
-v4.0.22-build-20251214-r1
-commit: e3bba1c
-features: info_level_logging, full_stage_visibility, 18_files_updated
+v4.0.23-build-20251214-r1
+commit: pending
+features: variant_selection_strawman, parallel_generation, l29_layout_fix
 deployed: pending

@@ -524,12 +524,37 @@ You MUST create slides specifically about the provided topic. Every slide title 
 - 10-20 slides: Include section dividers every 4-6 slides
 - 20+ slides: Executive summary after title, multiple sections
 
+## LAYOUT RULES (v4.0.23)
+- Hero slides (title, section_divider, closing): layout = "L29"
+- Content slides: layout = "L25"
+
+## VARIANT SELECTION (v4.0.23 - Required for content slides)
+For each L25 content slide, select variant_id based on content type and topic count:
+
+Available variants:
+- comparison_2col (2 items), comparison_3col (3), comparison_4col (4) - for before/after, pros/cons
+- sequential_3col (3 steps), sequential_4col (4), sequential_5col (5) - for processes, timelines
+- grid_2x2_centered (4 items), grid_2x3 (6), grid_3x2 (6) - for categories, features
+- metrics_3col (3 KPIs), metrics_4col (4) - for numbers, statistics
+- matrix_2x2 (4), matrix_2x3 (6) - for comparisons with 2 dimensions
+- table_2col, table_3col, table_4col, table_5col - for tabular data
+
+Selection rules:
+- Before/After, Pros/Cons → comparison_*col
+- Step-by-step processes → sequential_*col
+- KPIs, Statistics, Numbers → metrics_*col
+- Categories, Features, Options → grid_* or matrix_*
+- Match topic count to variant capacity (e.g., 4 topics → grid_2x2_centered)
+
+Hero slides (L29): variant_id = null (not needed)
+
 ## OUTPUT
 Create a complete Strawman with slide definitions including:
 - slide_id (unique identifier - use UUIDs)
 - slide_number (position starting from 1)
 - title (topic-specific, never generic)
-- layout (L01 for simple, L02 for two-column, etc.)
+- layout ("L29" for hero slides, "L25" for content slides)
+- variant_id (required for L25 content slides, null for L29 hero slides)
 - topics (3-5 specific key points related to the slide title)
 - is_hero (true for title/section/closing)
 - hero_type (title_slide, section_divider, or closing_slide for hero slides)
@@ -588,6 +613,22 @@ Generate a complete strawman with {slide_count} slides about {topic}.
             logger.error(f"Strawman generation failed: {e}")
             return self._fallback_strawman(topic, duration)
 
+    def _select_fallback_variant(self, topic_count: int) -> str:
+        """Select default variant based on topic count.
+
+        v4.0.23: Added for variant selection in fallback strawman.
+        """
+        if topic_count <= 2:
+            return 'comparison_2col'
+        elif topic_count == 3:
+            return 'sequential_3col'
+        elif topic_count == 4:
+            return 'grid_2x2_centered'
+        elif topic_count == 5:
+            return 'sequential_5col'
+        else:
+            return 'grid_2x3'
+
     def _fallback_strawman(self, topic: str, duration: int) -> Strawman:
         """Generate a basic fallback strawman with topic-specific content.
 
@@ -621,7 +662,7 @@ Generate a complete strawman with {slide_count} slides about {topic}.
                 slide_id=str(uuid.uuid4()),
                 slide_number=1,
                 title=topic,
-                layout="H1",
+                layout="L29",  # v4.0.23: Fixed - hero slides use L29
                 topics=[f"Welcome to this presentation about {topic}", f"Overview of {topic}"],
                 is_hero=True,
                 hero_type="title_slide"
@@ -632,16 +673,19 @@ Generate a complete strawman with {slide_count} slides about {topic}.
         content_count = slide_count - 2  # Minus title and closing
         for i in range(content_count):
             section_idx = i % len(section_titles)
+            # v4.0.23: Select variant based on topic count
+            topics = [
+                f"Key point about {topic}",
+                f"Important information regarding {topic}",
+                f"Details on this aspect of {topic}"
+            ]
             slides.append(StrawmanSlide(
                 slide_id=str(uuid.uuid4()),
                 slide_number=i + 2,
                 title=section_titles[section_idx],
-                layout="L01",
-                topics=[
-                    f"Key point about {topic}",
-                    f"Important information regarding {topic}",
-                    f"Details on this aspect of {topic}"
-                ],
+                layout="L25",  # v4.0.23: Fixed - content slides use L25
+                variant_id=self._select_fallback_variant(len(topics)),  # v4.0.23: Add variant
+                topics=topics,
                 is_hero=False,
                 notes=f"Content slide {i + 1} about {topic}"
             ))
@@ -651,7 +695,7 @@ Generate a complete strawman with {slide_count} slides about {topic}.
             slide_id=str(uuid.uuid4()),
             slide_number=slide_count,
             title=f"Thank You - {topic}",
-            layout="H3",
+            layout="L29",  # v4.0.23: Fixed - hero slides use L29
             topics=[f"Summary of {topic}", "Questions and Discussion"],
             is_hero=True,
             hero_type="closing_slide"

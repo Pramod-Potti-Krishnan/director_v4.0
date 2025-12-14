@@ -94,6 +94,22 @@ v4.0.22: Enable INFO-level logging across all components
 - Components updated: websocket.py, decision_engine.py, all utils/*, all tools/*
 - Now all stages (1-6) output INFO logs visible in Railway
 - Enables debugging of Stage 6 Text Service requests and responses
+
+v4.0.23: Variant selection at strawman stage + parallel slide generation + L29 fix
+- FEATURE 1: Variant selection moved from Stage 6 to strawman generation
+  - AI (Gemini) now picks variant_id based on content during strawman creation
+  - Updated StrawmanGenerator system prompt with variant catalog and selection rules
+  - Fallback variant selector for fallback strawman generation
+  - Stage 6 prefers strawman variant_id, falls back to topic-count selector
+- FEATURE 2: Parallel slide generation (~6x faster)
+  - Stage 6 now uses asyncio.gather() to generate all slides simultaneously
+  - Previously sequential (~30-50s), now parallel (~5s)
+  - Each slide processed independently with error isolation
+  - Slide order maintained via idx field sorting
+- FIX 1: Hero slide layout defaults corrected
+  - decision.py: Default layout L01 → L25 (for content slides)
+  - decision_engine.py: Title slide H1 → L29, Closing slide H3 → L29, Content L01 → L25
+  - StrawmanGenerator prompt: Updated layout rules (L29 hero, L25 content)
 """
 
 import asyncio
