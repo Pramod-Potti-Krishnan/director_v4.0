@@ -1,4 +1,4 @@
-v4.0.20-build-20251214-r1
-commit: d59652f
-features: empty_topics_fallback, target_points_validation
-deployed: pushed
+v4.0.21-build-20251214-r1
+commit: pending
+features: validation_null_fix, defensive_null_checks
+deployed: pending

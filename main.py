@@ -78,6 +78,13 @@ v4.0.20: Fix empty topics causing Text Service null responses
 - FIX 2: Added target_points validation in _validate_text_request()
 - Logs warning when fallback topics are generated: "Empty topics detected, generated fallback"
 - Prevents ALL slides from using fallback HTML due to empty strawman topics
+
+v4.0.21: Fix validation null causing AttributeError in _transform_response
+- ROOT CAUSE: Text Service returns {"validation": null} which .get("validation", {}) doesn't catch
+- The default {} only applies when key is MISSING, not when explicitly null
+- Railway logs showed: 'NoneType' object has no attribute 'get' at line 301
+- FIX: Changed to `validation = v1_2_response.get("validation") or {}` pattern
+- Also added extra null checks on validation.get() calls as belt-and-suspenders
 """
 
 import asyncio

@@ -290,16 +290,17 @@ class TextServiceClientV1_2:
         html_content = v1_2_response.get("html", "")
 
         # Build metadata
-        v1_2_metadata = v1_2_response.get("metadata", {})
-        validation = v1_2_response.get("validation", {})
+        # v4.0.21: Defensive null checks - Text Service may return null for these fields
+        v1_2_metadata = v1_2_response.get("metadata") or {}
+        validation = v1_2_response.get("validation") or {}
 
         metadata = {
             "variant_id": v1_2_metadata.get("variant_id"),
             "generation_mode": v1_2_metadata.get("generation_mode"),
             "element_count": v1_2_metadata.get("element_count"),
             "template_path": v1_2_metadata.get("template_path"),
-            "character_validation_valid": validation.get("valid", True),
-            "character_validation_violations": len(validation.get("violations", [])),
+            "character_validation_valid": validation.get("valid", True) if validation else True,
+            "character_validation_violations": len(validation.get("violations", [])) if validation else 0,
             "source": "text_service_v1.2"
         }
 

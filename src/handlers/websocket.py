@@ -1149,10 +1149,32 @@ class WebSocketHandlerV4:
                     import json as _json
                     logger.info(
                         f"  📤 Text Service request (slide {idx+1}):\n"
-                        f"      {_json.dumps(request, indent=2)[:500]}"
+                        f"      {_json.dumps(request, indent=2)}"  # Full request, no truncation
                     )
 
+                    # v4.0.19: Capture full request to file for debugging
+                    from src.utils.debug_capture import capture_text_service_request
+                    capture_file = capture_text_service_request(
+                        session_id=session.id,
+                        slide_index=idx,
+                        request=request
+                    )
+                    logger.info(f"  📁 Request captured to: {capture_file}")
+
                     result = await self.text_service_client.generate(request)
+
+                    # v4.0.19: Update capture with response
+                    response_data = {
+                        'content': result.content if hasattr(result, 'content') else str(result),
+                        'has_content': hasattr(result, 'content'),
+                        'result_type': type(result).__name__
+                    }
+                    capture_text_service_request(
+                        session_id=session.id,
+                        slide_index=idx,
+                        request=request,
+                        response=response_data
+                    )
 
                     enriched_slides.append({
                         'slide_id': slide_id,
@@ -1176,6 +1198,16 @@ class WebSocketHandlerV4:
                         f"      Topics: {request.get('slide_spec', {}).get('target_points', [])}\n"
                         f"      Full traceback:\n{full_traceback}"
                     )
+
+                    # v4.0.19: Capture error to debug file
+                    from src.utils.debug_capture import capture_text_service_request
+                    capture_text_service_request(
+                        session_id=session.id,
+                        slide_index=idx,
+                        request=request,
+                        error=f"{type(e).__name__}: {str(e)}\n{full_traceback}"
+                    )
+
                     # Fallback: use strawman transformer content
                     fallback_html = self.strawman_transformer._create_content_html(slide)
                     enriched_slides.append({
