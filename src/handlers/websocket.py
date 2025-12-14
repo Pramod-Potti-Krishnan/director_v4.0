@@ -1026,6 +1026,12 @@ class WebSocketHandlerV4:
         if not request.get('variant_id'):
             return False, "Missing required field: variant_id"
 
+        # v4.0.20: Validate target_points has at least one topic
+        # Empty target_points causes Text Service LLM to return null
+        target_points = slide_spec.get('target_points', [])
+        if not target_points:
+            return False, "target_points is empty - cannot generate content (LLM needs input)"
+
         return True, None
 
     async def _generate_slide_content(
@@ -1078,6 +1084,31 @@ class WebSocketHandlerV4:
                     # v4.0.7: Select variant based on topic count
                     variant_id = self._select_variant_for_slide(slide)
                     topics = slide.get('topics', [])
+
+                    # v4.0.20: If topics is empty, generate fallback topics from slide context
+                    # Empty topics causes Text Service to return null (LLM has nothing to generate)
+                    if not topics:
+                        slide_title = slide.get('title', 'Slide')
+                        slide_notes = slide.get('notes', '')
+
+                        # If notes exist, use them as topics (split on sentences or use whole)
+                        if slide_notes:
+                            # Try to use notes as content source
+                            topics = [
+                                f"Key point: {slide_notes[:80]}",
+                                f"Details about {slide_title}",
+                                f"Understanding {slide_title}"
+                            ]
+                        else:
+                            # Generate generic topics from title
+                            topics = [
+                                f"Key aspects of {slide_title}",
+                                f"Important details about {slide_title}",
+                                f"Understanding {slide_title}"
+                            ]
+
+                        logger.warning(f"  ⚠️ Slide {idx+1}: Empty topics detected, generated fallback: {topics[:2]}...")
+
                     logger.info(f"  → Selected variant: {variant_id} ({len(topics)} topics)")
 
                     key_message = ' | '.join(topics[:3]) if topics else slide.get('title', '')

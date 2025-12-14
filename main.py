@@ -70,6 +70,14 @@ v4.0.19: Fix AttributeError in Text Service null response handling
 - Added defensive None check for validation access in text_service_client_v1_2.py
 - Fixes line 206-209 where result could be None despite earlier null checks
 - Changed: validation = result.get("validation") if result else None
+
+v4.0.20: Fix empty topics causing Text Service null responses
+- ROOT CAUSE: Strawman slides with empty topics[] → Text Service receives target_points: []
+- LLM has no content to generate from → returns null JSON body → fallback HTML used
+- FIX 1: Added fallback topic generation from slide title/notes when topics is empty
+- FIX 2: Added target_points validation in _validate_text_request()
+- Logs warning when fallback topics are generated: "Empty topics detected, generated fallback"
+- Prevents ALL slides from using fallback HTML due to empty strawman topics
 """
 
 import asyncio
