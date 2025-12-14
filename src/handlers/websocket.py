@@ -1114,6 +1114,13 @@ class WebSocketHandlerV4:
                         logger.error(f"  ❌ Request validation failed: {error_msg}")
                         raise ValueError(f"Request validation failed: {error_msg}")
 
+                    # v4.0.18: Log full request payload for diagnosis
+                    import json as _json
+                    logger.info(
+                        f"  📤 Text Service request (slide {idx+1}):\n"
+                        f"      {_json.dumps(request, indent=2)[:500]}"
+                    )
+
                     result = await self.text_service_client.generate(request)
 
                     enriched_slides.append({
@@ -1126,13 +1133,17 @@ class WebSocketHandlerV4:
                     logger.info(f"  ✅ Text service generated content for slide {idx+1}")
 
                 except Exception as e:
-                    # v4.0.17: Changed from error to warning - fallback is graceful degradation
+                    # v4.0.18: Enhanced exception logging with full traceback
+                    import traceback
+                    full_traceback = traceback.format_exc()
                     logger.warning(
                         f"  ⚠️ Text service failed for slide {idx+1}, using fallback:\n"
                         f"      Exception type: {type(e).__name__}\n"
-                        f"      Message: {str(e)[:200]}\n"
+                        f"      Message: {str(e)[:300]}\n"
                         f"      Variant: {request.get('variant_id')}\n"
-                        f"      Title: {request.get('slide_spec', {}).get('slide_title')}"
+                        f"      Title: {request.get('slide_spec', {}).get('slide_title')}\n"
+                        f"      Topics: {request.get('slide_spec', {}).get('target_points', [])}\n"
+                        f"      Full traceback:\n{full_traceback}"
                     )
                     # Fallback: use strawman transformer content
                     fallback_html = self.strawman_transformer._create_content_html(slide)

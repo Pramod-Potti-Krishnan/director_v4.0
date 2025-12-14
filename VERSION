@@ -1,4 +1,4 @@
-v4.0.17-build-20251213-r1
-commit: f6af3e7
-features: retry_logic, fallback_tracking, graceful_degradation, enhanced_text_service_client
-deployed: pending
+v4.0.18-build-20251214-r1
+commit: d92b89d
+features: enhanced_diagnostic_logging, cli_debug_tools, full_traceback_on_failure
+deployed: pushing

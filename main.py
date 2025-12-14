@@ -56,6 +56,13 @@ v4.0.17: Text Service HTTP error handling + retry logic
 - Changed exception logging from error to warning (fallback is graceful degradation)
 - Added fallback usage summary at end of content generation
 - Better visibility into which slides used Text Service vs fallback HTML
+
+v4.0.18: Enhanced diagnostic logging for Text Service failures
+- Log full request payload before sending to Text Service (at INFO level)
+- Log complete traceback when Text Service call fails
+- Log target_points (topics) that were sent in the request
+- Helps diagnose why presentations fall back to strawman HTML
+- CLI debug tools added: tools/director_cli.py, tools/test_text_service.py
 """
 
 import asyncio
