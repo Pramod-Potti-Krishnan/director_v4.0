@@ -1,4 +1,4 @@
 v4.0.19-build-20251214-r1
-commit: pending
+commit: 3f4e8b4
 features: null_response_fix, defensive_validation_check
-deployed: pending
+deployed: pushed
