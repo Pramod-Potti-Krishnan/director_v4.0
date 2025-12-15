@@ -1094,7 +1094,8 @@ class WebSocketHandlerV4:
 
                 try:
                     result = await self.text_service_client.call_hero_endpoint(endpoint, hero_payload)
-                    html_content = result.get('html_content') or result.get('html', '')
+                    # v4.0.26: Text Service returns 'content' field, not 'html_content'
+                    html_content = result.get('content') or result.get('html', '')
 
                     if not html_content:
                         raise ValueError("Empty HTML from hero endpoint")

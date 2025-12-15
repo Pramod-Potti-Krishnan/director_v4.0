@@ -1,4 +1,4 @@
-v4.0.25-build-20251214-r1
-commit: 1748dc8
-features: hero_with_image_endpoints
+v4.0.26-build-20251214-r1
+commit: bf02c1d
+features: fix_hero_response_field_name
 deployed: pending
