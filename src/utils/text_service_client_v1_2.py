@@ -367,7 +367,9 @@ class TextServiceClientV1_2:
             print(f"[TEXT-SVC] Calling: {url}")
             print(f"[TEXT-SVC]   slide_type={payload.get('slide_type')}, visual_style={payload.get('visual_style')}")
 
-            async with httpx.AsyncClient(timeout=self.timeout) as client:
+            # v4.0.30: Hero endpoints need longer timeout for AI image generation
+            HERO_TIMEOUT = 180  # 3 minutes - image generation takes 60-120s
+            async with httpx.AsyncClient(timeout=HERO_TIMEOUT) as client:
                 response = await client.post(url, json=payload)
                 response.raise_for_status()
                 result = response.json()
@@ -383,8 +385,8 @@ class TextServiceClientV1_2:
             print(f"[TEXT-SVC-ERROR]   Body: {response_body}")
             raise Exception(f"Hero endpoint HTTP {e.response.status_code}: {response_body[:200]}")
         except httpx.TimeoutException as e:
-            print(f"[TEXT-SVC-ERROR] TIMEOUT after {self.timeout}s: {url}")
-            raise Exception(f"Hero endpoint timeout after {self.timeout}s")
+            print(f"[TEXT-SVC-ERROR] TIMEOUT after {HERO_TIMEOUT}s: {url}")
+            raise Exception(f"Hero endpoint timeout after {HERO_TIMEOUT}s")
         except httpx.ConnectError as e:
             print(f"[TEXT-SVC-ERROR] CONNECTION FAILED: {url}")
             print(f"[TEXT-SVC-ERROR]   Error: {str(e)}")

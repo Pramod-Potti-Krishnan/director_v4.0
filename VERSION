@@ -1,4 +1,4 @@
-v4.0.29-build-20251215-r1
-commit: d0b94a8
-features: print_based_hero_diagnostic_logging
+v4.0.30-build-20251215-r1
+commit: pending
+features: hero_endpoint_timeout_180s
 deployed: pending
