@@ -1,4 +1,4 @@
-v4.0.27-build-20251214-r1
-commit: 0270942
-features: phase_aware_topic_clarification
+v4.0.28-build-20251214-r1
+commit: afa6062
+features: hero_diagnostic_logging
 deployed: pending

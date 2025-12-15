@@ -1068,6 +1068,9 @@ class WebSocketHandlerV4:
         is_hero = slide.get('is_hero', False)
         hero_type = slide.get('hero_type')
 
+        # v4.0.28: Diagnostic logging for hero detection
+        logger.info(f"Slide {idx+1}: is_hero={is_hero}, hero_type={hero_type}, title={slide.get('title', '')[:30]}")
+
         try:
             if is_hero or hero_type:
                 # v4.0.24: Hero slides - Call Text Service hero endpoints for rich content with images
@@ -1109,7 +1112,18 @@ class WebSocketHandlerV4:
                     logger.info(f"  ✅ Hero slide {idx+1} generated via Text Service ({endpoint})")
 
                 except Exception as e:
-                    logger.warning(f"  ⚠️ Hero endpoint failed, using fallback: {e}")
+                    # v4.0.28: Enhanced error logging for debugging
+                    error_type = type(e).__name__
+                    error_msg = str(e)
+                    stack_trace = traceback.format_exc()
+
+                    logger.error(f"  ❌ Hero endpoint FAILED for slide {idx+1}:")
+                    logger.error(f"     Error type: {error_type}")
+                    logger.error(f"     Message: {error_msg}")
+                    logger.error(f"     Endpoint: {endpoint}")
+                    logger.error(f"     Payload keys: {list(hero_payload.keys())}")
+                    logger.error(f"     Stack trace: {stack_trace[:500]}")
+
                     # Fallback to local HTML (with null-safe subtitle from Change 2)
                     if hero_type == 'title_slide':
                         html_content = self.strawman_transformer._create_title_slide_html(presentation_title, slide)
