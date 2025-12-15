@@ -1069,13 +1069,13 @@ class WebSocketHandlerV4:
 
                 presentation_title = session.topic or session.initial_request or 'Untitled Presentation'
 
-                # Map hero_type to endpoint
+                # v4.0.25: Map hero_type to endpoint (use -with-image for background images)
                 endpoint_map = {
-                    'title_slide': '/v1.2/hero/title',
-                    'section_divider': '/v1.2/hero/section',
-                    'closing_slide': '/v1.2/hero/closing'
+                    'title_slide': '/v1.2/hero/title-with-image',
+                    'section_divider': '/v1.2/hero/section-with-image',
+                    'closing_slide': '/v1.2/hero/closing-with-image'
                 }
-                endpoint = endpoint_map.get(hero_type, '/v1.2/hero/title')
+                endpoint = endpoint_map.get(hero_type, '/v1.2/hero/title-with-image')
 
                 # Build hero request payload
                 hero_payload = {
@@ -1083,6 +1083,7 @@ class WebSocketHandlerV4:
                     "slide_type": hero_type or "title_slide",
                     "narrative": slide.get('notes') or slide.get('narrative') or '',
                     "topics": slide.get('topics') or [],
+                    "visual_style": "professional",  # v4.0.25: Required for -with-image endpoints
                     "context": {
                         "presentation_title": presentation_title,
                         "total_slides": total_slides,
