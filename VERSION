@@ -1,4 +1,4 @@
-v4.0.26-build-20251214-r1
-commit: bf02c1d
-features: fix_hero_response_field_name
+v4.0.27-build-20251214-r1
+commit: fa4d211
+features: phase_aware_topic_clarification
 deployed: pending

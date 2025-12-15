@@ -670,20 +670,26 @@ class WebSocketHandlerV4:
 
         updates = {}
 
-        # v4.0.15: Extract key session data with GUARDS against overwriting
-        # Once a field is set, don't overwrite it from subsequent messages
+        # v4.0.27: Phase-aware topic updates
+        # Allow clarifications BEFORE strawman generation, lock AFTER
         topic = get_value(extracted, 'topic')
         if topic:
-            # Only set topic if not already established
-            if not session.topic:
+            can_update_topic = (
+                not session.topic or  # No topic yet
+                not session.has_strawman  # Still in clarification phase
+            )
+            if can_update_topic:
+                if session.topic and session.topic != topic:
+                    logger.info(f"  → Topic clarified: '{session.topic}' → '{topic}'")
                 updates['topic'] = topic
                 updates['has_topic'] = True
                 # Also set as initial_request if not set
                 if not session.initial_request:
                     updates['initial_request'] = topic
-                logger.info(f"  → Extracted topic: {topic}")
+                if not session.topic:
+                    logger.info(f"  → Extracted topic: {topic}")
             else:
-                logger.info(f"  → Ignoring extracted topic '{topic}' - session already has topic '{session.topic}'")
+                logger.info(f"  → Topic locked (strawman exists): keeping '{session.topic}'")
 
         audience = get_value(extracted, 'audience')
         if audience:
