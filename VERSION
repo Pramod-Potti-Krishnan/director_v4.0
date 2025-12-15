@@ -1,4 +1,4 @@
-v4.0.23-build-20251214-r1
-commit: 3cc8696
-features: variant_selection_strawman, parallel_generation, l29_layout_fix
+v4.0.24-build-20251214-r1
+commit: pending
+features: hero_text_service_integration, null_safe_subtitle
 deployed: pending

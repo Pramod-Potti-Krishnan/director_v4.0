@@ -1064,14 +1064,49 @@ class WebSocketHandlerV4:
 
         try:
             if is_hero or hero_type:
-                # Hero slides: Use strawman transformer HTML (no text-service needed)
+                # v4.0.24: Hero slides - Call Text Service hero endpoints for rich content with images
                 logger.info(f"Slide {idx+1}/{total_slides}: Hero slide ({hero_type or 'hero'})")
 
-                if hero_type == 'title_slide':
-                    presentation_title = session.topic or session.initial_request or 'Untitled Presentation'
-                    html_content = self.strawman_transformer._create_title_slide_html(presentation_title, slide)
-                else:
-                    html_content = self.strawman_transformer._create_hero_html(slide, hero_type)
+                presentation_title = session.topic or session.initial_request or 'Untitled Presentation'
+
+                # Map hero_type to endpoint
+                endpoint_map = {
+                    'title_slide': '/v1.2/hero/title',
+                    'section_divider': '/v1.2/hero/section',
+                    'closing_slide': '/v1.2/hero/closing'
+                }
+                endpoint = endpoint_map.get(hero_type, '/v1.2/hero/title')
+
+                # Build hero request payload
+                hero_payload = {
+                    "slide_number": idx + 1,
+                    "slide_type": hero_type or "title_slide",
+                    "narrative": slide.get('notes') or slide.get('narrative') or '',
+                    "topics": slide.get('topics') or [],
+                    "context": {
+                        "presentation_title": presentation_title,
+                        "total_slides": total_slides,
+                        "tone": session.tone or "professional",
+                        "audience": session.audience or "general"
+                    }
+                }
+
+                try:
+                    result = await self.text_service_client.call_hero_endpoint(endpoint, hero_payload)
+                    html_content = result.get('html_content') or result.get('html', '')
+
+                    if not html_content:
+                        raise ValueError("Empty HTML from hero endpoint")
+
+                    logger.info(f"  ✅ Hero slide {idx+1} generated via Text Service ({endpoint})")
+
+                except Exception as e:
+                    logger.warning(f"  ⚠️ Hero endpoint failed, using fallback: {e}")
+                    # Fallback to local HTML (with null-safe subtitle from Change 2)
+                    if hero_type == 'title_slide':
+                        html_content = self.strawman_transformer._create_title_slide_html(presentation_title, slide)
+                    else:
+                        html_content = self.strawman_transformer._create_hero_html(slide, hero_type)
 
                 return {
                     'idx': idx,

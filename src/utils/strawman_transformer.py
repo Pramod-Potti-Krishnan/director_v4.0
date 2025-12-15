@@ -101,8 +101,8 @@ class StrawmanTransformer:
         topics = slide.get('topics', [])
         notes = slide.get('notes', '')
 
-        # Use first topic as subtitle, or notes
-        subtitle = topics[0] if topics else notes
+        # Use first topic as subtitle, or notes (v4.0.24: null-safe to avoid "None" display)
+        subtitle = (topics[0] if topics else notes) or ""
 
         # Style based on hero type
         if hero_type == 'closing_slide':
@@ -160,8 +160,8 @@ class StrawmanTransformer:
         topics = slide.get('topics', [])
         notes = slide.get('notes', '')
 
-        # Use first topic as subtitle, or notes
-        subtitle = topics[0] if topics else notes
+        # Use first topic as subtitle, or notes (v4.0.24: null-safe to avoid "None" display)
+        subtitle = (topics[0] if topics else notes) or ""
 
         return f'''
 <div style="display:flex;flex-direction:column;justify-content:center;align-items:center;
