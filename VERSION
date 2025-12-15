@@ -1,4 +1,4 @@
-v4.0.30-build-20251215-r1
-commit: 99c2378
-features: hero_endpoint_timeout_180s
+v4.0.31-build-20251215-r2
+commit: pending
+features: comprehensive_pipeline_logging
 deployed: pending

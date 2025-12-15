@@ -143,10 +143,13 @@ class WebSocketHandlerV4:
             self.active_connections[session_id] = websocket
 
         await websocket.accept()
-        logger.info(f"WebSocket connected: session={session_id}, user={user_id}")
+        # v4.0.31: Use print() for Railway visibility
+        print(f"[SESSION] Connected: session={session_id}, user={user_id}")
 
         # Get or create session
         session = await self.session_manager.get_or_create(session_id, user_id)
+        # v4.0.31: Log session state
+        print(f"[SESSION]   has_topic={session.has_topic}, has_strawman={session.has_strawman}, has_content={session.has_content}")
 
         # Send initial greeting if new session
         if not session.has_topic:
@@ -234,7 +237,9 @@ class WebSocketHandlerV4:
             logger.warning(f"Received empty/whitespace user input, ignoring")
             return
 
-        logger.info(f"Processing message: {user_message[:100]}...")
+        # v4.0.31: Use print() for Railway visibility
+        msg_preview = user_message[:80] + '...' if len(user_message) > 80 else user_message
+        print(f"[MSG] Received: '{msg_preview}' type={message_type}")
 
         # Add to conversation history
         await self.session_manager.add_to_history(
@@ -271,7 +276,10 @@ class WebSocketHandlerV4:
         # Get decision from AI
         try:
             decision = await self.decision_engine.decide(context)
-            logger.info(f"Decision: action={decision.action_type}, confidence={decision.confidence}")
+            # v4.0.31: Use print() for Railway visibility
+            print(f"[DECISION] Action={decision.action_type}, confidence={decision.confidence:.2f}")
+            reasoning_preview = decision.reasoning[:100] if decision.reasoning else 'None'
+            print(f"[DECISION]   Reasoning: {reasoning_preview}...")
 
             # Execute decision
             await self._execute_decision(websocket, session, decision)
@@ -467,11 +475,24 @@ class WebSocketHandlerV4:
             session.id, session.user_id, strawman_dict
         )
 
+        # v4.0.31: Detailed strawman logging
+        slides = strawman_dict.get('slides', [])
+        hero_count = sum(1 for s in slides if s.get('is_hero') or s.get('hero_type'))
+        content_count = len(slides) - hero_count
+        print(f"[STRAWMAN] Generated: '{topic}' with {len(slides)} slides")
+        print(f"[STRAWMAN]   Hero: {hero_count}, Content: {content_count}")
+        for i, slide in enumerate(slides):
+            slide_type = slide.get('hero_type') or ('hero' if slide.get('is_hero') else 'content')
+            variant = slide.get('variant_id', 'auto')
+            title_preview = slide.get('title', '')[:40]
+            print(f"[STRAWMAN]   Slide {i+1}: {slide_type} ({variant}) - '{title_preview}'")
+
         # v4.0.5: Create preview presentation with deck-builder
         preview_url = None
         preview_presentation_id = None
         try:
-            logger.info("Creating preview presentation with deck-builder...")
+            # v4.0.31: Use print() for Railway visibility
+            print(f"[DECK] Creating preview presentation...")
 
             # Transform strawman to deck-builder format
             api_payload = self.strawman_transformer.transform(strawman_dict, topic)
@@ -492,7 +513,8 @@ class WebSocketHandlerV4:
             preview_url = self.deck_builder_client.get_full_url(url_path)
             preview_presentation_id = api_response.get('id', '')
 
-            logger.info(f"Preview created: {preview_url} (id: {preview_presentation_id})")
+            # v4.0.31: Use print() for Railway visibility
+            print(f"[DECK-OK] Preview created: id={preview_presentation_id}, url={preview_url}")
 
         except Exception as e:
             logger.error(f"Failed to create preview with deck-builder: {e}")
@@ -1068,13 +1090,13 @@ class WebSocketHandlerV4:
         is_hero = slide.get('is_hero', False)
         hero_type = slide.get('hero_type')
 
-        # v4.0.29: Use print() for Railway visibility (logger not captured)
-        print(f"[HERO-DIAG] Slide {idx+1}: is_hero={is_hero}, hero_type={hero_type}, title={slide.get('title', '')[:30]}")
+        # v4.0.31: Removed noisy [HERO-DIAG] for non-hero slides - only log relevant info
 
         try:
             if is_hero or hero_type:
                 # v4.0.24: Hero slides - Call Text Service hero endpoints for rich content with images
-                print(f"[HERO-DIAG] Slide {idx+1}/{total_slides}: Hero slide ({hero_type or 'hero'})")
+                # v4.0.31: Use [SLIDE] prefix for consistency
+                print(f"[SLIDE] Slide {idx+1}/{total_slides}: type=hero, hero_type={hero_type or 'hero'}")
 
                 presentation_title = session.topic or session.initial_request or 'Untitled Presentation'
 
@@ -1140,7 +1162,8 @@ class WebSocketHandlerV4:
                 }
             else:
                 # Content slides: Call text-service
-                logger.info(f"Slide {idx+1}/{total_slides}: Content slide - calling text-service")
+                # v4.0.31: Use print() for Railway visibility
+                print(f"[SLIDE] Slide {idx+1}/{total_slides}: type=content")
 
                 # v4.0.23: Prefer variant from strawman, fallback to selector
                 strawman_variant = slide.get('variant_id')
@@ -1165,9 +1188,11 @@ class WebSocketHandlerV4:
                             f"Important details about {slide_title}",
                             f"Understanding {slide_title}"
                         ]
-                    logger.warning(f"  ⚠️ Slide {idx+1}: Empty topics, generated fallback")
+                    print(f"[CONTENT]   WARNING: Empty topics, generated fallback")
 
-                logger.info(f"  → Variant: {variant_id} (source: {variant_source}, {len(topics)} topics)")
+                # v4.0.31: Use print() for Railway visibility
+                title_preview = slide.get('title', '')[:40]
+                print(f"[CONTENT] variant={variant_id} ({variant_source}), topics={len(topics)}, title='{title_preview}'")
 
                 key_message = ' | '.join(topics[:3]) if topics else slide.get('title', '')
                 slide_title = slide.get('title', 'this topic')
@@ -1199,7 +1224,8 @@ class WebSocketHandlerV4:
                 if not is_valid:
                     raise ValueError(f"Request validation failed: {error_msg}")
 
-                logger.info(f"  📤 Text Service request (slide {idx+1})")
+                # v4.0.31: Use print() for Railway visibility
+                print(f"[CONTENT] Calling Text Service /v1.2/generate for slide {idx+1}")
 
                 # Capture request for debugging
                 from src.utils.debug_capture import capture_text_service_request
@@ -1224,7 +1250,8 @@ class WebSocketHandlerV4:
                     response=response_data
                 )
 
-                logger.info(f"  ✅ Slide {idx+1} generated successfully")
+                # v4.0.31: Use print() for Railway visibility
+                print(f"[SLIDE-OK] Slide {idx+1} content generated successfully")
 
                 return {
                     'idx': idx,
@@ -1237,9 +1264,10 @@ class WebSocketHandlerV4:
 
         except Exception as e:
             full_traceback = traceback.format_exc()
-            logger.warning(
-                f"  ⚠️ Slide {idx+1} failed, using fallback: {type(e).__name__}: {str(e)[:200]}"
-            )
+            # v4.0.31: Use print() for Railway visibility
+            error_msg = str(e)[:150]
+            print(f"[SLIDE-ERROR] Slide {idx+1} FAILED: {type(e).__name__}: {error_msg}")
+            print(f"[SLIDE-ERROR]   Using fallback HTML")
 
             # Capture error
             from src.utils.debug_capture import capture_text_service_request
@@ -1281,11 +1309,14 @@ class WebSocketHandlerV4:
             List of enriched slides with generated content
         """
         import asyncio
+        import time
 
         slides = strawman.get('slides', [])
         total_slides = len(slides)
 
-        logger.info(f"🚀 Starting PARALLEL generation for {total_slides} slides...")
+        # v4.0.31: Use print() for Railway visibility with timing
+        print(f"[TIMING] Starting PARALLEL generation for {total_slides} slides...")
+        start_time = time.time()
 
         # Create tasks for all slides
         tasks = [
@@ -1301,7 +1332,7 @@ class WebSocketHandlerV4:
         for i, result in enumerate(results):
             if isinstance(result, Exception):
                 # This shouldn't happen since _generate_single_slide catches exceptions
-                logger.error(f"Unexpected task exception for slide {i+1}: {result}")
+                print(f"[SLIDE-ERROR] Unexpected task exception for slide {i+1}: {result}")
                 # Create fallback result
                 slide = slides[i]
                 fallback_html = self.strawman_transformer._create_content_html(slide)
@@ -1324,14 +1355,12 @@ class WebSocketHandlerV4:
         for slide in enriched_slides:
             slide.pop('idx', None)
 
-        # Log summary
+        # v4.0.31: Log summary with timing
+        elapsed = time.time() - start_time
         fallback_count = sum(1 for s in enriched_slides if s.get('fallback'))
-        if fallback_count > 0:
-            logger.warning(
-                f"✅ Parallel generation complete: {fallback_count}/{total_slides} slides used fallback"
-            )
-        else:
-            logger.info(f"✅ Parallel generation complete: All {total_slides} slides successful")
+        success_count = total_slides - fallback_count
+        print(f"[TIMING] Parallel generation complete: {elapsed:.1f}s for {total_slides} slides")
+        print(f"[TIMING]   Success: {success_count}, Fallback: {fallback_count}")
 
         return enriched_slides
 
@@ -1376,7 +1405,8 @@ class WebSocketHandlerV4:
             'slides': slides_payload
         }
 
-        logger.info(f"Creating final presentation with {len(slides_payload)} slides...")
+        # v4.0.31: Use print() for Railway visibility
+        print(f"[DECK] Creating final presentation with {len(slides_payload)} slides...")
         api_response = await self.deck_builder_client.create_presentation(presentation_data)
 
         # v4.0.13: Defensive null check for deck-builder response
@@ -1395,7 +1425,8 @@ class WebSocketHandlerV4:
         if not final_id:
             logger.warning("Deck-builder final response missing 'id', using empty string")
 
-        logger.info(f"Final presentation created: {final_url} (id: {final_id})")
+        # v4.0.31: Use print() for Railway visibility
+        print(f"[DECK-OK] Final presentation created: id={final_id}, url={final_url}")
         return final_url, final_id
 
     async def _send_presentation_complete(

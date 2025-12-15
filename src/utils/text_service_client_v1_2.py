@@ -126,11 +126,10 @@ class TextServiceClientV1_2:
         start_time = time.time()
 
         try:
-            # v4.0.9: Log request details for debugging
-            logger.info(
-                f"Calling v1.2 generate endpoint for variant '{request.get('variant_id')}'"
-            )
-            logger.debug(f"Request payload: {json.dumps(request, indent=2)}")
+            # v4.0.31: Use print() for Railway visibility
+            variant = request.get('variant_id')
+            slide_title = request.get('slide_spec', {}).get('slide_title', '')[:30]
+            print(f"[TEXT-SVC] POST /v1.2/generate variant={variant}, title='{slide_title}'")
 
             async with httpx.AsyncClient(timeout=self.timeout) as client:
                 response = await client.post(endpoint, json=request)
@@ -188,15 +187,9 @@ class TextServiceClientV1_2:
                     logger.error(f"Text Service returned success=false: {error_detail}")
                     raise Exception(f"Text Service error: {error_detail}")
 
-                # v4.0.14: Include timing in success log
+                # v4.0.31: Use print() for Railway visibility
                 elapsed_total = time.time() - start_time
-                logger.info(
-                    f"✅ v1.2 generation successful "
-                    f"(variant: {request.get('variant_id')}, "
-                    f"time: {elapsed_total:.2f}s, "
-                    f"html_size: {result_html_len} chars, "
-                    f"mode: {result.get('metadata', {}).get('generation_mode', 'unknown')})"
-                )
+                print(f"[TEXT-SVC-OK] /v1.2/generate returned in {elapsed_total:.1f}s ({result_html_len} chars)")
 
                 # v4.0.16: Belt-and-suspenders null check (should never trigger)
                 if result is None:
@@ -221,20 +214,11 @@ class TextServiceClientV1_2:
                 return self._transform_response(result)
 
         except httpx.HTTPStatusError as e:
-            # v4.0.9: Enhanced error logging for 422 validation errors
-            error_body = e.response.text
-            try:
-                error_json = e.response.json()
-                error_body = json.dumps(error_json, indent=2)
-            except Exception:
-                pass  # Keep raw text if JSON parsing fails
-
-            logger.error(
-                f"HTTP {e.response.status_code} error calling v1.2:\n"
-                f"  URL: {endpoint}\n"
-                f"  Variant: {request.get('variant_id')}\n"
-                f"  Response: {error_body}"
-            )
+            # v4.0.31: Use print() for Railway visibility
+            error_body = e.response.text[:200] if e.response else "No body"
+            print(f"[TEXT-SVC-ERROR] HTTP {e.response.status_code} for /v1.2/generate")
+            print(f"[TEXT-SVC-ERROR]   Variant: {request.get('variant_id')}")
+            print(f"[TEXT-SVC-ERROR]   Body: {error_body}")
 
             # Include error details in exception message
             error_msg = error_body[:500] if len(error_body) > 500 else error_body
@@ -243,11 +227,13 @@ class TextServiceClientV1_2:
             )
 
         except httpx.RequestError as e:
-            logger.error(f"Request error calling v1.2: {str(e)}")
+            # v4.0.31: Use print() for Railway visibility
+            print(f"[TEXT-SVC-ERROR] Request error for /v1.2/generate: {str(e)[:100]}")
             raise Exception(f"Text Service v1.2 request error: {str(e)}")
 
         except Exception as e:
-            logger.error(f"Unexpected error calling v1.2: {str(e)}")
+            # v4.0.31: Use print() for Railway visibility
+            print(f"[TEXT-SVC-ERROR] {type(e).__name__} for /v1.2/generate: {str(e)[:100]}")
             raise
 
     def _transform_response(self, v1_2_response: Dict[str, Any]) -> GeneratedText:
