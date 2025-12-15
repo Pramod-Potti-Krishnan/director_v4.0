@@ -1068,13 +1068,13 @@ class WebSocketHandlerV4:
         is_hero = slide.get('is_hero', False)
         hero_type = slide.get('hero_type')
 
-        # v4.0.28: Diagnostic logging for hero detection
-        logger.info(f"Slide {idx+1}: is_hero={is_hero}, hero_type={hero_type}, title={slide.get('title', '')[:30]}")
+        # v4.0.29: Use print() for Railway visibility (logger not captured)
+        print(f"[HERO-DIAG] Slide {idx+1}: is_hero={is_hero}, hero_type={hero_type}, title={slide.get('title', '')[:30]}")
 
         try:
             if is_hero or hero_type:
                 # v4.0.24: Hero slides - Call Text Service hero endpoints for rich content with images
-                logger.info(f"Slide {idx+1}/{total_slides}: Hero slide ({hero_type or 'hero'})")
+                print(f"[HERO-DIAG] Slide {idx+1}/{total_slides}: Hero slide ({hero_type or 'hero'})")
 
                 presentation_title = session.topic or session.initial_request or 'Untitled Presentation'
 
@@ -1109,20 +1109,20 @@ class WebSocketHandlerV4:
                     if not html_content:
                         raise ValueError("Empty HTML from hero endpoint")
 
-                    logger.info(f"  ✅ Hero slide {idx+1} generated via Text Service ({endpoint})")
+                    print(f"[HERO-OK] Slide {idx+1} generated via Text Service ({endpoint})")
 
                 except Exception as e:
-                    # v4.0.28: Enhanced error logging for debugging
+                    # v4.0.29: Use print() for Railway visibility (logger not captured)
                     error_type = type(e).__name__
                     error_msg = str(e)
                     stack_trace = traceback.format_exc()
 
-                    logger.error(f"  ❌ Hero endpoint FAILED for slide {idx+1}:")
-                    logger.error(f"     Error type: {error_type}")
-                    logger.error(f"     Message: {error_msg}")
-                    logger.error(f"     Endpoint: {endpoint}")
-                    logger.error(f"     Payload keys: {list(hero_payload.keys())}")
-                    logger.error(f"     Stack trace: {stack_trace[:500]}")
+                    print(f"[HERO-ERROR] Slide {idx+1} FAILED:")
+                    print(f"[HERO-ERROR]   Type: {error_type}")
+                    print(f"[HERO-ERROR]   Message: {error_msg}")
+                    print(f"[HERO-ERROR]   Endpoint: {endpoint}")
+                    print(f"[HERO-ERROR]   Payload keys: {list(hero_payload.keys())}")
+                    print(f"[HERO-ERROR]   Stack trace: {stack_trace[:500]}")
 
                     # Fallback to local HTML (with null-safe subtitle from Change 2)
                     if hero_type == 'title_slide':

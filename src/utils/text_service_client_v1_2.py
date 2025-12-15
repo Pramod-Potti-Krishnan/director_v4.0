@@ -363,34 +363,34 @@ class TextServiceClientV1_2:
         url = f"{self.base_url}{endpoint}"
 
         try:
-            # v4.0.28: Enhanced logging for hero endpoint calls
-            logger.info(f"Calling hero endpoint: {url}")
-            logger.info(f"  Payload: slide_type={payload.get('slide_type')}, visual_style={payload.get('visual_style')}")
+            # v4.0.29: Use print() for Railway visibility (logger not captured)
+            print(f"[TEXT-SVC] Calling: {url}")
+            print(f"[TEXT-SVC]   slide_type={payload.get('slide_type')}, visual_style={payload.get('visual_style')}")
 
             async with httpx.AsyncClient(timeout=self.timeout) as client:
                 response = await client.post(url, json=payload)
                 response.raise_for_status()
                 result = response.json()
 
-                logger.info(f"✅ Hero endpoint {endpoint} returned successfully")
+                print(f"[TEXT-SVC-OK] Hero endpoint {endpoint} returned successfully")
                 return result
 
         except httpx.HTTPStatusError as e:
-            # v4.0.28: Capture response body for debugging
+            # v4.0.29: Use print() for Railway visibility (logger not captured)
             response_body = e.response.text[:500] if e.response else "No response body"
-            logger.error(f"Hero endpoint HTTP error: {e.response.status_code}")
-            logger.error(f"  URL: {url}")
-            logger.error(f"  Response body: {response_body}")
+            print(f"[TEXT-SVC-ERROR] HTTP {e.response.status_code}")
+            print(f"[TEXT-SVC-ERROR]   URL: {url}")
+            print(f"[TEXT-SVC-ERROR]   Body: {response_body}")
             raise Exception(f"Hero endpoint HTTP {e.response.status_code}: {response_body[:200]}")
         except httpx.TimeoutException as e:
-            logger.error(f"Hero endpoint TIMEOUT after {self.timeout}s: {url}")
+            print(f"[TEXT-SVC-ERROR] TIMEOUT after {self.timeout}s: {url}")
             raise Exception(f"Hero endpoint timeout after {self.timeout}s")
         except httpx.ConnectError as e:
-            logger.error(f"Hero endpoint CONNECTION FAILED: {url}")
-            logger.error(f"  Error: {str(e)}")
+            print(f"[TEXT-SVC-ERROR] CONNECTION FAILED: {url}")
+            print(f"[TEXT-SVC-ERROR]   Error: {str(e)}")
             raise Exception(f"Hero endpoint connection error: {str(e)}")
         except Exception as e:
-            logger.error(f"Hero endpoint call failed: {type(e).__name__}: {str(e)}")
+            print(f"[TEXT-SVC-ERROR] {type(e).__name__}: {str(e)}")
             raise Exception(f"Hero endpoint failure: {type(e).__name__}: {str(e)}")
 
     async def get_variants(self) -> Dict[str, Any]:
