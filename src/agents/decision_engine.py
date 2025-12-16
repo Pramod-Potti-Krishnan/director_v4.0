@@ -519,6 +519,38 @@ You MUST create slides specifically about the provided topic. Every slide title 
 - Keep slide titles concise and clear
 - Balance content vs. hero slides appropriately
 
+## HERO SLIDE NARRATIVE REQUIREMENTS (CRITICAL)
+
+Hero slides require RICH narratives that describe section content. Generic narratives like "Transition to the next section" will produce poor results.
+
+**For Section Dividers**, the `narrative` field MUST:
+- Describe what topics will be covered in the upcoming section
+- Reference how this section connects to what came before
+- Be specific enough for Text Service to generate meaningful content
+
+GOOD Section Divider:
+- title: "Evolution and Consolidation"
+- narrative: "This section covers how our AI technology evolved from basic automation to full consolidation, covering the key milestones and the three major product pivots that led to our current platform."
+- topics: ["AI automation journey", "Key milestones", "Platform consolidation"]
+
+BAD Section Divider:
+- title: "Evolution and Consolidation"
+- narrative: "Transition to the evolution phase" ← TOO VAGUE!
+
+**For Closing Slides**, the `narrative` field MUST:
+- Summarize the key takeaways from the entire presentation
+- Include specific call-to-action context
+- Reference the main topics that were covered
+
+GOOD Closing Slide:
+- title: "Thank You & Questions"
+- narrative: "After covering our AI platform's 40% cost savings, 3x faster processing, and seamless integration capabilities, we invite questions and discussions about implementation."
+- topics: ["Key benefits recap", "Implementation discussion", "Contact information"]
+
+BAD Closing Slide:
+- title: "Thank You"
+- narrative: "Conclude the presentation" ← TOO VAGUE!
+
 ## STRUCTURE RULES
 - 5-10 slides: Simple structure (title, 3-8 content, closing)
 - 10-20 slides: Include section dividers every 4-6 slides

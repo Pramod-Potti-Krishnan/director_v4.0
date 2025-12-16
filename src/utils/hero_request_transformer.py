@@ -130,7 +130,7 @@ class HeroRequestTransformer:
         payload = {
             "slide_number": slide.slide_number,
             "slide_type": classification,
-            "narrative": slide.narrative,
+            "narrative": slide.generated_title or slide.narrative,
             "topics": self._extract_topics(slide),
             "context": context
         }
@@ -243,7 +243,90 @@ class HeroRequestTransformer:
         if hasattr(slide, 'style'):
             context["style"] = slide.style
 
+        # Add section-specific context for hero slides
+        section_context = self._build_section_context(slide, strawman)
+        context.update(section_context)
+
         return context
+
+    def _build_section_context(
+        self,
+        slide: Slide,
+        strawman: PresentationStrawman
+    ) -> Dict[str, Any]:
+        """
+        Build section-specific context for hero slides.
+
+        For section dividers: includes upcoming slides and prior section info.
+        For closing slides: includes deck outline and main topics.
+
+        Args:
+            slide: Slide object
+            strawman: PresentationStrawman object
+
+        Returns:
+            Section context dictionary
+        """
+        section_context = {}
+
+        # Find slide position in presentation
+        slide_index = next(
+            (i for i, s in enumerate(strawman.slides) if s.slide_id == slide.slide_id),
+            0
+        )
+
+        classification = slide.slide_type_classification
+
+        if classification == "section_divider":
+            # Get upcoming slides until next section divider or end
+            upcoming_slides = []
+            for s in strawman.slides[slide_index + 1:]:
+                if s.slide_type_classification in ("section_divider", "closing_slide"):
+                    break
+                upcoming_slides.append({
+                    "title": s.generated_title or s.title,
+                    "type": s.slide_type_classification
+                })
+            section_context["upcoming_slides"] = upcoming_slides
+            section_context["section_slide_count"] = len(upcoming_slides)
+
+            # Get prior sections summary
+            prior_slides = strawman.slides[:slide_index]
+            section_context["prior_slides_count"] = len(prior_slides)
+            section_context["prior_section_titles"] = [
+                s.generated_title or s.title
+                for s in prior_slides
+                if s.slide_type_classification in ("section_divider", "title_slide")
+            ]
+
+            logger.debug(
+                f"Section divider context: {len(upcoming_slides)} upcoming slides, "
+                f"{len(prior_slides)} prior slides"
+            )
+
+        elif classification == "closing_slide":
+            # Get deck summary for closing slides
+            section_context["deck_outline"] = [
+                {
+                    "title": s.generated_title or s.title,
+                    "type": s.slide_type_classification
+                }
+                for s in strawman.slides[:slide_index]
+                if s.slide_type_classification not in ("title_slide",)
+            ]
+            section_context["total_slides"] = len(strawman.slides)
+            section_context["main_topics"] = [
+                s.generated_title or s.title
+                for s in strawman.slides
+                if s.slide_type_classification == "section_divider"
+            ]
+
+            logger.debug(
+                f"Closing slide context: {len(section_context['deck_outline'])} slides in outline, "
+                f"{len(section_context['main_topics'])} main topics"
+            )
+
+        return section_context
 
     def get_hero_endpoint_for_classification(
         self,
