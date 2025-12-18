@@ -22,8 +22,10 @@ from src.models.decision import (
     ToolCallRequest, ApprovalDetectionResult,
     Strawman, StrawmanSlide, PresentationPlan
 )
+from src.models.layout import LayoutRecommendation
 from src.tools.registry import ToolRegistry, get_registry
 from src.utils.logger import setup_logger
+from config.settings import get_settings
 
 logger = setup_logger(__name__)
 
@@ -479,11 +481,26 @@ class StrawmanGenerator:
     Helper for generating presentation strawmans (outlines).
 
     Uses AI to create slide structure based on topic and context.
+
+    v4.0.24: Added Layout Service coordination support.
+    When USE_LAYOUT_SERVICE_COORDINATION is enabled, layouts and variants
+    are selected dynamically via the Layout Service instead of hardcoded L25/L29.
     """
 
     def __init__(self, model_name: str = "gemini-2.5-flash"):
         self.model_name = model_name
         self._init_agent()
+
+        # v4.0.24: Layout Service coordination
+        self.settings = get_settings()
+        self.layout_client = None
+        if self.settings.USE_LAYOUT_SERVICE_COORDINATION:
+            try:
+                from src.clients.layout_service_client import LayoutServiceClient
+                self.layout_client = LayoutServiceClient()
+                logger.info("StrawmanGenerator: Layout Service coordination enabled")
+            except Exception as e:
+                logger.warning(f"Failed to initialize Layout Service client: {e}")
 
     def _init_agent(self):
         """Initialize the strawman generation agent."""
@@ -600,7 +617,13 @@ Create a complete Strawman with slide definitions including:
         purpose: str = "inform",
         additional_context: Optional[Dict[str, Any]] = None
     ) -> Strawman:
-        """Generate a strawman for the given topic."""
+        """
+        Generate a strawman for the given topic.
+
+        v4.0.24: If Layout Service coordination is enabled and available,
+        layouts will be selected dynamically. Otherwise falls back to
+        hardcoded L25/L29 approach.
+        """
         logger.info(f"StrawmanGenerator.generate() called with topic='{topic}'")
 
         if not self.agent:
@@ -640,7 +663,13 @@ Generate a complete strawman with {slide_count} slides about {topic}.
                 operation_name="Strawman Generator"
             )
             # Pydantic-AI 1.0+: use .output instead of .data
-            return result.output
+            strawman = result.output
+
+            # v4.0.24: Enhance with Layout Service if enabled
+            if self.layout_client:
+                strawman = await self._enhance_with_layout_service(strawman)
+
+            return strawman
         except Exception as e:
             logger.error(f"Strawman generation failed: {e}")
             return self._fallback_strawman(topic, duration)
@@ -738,3 +767,128 @@ Generate a complete strawman with {slide_count} slides about {topic}.
             slides=slides,
             metadata={"generated": "fallback", "duration": duration, "topic": topic}
         )
+
+    async def _enhance_with_layout_service(self, strawman: Strawman) -> Strawman:
+        """
+        Enhance strawman with Layout Service recommendations.
+
+        v4.0.24: Post-processes the strawman to get intelligent layout
+        and variant selections from the Layout Service.
+
+        This method:
+        1. Checks Layout Service availability
+        2. For each slide, gets layout recommendations
+        3. Updates layouts and variants based on recommendations
+        4. Falls back gracefully if service unavailable
+
+        Args:
+            strawman: The AI-generated strawman
+
+        Returns:
+            Enhanced strawman with optimized layouts/variants
+        """
+        if not self.layout_client:
+            return strawman
+
+        try:
+            # Check Layout Service availability
+            service_available = await self.layout_client.health_check()
+            if not service_available:
+                logger.warning("Layout Service unavailable, using original strawman")
+                return strawman
+
+            logger.info(f"Enhancing strawman with Layout Service ({len(strawman.slides)} slides)")
+
+            # Process each slide
+            enhanced_slides = []
+            for slide in strawman.slides:
+                enhanced_slide = await self._enhance_slide_layout(slide)
+                enhanced_slides.append(enhanced_slide)
+
+            # Create enhanced strawman with updated metadata
+            metadata = strawman.metadata or {}
+            metadata["layout_source"] = "layout_service"
+            metadata["layout_enhanced"] = True
+
+            return Strawman(
+                title=strawman.title,
+                slides=enhanced_slides,
+                metadata=metadata
+            )
+
+        except Exception as e:
+            logger.error(f"Layout Service enhancement failed: {e}")
+            # Return original strawman on error
+            return strawman
+
+    async def _enhance_slide_layout(self, slide: StrawmanSlide) -> StrawmanSlide:
+        """
+        Enhance a single slide with Layout Service recommendations.
+
+        Args:
+            slide: Original slide from strawman
+
+        Returns:
+            Enhanced slide with optimized layout/variant
+        """
+        try:
+            # Determine slide type for recommendation
+            if slide.is_hero:
+                slide_type = "hero"
+            else:
+                slide_type = "content"
+
+            # Count topics for variant selection
+            topic_count = len(slide.topics) if slide.topics else 1
+
+            # Build content hints
+            content_hints = {
+                "has_data": False,  # Could be enhanced with AI detection
+                "has_image": False,
+                "hero_type": slide.hero_type if slide.is_hero else None
+            }
+
+            # Get layout recommendations
+            recommendations = await self.layout_client.recommend_layout(
+                slide_type=slide_type,
+                topic_count=topic_count,
+                content_hints=content_hints
+            )
+
+            if recommendations:
+                best_rec = recommendations[0]
+                logger.debug(
+                    f"Slide {slide.slide_number}: Layout recommendation "
+                    f"{best_rec.layout_id} (score: {best_rec.score:.2f})"
+                )
+
+                # Update slide with recommended layout
+                new_layout = best_rec.layout_id
+
+                # Update variant if recommendations include suggestions
+                new_variant = slide.variant_id
+                if best_rec.variant_suggestions and not slide.is_hero:
+                    new_variant = best_rec.variant_suggestions[0]
+
+                # Create enhanced slide
+                return StrawmanSlide(
+                    slide_id=slide.slide_id,
+                    slide_number=slide.slide_number,
+                    title=slide.title,
+                    layout=new_layout,
+                    variant_id=new_variant,
+                    topics=slide.topics,
+                    notes=slide.notes,
+                    is_hero=slide.is_hero,
+                    hero_type=slide.hero_type
+                )
+            else:
+                # No recommendations, return original
+                return slide
+
+        except Exception as e:
+            logger.warning(
+                f"Failed to enhance slide {slide.slide_number}: {e}"
+            )
+            # Return original slide on error
+            return slide

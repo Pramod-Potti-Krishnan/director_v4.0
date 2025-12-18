@@ -36,6 +36,8 @@ from src.models.websocket_messages import (
 )
 
 from src.utils.logger import setup_logger
+from config.settings import get_settings
+
 logger = setup_logger(__name__)
 
 
@@ -1001,15 +1003,24 @@ class WebSocketHandlerV4:
                 f"Sorry, content generation encountered an error: {str(e)[:100]}"
             )
 
-    def _select_variant_for_slide(self, slide: Dict[str, Any]) -> str:
+    def _select_variant_for_slide(
+        self,
+        slide: Dict[str, Any],
+        layout_info: Optional[Any] = None
+    ) -> str:
         """
         Select appropriate text-service variant based on slide content.
 
         v4.0.7: Simple count-based selection using valid variants from registry.
         This fixes HTTP 422 errors caused by invalid variant_id.
 
+        v4.0.24: Added layout_info parameter for layout-aware variant selection.
+        When Layout Service coordination is enabled, variants are constrained
+        to those supported by the layout.
+
         Args:
             slide: Slide dict with 'topics' list
+            layout_info: Optional LayoutTemplate from Layout Service
 
         Returns:
             Valid variant_id for text-service v1.2
@@ -1017,7 +1028,16 @@ class WebSocketHandlerV4:
         topics = slide.get('topics', [])
         topic_count = len(topics)
 
-        # Select variant based on topic count
+        # v4.0.24: Layout-aware variant selection
+        if layout_info and hasattr(layout_info, 'supported_variants') and layout_info.supported_variants:
+            # Find best matching variant from layout's supported list
+            for variant in layout_info.supported_variants:
+                if self._variant_matches_topic_count(variant, topic_count):
+                    return variant
+            # If no topic-count match, return first supported variant
+            return layout_info.supported_variants[0]
+
+        # Fallback: topic count-based selection
         # All variants verified valid in config/unified_variant_registry.json
         if topic_count <= 2:
             return 'comparison_2col'  # Good for pros/cons, before/after
@@ -1029,6 +1049,44 @@ class WebSocketHandlerV4:
             return 'sequential_5col'  # 5-step process
         else:
             return 'grid_2x3'  # 6+ items, use 2x3 grid (default)
+
+    def _variant_matches_topic_count(self, variant: str, topic_count: int) -> bool:
+        """
+        Check if a variant is appropriate for the given topic count.
+
+        v4.0.24: Helper for layout-aware variant selection.
+
+        Args:
+            variant: Variant ID to check
+            topic_count: Number of topics in the slide
+
+        Returns:
+            True if variant is suitable for the topic count
+        """
+        # Map variants to their expected topic counts
+        variant_topic_map = {
+            'comparison_2col': 2,
+            'sequential_2col': 2,
+            'sequential_3col': 3,
+            'comparison_3col': 3,
+            'sequential_4col': 4,
+            'comparison_4col': 4,
+            'grid_2x2_centered': 4,
+            'sequential_5col': 5,
+            'grid_2x3': 6,
+            'grid_3x2': 6,
+            'matrix_2x2': 4,
+            'matrix_2x3': 6,
+            'metrics_3col': 3,
+            'metrics_4col': 4,
+        }
+
+        expected = variant_topic_map.get(variant)
+        # If variant not in map, it's flexible - allow it
+        if expected is None:
+            return True
+        # Allow some flexibility (exact match or one off)
+        return abs(expected - topic_count) <= 1
 
     def _validate_text_request(self, request: Dict[str, Any]) -> tuple:
         """
@@ -1061,6 +1119,35 @@ class WebSocketHandlerV4:
             return False, "target_points is empty - cannot generate content (LLM needs input)"
 
         return True, None
+
+    async def _get_layout_info(self, layout_id: str) -> Optional[Any]:
+        """
+        Fetch layout info from Layout Service.
+
+        v4.0.24: Helper for layout-aware variant selection.
+
+        Args:
+            layout_id: Layout ID (e.g., 'L25', 'L29')
+
+        Returns:
+            LayoutTemplate from Layout Service, or None if unavailable
+        """
+        try:
+            from src.clients.layout_service_client import LayoutServiceClient
+            client = LayoutServiceClient()
+
+            # Check service availability first
+            if not await client.health_check():
+                logger.debug("Layout Service unavailable for layout info fetch")
+                return None
+
+            layout = await client.get_layout(layout_id)
+            logger.debug(f"Fetched layout info for {layout_id}")
+            return layout
+
+        except Exception as e:
+            logger.warning(f"Failed to fetch layout info for {layout_id}: {e}")
+            return None
 
     async def _generate_single_slide(
         self,
@@ -1165,10 +1252,17 @@ class WebSocketHandlerV4:
                 # v4.0.31: Use print() for Railway visibility
                 print(f"[SLIDE] Slide {idx+1}/{total_slides}: type=content")
 
+                # v4.0.24: Fetch layout info for layout-aware variant selection
+                layout_info = None
+                settings = get_settings()
+                if settings.USE_LAYOUT_SERVICE_COORDINATION:
+                    layout_info = await self._get_layout_info(slide.get('layout', 'L25'))
+
                 # v4.0.23: Prefer variant from strawman, fallback to selector
+                # v4.0.24: Pass layout_info for layout-aware fallback selection
                 strawman_variant = slide.get('variant_id')
-                variant_id = strawman_variant or self._select_variant_for_slide(slide)
-                variant_source = 'strawman' if strawman_variant else 'fallback'
+                variant_id = strawman_variant or self._select_variant_for_slide(slide, layout_info)
+                variant_source = 'strawman' if strawman_variant else ('layout-aware' if layout_info else 'fallback')
                 topics = slide.get('topics', [])
 
                 # Handle empty topics
@@ -1218,6 +1312,26 @@ class WebSocketHandlerV4:
                     'enable_parallel': True,
                     'validate_character_counts': False
                 }
+
+                # v4.0.24: Add content zone dimensions for optimized text generation
+                if layout_info:
+                    request['content_zone'] = {
+                        'width': getattr(layout_info, 'content_zone_width', 1800),
+                        'height': getattr(layout_info, 'content_zone_height', 720)
+                    }
+                    # Add slot constraints for text slots
+                    if hasattr(layout_info, 'slots') and layout_info.slots:
+                        text_slots = [s for s in layout_info.slots if getattr(s, 'type', '') == 'text']
+                        if text_slots:
+                            request['text_constraints'] = [
+                                {
+                                    'slot_id': getattr(slot, 'id', f'slot_{i}'),
+                                    'max_width': getattr(slot, 'width', 600),
+                                    'max_height': getattr(slot, 'height', 400)
+                                }
+                                for i, slot in enumerate(text_slots)
+                            ]
+                    print(f"[CONTENT]   Layout zone: {request['content_zone']['width']}x{request['content_zone']['height']}")
 
                 # Validate request
                 is_valid, error_msg = self._validate_text_request(request)

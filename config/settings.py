@@ -148,6 +148,19 @@ class Settings(BaseSettings):
         description="Path to unified variant registry JSON file (optional)"
     )
 
+    # v4.0: Layout Service Coordination (Coordinated Strawman)
+    # Enables intelligent layout/variant selection via Layout Service instead of hardcoded L25/L29
+    USE_LAYOUT_SERVICE_COORDINATION: bool = Field(
+        False,  # Default: disabled (use existing hardcoded path)
+        env="USE_LAYOUT_SERVICE_COORDINATION",
+        description="Enable Layout Service for intelligent layout/variant selection in strawman generation"
+    )
+    LAYOUT_SERVICE_URL: str = Field(
+        "http://localhost:8504",  # Same as DECK_BUILDER_API_URL (Layout Service v7.5)
+        env="LAYOUT_SERVICE_URL"
+    )
+    LAYOUT_SERVICE_TIMEOUT: int = Field(10, env="LAYOUT_SERVICE_TIMEOUT")
+
     class Config:
         env_file = ".env"
         env_file_encoding = "utf-8"

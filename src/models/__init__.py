@@ -37,6 +37,14 @@ from .websocket_messages import (
     SyncResponse
 )
 
+from .layout import (
+    LayoutSlot,
+    LayoutTemplate,
+    LayoutRecommendation,
+    CanFitResponse,
+    LayoutCapabilities
+)
+
 __all__ = [
     # Decision models
     'ActionType',
@@ -66,5 +74,12 @@ __all__ = [
     'SlideUpdate',
     'ActionRequest',
     'PresentationURL',
-    'SyncResponse'
+    'SyncResponse',
+
+    # Layout models (v4.0 Layout Service Coordination)
+    'LayoutSlot',
+    'LayoutTemplate',
+    'LayoutRecommendation',
+    'CanFitResponse',
+    'LayoutCapabilities'
 ]
