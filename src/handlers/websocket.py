@@ -8,7 +8,7 @@ Preserves connection management and message protocol from v3.4.
 import json
 import asyncio
 from datetime import datetime
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, List, Optional, Tuple
 from fastapi import WebSocket
 from starlette.websockets import WebSocketState
 
