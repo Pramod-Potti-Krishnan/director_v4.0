@@ -125,6 +125,8 @@ class SessionManagerV4:
         # Update in Supabase
         try:
             updates = {**fields, 'updated_at': session.updated_at.isoformat()}
+            # v4.2.1: Remove branding until column exists in dr_sessions_v4 table
+            updates.pop('branding', None)
             await self.supabase.table(self.table_name).update(updates).eq('id', session_id).eq('user_id', user_id).execute()
             logger.info(f"Updated session {session_id}: {list(fields.keys())}")
 

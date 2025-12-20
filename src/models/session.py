@@ -189,10 +189,16 @@ class SessionV4(BaseModel):
         }
 
     def to_supabase_dict(self) -> Dict[str, Any]:
-        """Convert to dict for Supabase storage."""
+        """Convert to dict for Supabase storage.
+
+        v4.2.1: Excludes 'branding' field until column is added to Supabase table.
+        """
         data = self.dict()
         data['created_at'] = self.created_at.isoformat()
         data['updated_at'] = self.updated_at.isoformat()
+        # v4.2.1: Remove branding until column exists in dr_sessions_v4 table
+        # TODO: Remove this line after running: ALTER TABLE dr_sessions_v4 ADD COLUMN branding JSONB DEFAULT NULL;
+        data.pop('branding', None)
         return data
 
     @classmethod
