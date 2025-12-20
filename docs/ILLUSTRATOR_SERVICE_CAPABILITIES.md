@@ -1,6 +1,6 @@
 # Illustrator Service API Reference
 
-**Version**: 1.0.3
+**Version**: 1.1.0
 **Base URL**: `http://localhost:8000` (local) | Production via Railway
 **Last Updated**: December 2024
 
@@ -343,7 +343,11 @@ These endpoints generate LLM-powered infographic HTML.
     "theme": "professional",
     "size": "medium",
     "topic": "Product Development Strategy",
-    "code_version": "v1.0.1-bullets"
+    "code_version": "v1.0.1-bullets",
+    "attempts": 1,
+    "generation_time_ms": 2800,
+    "model": "gemini-1.5-flash-002",
+    "usage": {"prompt_tokens": 450, "completion_tokens": 180}
   },
   "generated_content": {
     "level_1_label": "Market Launch",
@@ -367,6 +371,17 @@ These endpoints generate LLM-powered infographic HTML.
   "slide_number": 3
 }
 ```
+
+### Diagnostic Metadata (Optional)
+
+The following fields are included in the `metadata` object for monitoring and debugging:
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `attempts` | integer | Number of LLM generation attempts (1 = first try success) |
+| `generation_time_ms` | integer | Total LLM generation time in milliseconds |
+| `model` | string | LLM model used (e.g., "gemini-1.5-flash-002") |
+| `usage` | object | Token usage: `{prompt_tokens, completion_tokens}` |
 
 ### Pyramid Template Specifications
 
@@ -424,7 +439,12 @@ These endpoints generate LLM-powered infographic HTML.
     "template_file": "4.html",
     "theme": "professional",
     "size": "medium",
-    "topic": "Sales Conversion Funnel"
+    "topic": "Sales Conversion Funnel",
+    "code_version": "v1.0.1-bullets",
+    "attempts": 1,
+    "generation_time_ms": 2600,
+    "model": "gemini-1.5-flash-002",
+    "usage": {"prompt_tokens": 420, "completion_tokens": 165}
   },
   "generated_content": {
     "stage_1_name": "Lead Generation",
@@ -1068,47 +1088,87 @@ If required fields are missing:
   "themes": [
     {
       "name": "professional",
-      "description": "Corporate blue palette",
-      "colors": {
-        "primary": "#1e3a5f",
-        "secondary": "#3b82f6",
-        "accent": "#fbbf24",
-        "background": "#f8fafc"
+      "palette": {
+        "primary": "#0066CC",
+        "secondary": "#FF6B00",
+        "accent": "#0066CC",
+        "background": "#FFFFFF",
+        "text": "#333333",
+        "border": "#E0E0E0",
+        "danger": "#DC3545",
+        "success": "#28A745",
+        "text_on_primary": "#FFFFFF",
+        "warning": "#FFC107"
       }
     },
     {
       "name": "bold",
-      "description": "High contrast vibrant colors",
-      "colors": {
+      "palette": {
         "primary": "#dc2626",
         "secondary": "#ea580c",
-        "accent": "#facc15",
-        "background": "#fef2f2"
+        "accent": "#dc2626",
+        "background": "#fef2f2",
+        "text": "#1f2937",
+        "border": "#fca5a5",
+        "danger": "#b91c1c",
+        "success": "#059669",
+        "text_on_primary": "#ffffff",
+        "warning": "#d97706"
       }
     },
     {
       "name": "minimal",
-      "description": "Clean grayscale palette",
-      "colors": {
+      "palette": {
         "primary": "#374151",
         "secondary": "#6b7280",
-        "accent": "#9ca3af",
-        "background": "#ffffff"
+        "accent": "#374151",
+        "background": "#ffffff",
+        "text": "#111827",
+        "border": "#d1d5db",
+        "danger": "#ef4444",
+        "success": "#10b981",
+        "text_on_primary": "#ffffff",
+        "warning": "#f59e0b"
       }
     },
     {
       "name": "playful",
-      "description": "Fun colorful palette",
-      "colors": {
+      "palette": {
         "primary": "#7c3aed",
         "secondary": "#ec4899",
-        "accent": "#06b6d4",
-        "background": "#faf5ff"
+        "accent": "#7c3aed",
+        "background": "#faf5ff",
+        "text": "#1e1b4b",
+        "border": "#c4b5fd",
+        "danger": "#e11d48",
+        "success": "#14b8a6",
+        "text_on_primary": "#ffffff",
+        "warning": "#eab308"
       }
     }
   ]
 }
 ```
+
+### Palette Properties
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `primary` | string | Primary brand color |
+| `secondary` | string | Secondary accent color |
+| `accent` | string | Accent color for CTAs and highlights |
+| `background` | string | Background color |
+| `text` | string | Main text color |
+
+### Extended Palette Properties
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `border` | string | Border color for containers |
+| `danger` | string | Error/destructive action color |
+| `success` | string | Success/positive action color |
+| `text_on_primary` | string | Text color for use on primary background |
+| `warning` | string | Warning/caution color |
 
 ---
 
@@ -1260,6 +1320,7 @@ All endpoints return errors in this format:
 
 | Version | Date | Changes |
 |---------|------|---------|
+| 1.1.0 | Dec 2024 | **Contract alignment per Director guidance**: (1) Added diagnostic metadata fields (`attempts`, `generation_time_ms`, `model`, `usage`) to pyramid/funnel/concentric response schemas. (2) Updated themes endpoint to use `palette` field name (was `colors`). (3) Documented extended palette properties (`border`, `danger`, `success`, `text_on_primary`, `warning`). (4) Added `accent` field to palette schema. Based on EXACTNESS_REPORT.md testing and ILLUSTRATOR_API_CONTRACT_GUIDANCE.md. |
 | 1.0.3 | Dec 2024 | **Documentation fixes**: (1) Marked legacy `POST /v1.0/generate` as deprecated with complete field name documentation and examples. (2) Fixed grid constraints example from 20x12 to 12x8 (actual validation limits). (3) Added error response examples for legacy endpoint. |
 | 1.0.2 | Dec 2024 | Added `infographic_html` field to Concept Spread response schema (was missing in v1.0.1 documentation). All 4 visual generation endpoints now fully aligned. |
 | 1.0.1 | Dec 2024 | Added `infographic_html` field to all generation responses for Layout Service compatibility. Documented all 19 endpoints comprehensively. |

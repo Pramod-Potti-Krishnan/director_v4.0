@@ -291,6 +291,7 @@ C1-text generates title + subtitle + body in **ONE LLM call** (saves 2 calls per
     "variant_id": "bullets",
     "variant_description": "Simple bullet list",
     "content_style": "bullets",
+    "visual_style": "illustrated",               // Visual style applied
     "title_length": 28,
     "subtitle_length": 32,
     "body_length": 245,
@@ -1007,6 +1008,7 @@ Same request/response pattern as title-with-image.
 
   "image_url": "https://storage.googleapis.com/deckster-hero-images/...",
   "image_fallback": false,
+  "background_color": "#ffffff",                  // Slide background color
 
   "metadata": {
     "layout_type": "I1",
@@ -1016,9 +1018,8 @@ Same request/response pattern as title-with-image.
     "content_dimensions": {"width": 1200, "height": 840},
     "visual_style": "illustrated",
     "content_style": "bullets",
-    "image_generation_time_ms": 8200,
-    "content_generation_time_ms": 2100,
-    "total_generation_time_ms": 10500
+    "generation_time_ms": 10500,
+    "validation": {...}                           // Optional: see Diagnostic Fields
   }
 }
 ```
@@ -1423,10 +1424,47 @@ All endpoints return errors in this format:
 
 ---
 
+# APPENDIX E: Diagnostic Fields (Optional)
+
+Some endpoints return optional diagnostic fields in the `metadata` object. These are useful for debugging but are not required for normal operation.
+
+## metadata.validation
+
+Returned by: H1-generated, I1-I4, iseries/generate
+
+```json
+{
+  "metadata": {
+    "validation": {
+      "valid": true,                      // Whether content passed validation
+      "violations": [],                   // List of validation errors
+      "warnings": [],                     // List of warnings (non-blocking)
+      "has_list": true,                   // Content contains bullet list
+      "has_paragraph": false              // Content contains paragraph
+    }
+  }
+}
+```
+
+## H1-generated Specific Fields
+
+The H1-generated endpoint returns additional diagnostic metadata:
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `metadata.background_image` | string | URL of generated background image |
+| `metadata.image_generation_time_ms` | int | Time to generate image |
+| `metadata.fallback_to_gradient` | boolean | True if image generation failed |
+| `metadata.generation_mode` | string | Generation mode used |
+| `metadata.layout_type` | string | Layout type identifier |
+
+---
+
 ## Version History
 
 | Version | Date | Changes |
 |---------|------|---------|
+| 1.2.3 | Dec 2024 | Contract exactness fixes, added diagnostic fields documentation |
 | 1.2.2 | Dec 2024 | Added unified /v1.2/slides/* router with complete contracts |
 | 1.2.1 | Dec 2024 | Added I-series, Layout/Element API documentation |
 | 1.2.0 | Dec 2024 | Initial v1.2 with coordination endpoints |
