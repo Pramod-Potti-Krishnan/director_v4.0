@@ -1,6 +1,6 @@
 # Illustrator Service API Reference
 
-**Version**: 1.0.1
+**Version**: 1.0.3
 **Base URL**: `http://localhost:8000` (local) | Production via Railway
 **Last Updated**: December 2024
 
@@ -641,8 +641,8 @@ Supports 14 infographic types:
   "prompt": "Create a sales funnel showing AIDA stages",
   "type": "funnel",
   "constraints": {
-    "gridWidth": 20,
-    "gridHeight": 12,
+    "gridWidth": 12,
+    "gridHeight": 8,
     "itemCount": 4
   },
   "options": {
@@ -885,25 +885,47 @@ Supports 14 infographic types:
 
 ---
 
-## 4.3 POST /v1.0/generate (Legacy)
+## 4.3 POST /v1.0/generate (Legacy - DEPRECATED)
 
 **Purpose**: Generate illustration from template (legacy endpoint)
 
-**Note**: Only supports approved types: `pyramid`, `pyramid_3tier`, `funnel`, `funnel_4stage`
+> **DEPRECATED**: This endpoint uses template placeholders and requires exact field names.
+> **Use the LLM-powered endpoints instead** (recommended):
+> - `POST /v1.0/pyramid/generate` - Pyramid (3-6 levels)
+> - `POST /v1.0/funnel/generate` - Funnel (3-5 stages)
+> - `POST /v1.0/concentric_circles/generate` - Concentric circles (3-5 rings)
+> - `POST /concept-spread/generate` - Concept spread (6 hexagons)
+>
+> The LLM-powered endpoints accept natural language topics and generate content automatically.
+
+**Supported Types**: `pyramid_3tier`, `pyramid_4tier`, `pyramid_5tier`, `pyramid_6tier`, `funnel_3stage`, `funnel_4stage`, `funnel_5stage`
 
 ### Request Schema
 
+This endpoint requires **template-specific placeholder field names**. The field names must match the placeholders in the HTML templates exactly.
+
+**Example for `funnel_4stage`**:
 ```json
 {
-  "illustration_type": "pyramid",
+  "illustration_type": "funnel_4stage",
   "variant_id": "base",
   "data": {
-    "levels": [
-      {"label": "Vision", "description": "Long-term goals"},
-      {"label": "Strategy", "description": "Approach to achieve vision"},
-      {"label": "Tactics", "description": "Specific actions"},
-      {"label": "Operations", "description": "Day-to-day execution"}
-    ]
+    "stage1_name": "Awareness",
+    "stage1_bullet_1": "Content marketing campaigns",
+    "stage1_bullet_2": "Social media presence",
+    "stage1_bullet_3": "SEO optimization",
+    "stage2_name": "Interest",
+    "stage2_bullet_1": "Email nurturing",
+    "stage2_bullet_2": "Product demos",
+    "stage2_bullet_3": "Case studies",
+    "stage3_name": "Decision",
+    "stage3_bullet_1": "Pricing discussions",
+    "stage3_bullet_2": "Proposal review",
+    "stage3_bullet_3": "Competitor comparison",
+    "stage4_name": "Action",
+    "stage4_bullet_1": "Contract signing",
+    "stage4_bullet_2": "Onboarding setup",
+    "stage4_bullet_3": "Success tracking"
   },
   "theme": "professional",
   "size": "medium",
@@ -911,14 +933,60 @@ Supports 14 infographic types:
 }
 ```
 
+**Example for `pyramid_4tier`**:
+```json
+{
+  "illustration_type": "pyramid_4tier",
+  "variant_id": "base",
+  "data": {
+    "level_1_label": "Operations",
+    "level_1_bullet_1": "Daily execution tasks",
+    "level_1_bullet_2": "Process management",
+    "level_1_bullet_3": "Team coordination",
+    "level_1_bullet_4": "Resource allocation",
+    "level_2_label": "Tactics",
+    "level_2_bullet_1": "Quarterly initiatives",
+    "level_2_bullet_2": "Performance metrics",
+    "level_2_bullet_3": "Team objectives",
+    "level_2_bullet_4": "Budget planning",
+    "level_3_label": "Strategy",
+    "level_3_bullet_1": "Market positioning",
+    "level_3_bullet_2": "Competitive advantage",
+    "level_3_bullet_3": "Growth targets",
+    "level_3_bullet_4": "Innovation focus",
+    "level_4_label": "Vision",
+    "level_4_bullet_1": "Long-term direction",
+    "level_4_bullet_2": "Mission alignment",
+    "level_4_bullet_3": "Core values",
+    "level_4_bullet_4": "Future aspirations"
+  },
+  "theme": "professional",
+  "size": "medium",
+  "output_format": "html"
+}
+```
+
+### Field Name Patterns
+
+| Template Type | Field Pattern | Example |
+|--------------|---------------|---------|
+| `pyramid_Ntier` | `level_N_label`, `level_N_bullet_1` to `level_N_bullet_4` | `level_1_label`, `level_1_bullet_1` |
+| `funnel_Nstage` | `stageN_name`, `stageN_bullet_1` to `stageN_bullet_3` | `stage1_name`, `stage1_bullet_1` |
+
+### Discovering Required Fields
+
+Use `GET /v1.0/illustration/{type}` to see available templates, then inspect the template placeholders:
+- Template placeholders use the format `{field_name}`
+- All placeholders in the template must be provided in the `data` object
+
 ### Response Schema
 
 ```json
 {
-  "illustration_type": "pyramid",
+  "illustration_type": "funnel_4stage",
   "variant_id": "base",
   "format": "html",
-  "data": "<div class='pyramid-container'>...</div>",
+  "data": "<div class='funnel-container'>...</div>",
   "metadata": {
     "width": 1200,
     "height": 800,
@@ -926,6 +994,22 @@ Supports 14 infographic types:
     "rendering_method": "html_css"
   },
   "generation_time_ms": 145
+}
+```
+
+### Error Response
+
+If required fields are missing:
+```json
+{
+  "detail": {
+    "error_type": "validation_error",
+    "message": "Missing required field in data: 'stage1_name'. Template expects this placeholder but it wasn't provided.",
+    "suggestions": [
+      "Check data structure for funnel_4stage",
+      "Use GET /v1.0/illustration/funnel_4stage for schema"
+    ]
+  }
 }
 ```
 
@@ -1176,6 +1260,7 @@ All endpoints return errors in this format:
 
 | Version | Date | Changes |
 |---------|------|---------|
+| 1.0.3 | Dec 2024 | **Documentation fixes**: (1) Marked legacy `POST /v1.0/generate` as deprecated with complete field name documentation and examples. (2) Fixed grid constraints example from 20x12 to 12x8 (actual validation limits). (3) Added error response examples for legacy endpoint. |
 | 1.0.2 | Dec 2024 | Added `infographic_html` field to Concept Spread response schema (was missing in v1.0.1 documentation). All 4 visual generation endpoints now fully aligned. |
 | 1.0.1 | Dec 2024 | Added `infographic_html` field to all generation responses for Layout Service compatibility. Documented all 19 endpoints comprehensively. |
 | 1.0.0 | Dec 2024 | Initial release with 3 Director coordination endpoints, pyramid/funnel/concentric_circles generation, concept spread, and Layout Service integration |
