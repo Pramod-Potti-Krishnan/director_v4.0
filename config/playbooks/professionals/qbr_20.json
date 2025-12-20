@@ -1,0 +1,257 @@
+{
+  "playbook_id": "professionals-qbr-20",
+  "version": "1.0.0",
+  "metadata": {
+    "audience": "professionals",
+    "purpose": "qbr",
+    "duration": 20,
+    "description": "Quarterly Business Review structure for executive audiences"
+  },
+  "structure": {
+    "total_slides": 12,
+    "sections": [
+      {"section_id": "opening", "section_name": "Opening", "is_required": true},
+      {"section_id": "metrics", "section_name": "Key Metrics", "is_required": true},
+      {"section_id": "achievements", "section_name": "Achievements", "is_required": true},
+      {"section_id": "challenges", "section_name": "Challenges", "is_required": true},
+      {"section_id": "next_quarter", "section_name": "Next Quarter", "is_required": true},
+      {"section_id": "closing", "section_name": "Closing", "is_required": true}
+    ]
+  },
+  "slides": [
+    {
+      "slot_id": "title",
+      "slide_number": 1,
+      "section_id": "opening",
+      "title_template": "Quarterly Review: {topic}",
+      "slide_type_hint": "hero",
+      "purpose": "title_slide",
+      "layout": "L29",
+      "is_hero": true,
+      "hero_type": "title_slide",
+      "suggested_variant": null,
+      "topic_templates": [
+        "Quarterly performance overview"
+      ],
+      "narrative_template": "Opening slide for {topic} quarterly review"
+    },
+    {
+      "slot_id": "executive_summary",
+      "slide_number": 2,
+      "section_id": "opening",
+      "title_template": "Executive Summary",
+      "slide_type_hint": "text",
+      "purpose": "executive_summary",
+      "layout": "L25",
+      "is_hero": false,
+      "hero_type": null,
+      "suggested_variant": "metrics_4col",
+      "topic_templates": [
+        "Revenue vs target",
+        "Key wins",
+        "Critical challenges",
+        "Next quarter focus"
+      ],
+      "narrative_template": "High-level summary of {topic} quarterly performance"
+    },
+    {
+      "slot_id": "kpi_section",
+      "slide_number": 3,
+      "section_id": "metrics",
+      "title_template": "Key Performance Indicators",
+      "slide_type_hint": "hero",
+      "purpose": "section_transition",
+      "layout": "L29",
+      "is_hero": true,
+      "hero_type": "section_divider",
+      "suggested_variant": null,
+      "topic_templates": [],
+      "narrative_template": "Transition to KPI analysis for {topic}"
+    },
+    {
+      "slot_id": "metrics_overview",
+      "slide_number": 4,
+      "section_id": "metrics",
+      "title_template": "Metrics Dashboard",
+      "slide_type_hint": "chart",
+      "purpose": "metrics",
+      "layout": "L25",
+      "is_hero": false,
+      "hero_type": null,
+      "suggested_variant": null,
+      "topic_templates": [
+        "Revenue performance",
+        "Customer metrics",
+        "Operational efficiency",
+        "Quality indicators"
+      ],
+      "narrative_template": "Key metrics for {topic} this quarter"
+    },
+    {
+      "slot_id": "trends",
+      "slide_number": 5,
+      "section_id": "metrics",
+      "title_template": "Quarter-over-Quarter Trends",
+      "slide_type_hint": "chart",
+      "purpose": "trend_analysis",
+      "layout": "L25",
+      "is_hero": false,
+      "hero_type": null,
+      "suggested_variant": null,
+      "topic_templates": [
+        "Growth trajectory",
+        "Seasonal patterns",
+        "Year-over-year comparison"
+      ],
+      "narrative_template": "Trend analysis for {topic} performance",
+      "is_optional": true
+    },
+    {
+      "slot_id": "achievements",
+      "slide_number": 6,
+      "section_id": "achievements",
+      "title_template": "Key Achievements",
+      "slide_type_hint": "text",
+      "purpose": "achievements",
+      "layout": "L25",
+      "is_hero": false,
+      "hero_type": null,
+      "suggested_variant": "grid_2x3",
+      "topic_templates": [
+        "Major wins",
+        "Goals met",
+        "Projects completed",
+        "New capabilities",
+        "Process improvements",
+        "Recognition received"
+      ],
+      "narrative_template": "Notable achievements for {topic} this quarter"
+    },
+    {
+      "slot_id": "challenges_section",
+      "slide_number": 7,
+      "section_id": "challenges",
+      "title_template": "Challenges & Learnings",
+      "slide_type_hint": "hero",
+      "purpose": "section_transition",
+      "layout": "L29",
+      "is_hero": true,
+      "hero_type": "section_divider",
+      "suggested_variant": null,
+      "topic_templates": [],
+      "narrative_template": "Transition to challenges discussion for {topic}"
+    },
+    {
+      "slot_id": "blockers",
+      "slide_number": 8,
+      "section_id": "challenges",
+      "title_template": "Challenges Faced",
+      "slide_type_hint": "text",
+      "purpose": "blockers",
+      "layout": "L25",
+      "is_hero": false,
+      "hero_type": null,
+      "suggested_variant": "comparison_3col",
+      "topic_templates": [
+        "Challenge description",
+        "Impact assessment",
+        "Mitigation steps"
+      ],
+      "narrative_template": "Key challenges encountered in {topic}"
+    },
+    {
+      "slot_id": "risks",
+      "slide_number": 9,
+      "section_id": "challenges",
+      "title_template": "Risks & Mitigation",
+      "slide_type_hint": "text",
+      "purpose": "risk_assessment",
+      "layout": "L25",
+      "is_hero": false,
+      "hero_type": null,
+      "suggested_variant": "matrix_2x2",
+      "topic_templates": [
+        "High impact risks",
+        "Probability assessment",
+        "Mitigation plans",
+        "Contingencies"
+      ],
+      "narrative_template": "Risk assessment for {topic}",
+      "is_optional": true
+    },
+    {
+      "slot_id": "next_quarter",
+      "slide_number": 10,
+      "section_id": "next_quarter",
+      "title_template": "Next Quarter Priorities",
+      "slide_type_hint": "text",
+      "purpose": "roadmap",
+      "layout": "L25",
+      "is_hero": false,
+      "hero_type": null,
+      "suggested_variant": "sequential_4col",
+      "topic_templates": [
+        "Priority 1",
+        "Priority 2",
+        "Priority 3",
+        "Priority 4"
+      ],
+      "narrative_template": "Focus areas for {topic} next quarter"
+    },
+    {
+      "slot_id": "asks",
+      "slide_number": 11,
+      "section_id": "next_quarter",
+      "title_template": "Resource Requests",
+      "slide_type_hint": "text",
+      "purpose": "asks",
+      "layout": "L25",
+      "is_hero": false,
+      "hero_type": null,
+      "suggested_variant": "comparison_3col",
+      "topic_templates": [
+        "Headcount needs",
+        "Budget requests",
+        "Cross-functional support"
+      ],
+      "narrative_template": "Resource requests for {topic} growth",
+      "is_optional": true
+    },
+    {
+      "slot_id": "closing",
+      "slide_number": 12,
+      "section_id": "closing",
+      "title_template": "Questions & Discussion",
+      "slide_type_hint": "hero",
+      "purpose": "closing_slide",
+      "layout": "L29",
+      "is_hero": true,
+      "hero_type": "closing_slide",
+      "suggested_variant": null,
+      "topic_templates": [
+        "Open discussion",
+        "Action items"
+      ],
+      "narrative_template": "Closing slide for {topic} QBR"
+    }
+  ],
+  "adaptation_rules": {
+    "shorter_duration_removes": ["trends", "risks", "asks"],
+    "longer_duration_adds": [
+      {
+        "after_slot": "achievements",
+        "slide_templates": [
+          {
+            "title_template": "Team Spotlight",
+            "purpose": "team_recognition",
+            "suggested_variant": "grid_3x2"
+          }
+        ]
+      }
+    ],
+    "audience_tone_map": {
+      "professionals": "formal",
+      "executives": "strategic"
+    }
+  }
+}

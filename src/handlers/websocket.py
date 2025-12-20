@@ -22,6 +22,14 @@ from src.utils.session_manager import SessionManagerV4
 from src.utils.deck_builder_client import DeckBuilderClient  # v4.0.5: Preview generation
 from src.utils.strawman_transformer import StrawmanTransformer  # v4.0.5: Transform for deck-builder
 from src.utils.text_service_client_v1_2 import TextServiceClientV1_2  # v4.0.6: Content generation
+
+# v4.2: Stage 5 - Strawman Refinement
+from src.core.strawman_refiner import StrawmanRefiner
+from src.core.strawman_differ import StrawmanDiffer
+from src.models.refinement import MergeStrategy
+
+# v4.2: Stage 6 - Layout-Aligned Content Generation
+from src.utils.layout_payload_assembler import LayoutPayloadAssembler, AssemblyContext
 from src.tools.registry import register_all_tools, ToolCall
 from src.storage.supabase import get_supabase_client
 from src.models.websocket_messages import (
@@ -96,6 +104,22 @@ class WebSocketHandlerV4:
             timeout=self.settings.TEXT_SERVICE_TIMEOUT
         )
         logger.info(f"Text Service Client initialized: {self.settings.TEXT_SERVICE_URL}")
+
+        # v4.2: Initialize Strawman Refiner and Differ for Stage 5
+        if self.settings.STRAWMAN_REFINEMENT_ENABLED:
+            from src.core.layout_analyzer import LayoutSeriesMode
+            series_mode = LayoutSeriesMode(self.settings.LAYOUT_SERIES_MODE)
+            self.strawman_refiner = StrawmanRefiner(
+                model_name=self.settings.GCP_MODEL_REFINE_STRAWMAN,
+                project_id=self.settings.GCP_PROJECT_ID,
+                location=self.settings.GCP_LOCATION,
+                series_mode=series_mode
+            )
+            self.strawman_differ = StrawmanDiffer()
+            logger.info(f"Strawman Refiner initialized with model: {self.settings.GCP_MODEL_REFINE_STRAWMAN}")
+        else:
+            self.strawman_refiner = None
+            self.strawman_differ = None
 
         # v4.0.6: Explicit approval phrases for content generation bypass
         # v4.0.8: Added button values for action_request handling
@@ -568,17 +592,133 @@ class WebSocketHandlerV4:
         await websocket.send_json(action_msg.model_dump(mode='json'))
 
     async def _handle_refine_strawman(self, websocket: WebSocket, session: SessionV4, decision):
-        """Handle REFINE_STRAWMAN action - modify existing outline."""
+        """
+        Handle REFINE_STRAWMAN action - modify existing outline.
+
+        v4.2: Full AI-driven refinement implementation for Stage 5.
+        Uses StrawmanRefiner to parse feedback and modify specific slides.
+        Re-runs LayoutAnalyzer on modified slides for proper service routing.
+        """
         await self._send_status(websocket, session, "Refining presentation outline...")
 
         # Get refinement feedback from decision
         feedback = decision.response_text or ""
 
-        # For now, just acknowledge - full refinement would involve AI call
-        await self._send_chat(
-            websocket, session,
-            "I've noted your feedback. Let me update the outline accordingly."
-        )
+        if not feedback.strip():
+            await self._send_chat(
+                websocket, session,
+                "I didn't catch any specific changes. What would you like me to modify?"
+            )
+            return
+
+        # Check if refinement is enabled
+        if not self.strawman_refiner:
+            await self._send_chat(
+                websocket, session,
+                "I've noted your feedback. Let me update the outline accordingly."
+            )
+            logger.warning("Strawman refinement disabled - using stub response")
+            return
+
+        # Check if we have a strawman to refine
+        if not session.strawman:
+            await self._send_chat(
+                websocket, session,
+                "I don't have an outline to refine yet. Let me create one first."
+            )
+            return
+
+        try:
+            # Build context for refinement
+            context = {
+                "audience": session.audience,
+                "tone": session.tone,
+                "purpose": session.purpose,
+                "duration": session.duration
+            }
+
+            # Call AI-driven refiner
+            logger.info(f"Refining strawman with feedback: '{feedback[:100]}...'")
+            result = await self.strawman_refiner.refine_from_chat(
+                current_strawman=session.strawman,
+                user_feedback=feedback,
+                context=context
+            )
+
+            if not result.success:
+                await self._send_chat(
+                    websocket, session,
+                    f"I couldn't apply those changes: {result.error or result.reasoning}. "
+                    "Could you be more specific about what you'd like to change?"
+                )
+                return
+
+            # Save updated strawman to session
+            await self.session_manager.save_strawman(
+                session.id, session.user_id, result.updated_strawman
+            )
+
+            # Refresh session
+            session = await self.session_manager.get_or_create(session.id, session.user_id)
+
+            # Generate new preview with updated strawman
+            preview_url, preview_id = await self._generate_preview(result.updated_strawman, session)
+
+            # Update session with new preview
+            if preview_url:
+                await self.session_manager.update_progress(
+                    session.id, session.user_id,
+                    {
+                        'presentation_url': preview_url,
+                        'presentation_id': preview_id
+                    }
+                )
+
+            # Send updated slide_update to frontend
+            await self._send_slide_update(
+                websocket, session,
+                result.updated_strawman,
+                preview_url=preview_url,
+                preview_presentation_id=preview_id
+            )
+
+            # Summarize changes
+            change_summary = self.strawman_refiner.summarize_changes(result.changes)
+            await self._send_chat(
+                websocket, session,
+                f"I've updated the outline: {change_summary}\n\n"
+                "Would you like to make more changes, or does this look good?"
+            )
+
+            # Re-send approval buttons
+            action_msg = create_action_request(
+                session_id=session.id,
+                prompt_text="How does this look?",
+                actions=[
+                    {
+                        "label": "Looks perfect!",
+                        "value": "accept_strawman",
+                        "primary": True,
+                        "requires_input": False
+                    },
+                    {
+                        "label": "More changes",
+                        "value": "request_refinement",
+                        "primary": False,
+                        "requires_input": True
+                    }
+                ]
+            )
+            await websocket.send_json(action_msg.model_dump(mode='json'))
+
+            logger.info(f"Refinement complete: {len(result.changes)} changes applied")
+
+        except Exception as e:
+            logger.error(f"Strawman refinement failed: {e}", exc_info=True)
+            await self._send_chat(
+                websocket, session,
+                "I had trouble applying those changes. Could you try rephrasing what you'd like to modify?"
+            )
 
     async def _handle_invoke_tools(self, websocket: WebSocket, session: SessionV4, decision):
         """Handle INVOKE_TOOLS action - call content generation tools."""
@@ -951,12 +1091,109 @@ class WebSocketHandlerV4:
         logger.debug(f"Fallback parser found no topic in response")
         return None
 
+    # ========== v4.2: Stage 5 - Diff on Generate ==========
+
+    async def _sync_with_deck_builder(self, session: SessionV4) -> Tuple[Dict[str, Any], List[Any]]:
+        """
+        DIFF ON GENERATE: Sync with Deck-Builder before content generation.
+
+        v4.2: Stage 5 - Fetch current state from Deck-Builder and detect any
+        changes the user made via direct edits in the preview.
+
+        Args:
+            session: Current session with strawman and presentation_id
+
+        Returns:
+            Tuple of (merged_strawman, list_of_changes)
+        """
+        from typing import Tuple
+
+        if not session.presentation_id:
+            logger.debug("No presentation_id - skipping Deck-Builder sync")
+            return session.strawman, []
+
+        if not self.settings.DIFF_ON_GENERATE_ENABLED:
+            logger.debug("Diff on generate disabled - using session strawman as-is")
+            return session.strawman, []
+
+        if not self.strawman_differ:
+            logger.debug("StrawmanDiffer not initialized - using session strawman as-is")
+            return session.strawman, []
+
+        try:
+            # Fetch current state from Deck-Builder
+            logger.info(f"Fetching presentation state from Deck-Builder: {session.presentation_id}")
+            db_state = await self.deck_builder_client.get_presentation_state(session.presentation_id)
+
+            if not db_state:
+                logger.warning(f"Could not fetch presentation state for {session.presentation_id}")
+                return session.strawman, []
+
+            # Compute diff
+            diff = self.strawman_differ.compute_diff(session.strawman, db_state)
+
+            if not diff.has_changes:
+                logger.info("No changes detected in Deck-Builder - using session strawman")
+                return session.strawman, []
+
+            logger.info(
+                f"Detected changes in Deck-Builder: "
+                f"{len(diff.added_slides)} added, {len(diff.removed_slide_ids)} removed, "
+                f"{len(diff.modified_slides)} modified"
+            )
+
+            # Merge changes into Director's strawman (Deck-Builder wins)
+            merge_result = self.strawman_differ.merge_changes(
+                session.strawman, diff, MergeStrategy.DECKBUILDER_WINS
+            )
+
+            if not merge_result.success:
+                logger.error(f"Merge failed: {merge_result.conflicts}")
+                return session.strawman, []
+
+            # Re-analyze layout for slides with significant changes
+            merged_strawman = merge_result.merged_strawman
+            if diff.slides_needing_reanalysis and self.strawman_refiner:
+                for slide_mod in diff.slides_needing_reanalysis:
+                    idx = slide_mod.slide_number - 1
+                    slides = merged_strawman.get("slides", [])
+                    if 0 <= idx < len(slides):
+                        slide = slides[idx]
+                        result = self.strawman_refiner.layout_analyzer.analyze(
+                            slide_type_hint=slide.get("slide_type_hint", "text"),
+                            hero_type=slide.get("hero_type"),
+                            topic_count=len(slide.get("topics", [])),
+                            purpose=slide.get("purpose"),
+                            title=slide.get("title"),
+                            topics=slide.get("topics")
+                        )
+                        slide["layout"] = result.layout
+                        slide["service"] = result.service
+                        logger.debug(
+                            f"Re-analyzed slide {slide_mod.slide_number}: "
+                            f"layout={result.layout}, service={result.service}"
+                        )
+
+            # Save merged strawman back to session
+            await self.session_manager.save_strawman(
+                session.id, session.user_id, merged_strawman
+            )
+
+            return merged_strawman, diff.modified_slides
+
+        except Exception as e:
+            logger.error(f"Deck-Builder sync failed: {e}", exc_info=True)
+            return session.strawman, []
+
     async def _handle_content_generation(self, websocket: WebSocket, session: SessionV4):
         """
         Handle content generation when user explicitly approves.
 
         v4.0.6: Bypasses Decision Engine and calls text-service directly.
         Simplified pipeline (text-service only for content slides).
+
+        v4.2: Stage 5 - Sync with Deck-Builder before generation (diff on generate).
+        Detects any changes the user made in the preview and incorporates them.
 
         Args:
             websocket: WebSocket connection
@@ -965,11 +1202,19 @@ class WebSocketHandlerV4:
         await self._send_status(websocket, session, "Generating presentation content...")
 
         try:
-            # 1. Get strawman slides
+            # 0. Get initial strawman
             strawman = session.strawman
             if not strawman:
                 await self._send_chat(websocket, session, "No presentation outline found. Let me create one first.")
                 return
+
+            # 1. v4.2: DIFF ON GENERATE - Sync with Deck-Builder first
+            # This detects any changes the user made via direct edits in the preview
+            await self._send_status(websocket, session, "Syncing with preview changes...")
+            strawman, modified_slides = await self._sync_with_deck_builder(session)
+
+            if modified_slides:
+                logger.info(f"Incorporated {len(modified_slides)} user edits from Deck-Builder preview")
 
             # 2. Generate content for each slide via text-service
             logger.info(f"Generating content for {len(strawman.get('slides', []))} slides...")
@@ -1183,10 +1428,93 @@ class WebSocketHandlerV4:
             if is_hero or hero_type:
                 # v4.0.24: Hero slides - Call Text Service hero endpoints for rich content with images
                 # v4.0.31: Use [SLIDE] prefix for consistency
+                # v4.3: Use unified /v1.2/slides/* endpoints when enabled
                 print(f"[SLIDE] Slide {idx+1}/{total_slides}: type=hero, hero_type={hero_type or 'hero'}")
 
                 presentation_title = session.topic or session.initial_request or 'Untitled Presentation'
+                settings = get_settings()
 
+                # v4.3: Use unified slides API for spec-compliant responses
+                if settings.USE_UNIFIED_SLIDES_API:
+                    narrative = slide.get('notes') or slide.get('narrative') or ''
+                    topics = slide.get('topics') or []
+                    context = {
+                        "tone": session.tone or "professional",
+                        "audience": session.audience or "general"
+                    }
+
+                    try:
+                        if hero_type == 'title_slide' or not hero_type:
+                            # H1-generated: Title slide with AI image
+                            print(f"[SLIDE] Using unified API: /v1.2/slides/H1-generated")
+                            result = await self.text_service_client.generate_h1_generated(
+                                slide_number=idx + 1,
+                                narrative=narrative,
+                                topics=topics,
+                                presentation_title=presentation_title,
+                                subtitle=slide.get('subtitle'),
+                                visual_style="professional",
+                                context=context
+                            )
+                            layout = 'H1-generated'
+                        elif hero_type == 'section_divider':
+                            # H2-section: Section divider
+                            print(f"[SLIDE] Using unified API: /v1.2/slides/H2-section")
+                            result = await self.text_service_client.generate_h2_section(
+                                slide_number=idx + 1,
+                                narrative=narrative,
+                                section_number=slide.get('section_number'),
+                                section_title=slide.get('title'),
+                                topics=topics,
+                                visual_style="professional"
+                            )
+                            layout = 'H2-section'
+                        elif hero_type == 'closing_slide':
+                            # H3-closing: Closing slide
+                            print(f"[SLIDE] Using unified API: /v1.2/slides/H3-closing")
+                            result = await self.text_service_client.generate_h3_closing(
+                                slide_number=idx + 1,
+                                narrative=narrative,
+                                closing_message=slide.get('title', 'Thank You'),
+                                visual_style="professional"
+                            )
+                            layout = 'H3-closing'
+                        else:
+                            # Fallback to H1-generated
+                            print(f"[SLIDE] Using unified API: /v1.2/slides/H1-generated (fallback)")
+                            result = await self.text_service_client.generate_h1_generated(
+                                slide_number=idx + 1,
+                                narrative=narrative,
+                                topics=topics,
+                                presentation_title=presentation_title,
+                                context=context
+                            )
+                            layout = 'H1-generated'
+
+                        # v4.3: Response is spec-compliant with all fields
+                        print(f"[HERO-OK] Slide {idx+1} generated via unified slides API ({layout})")
+
+                        return {
+                            'idx': idx,
+                            'slide_id': slide_id,
+                            'layout': layout,
+                            'content': result.get('hero_content', ''),
+                            'slide_title': result.get('slide_title', ''),
+                            'subtitle': result.get('subtitle', ''),
+                            'section_number': result.get('section_number', ''),
+                            'contact_info': result.get('contact_info', ''),
+                            'author_info': result.get('author_info', ''),
+                            'background_color': result.get('background_color'),
+                            'background_image': result.get('background_image'),
+                            'is_hero': True,
+                            'hero_type': hero_type
+                        }
+
+                    except Exception as e:
+                        print(f"[HERO-ERROR] Unified API failed, falling back to legacy: {str(e)[:100]}")
+                        # Fall through to legacy behavior
+
+                # Legacy behavior (USE_UNIFIED_SLIDES_API=False or fallback)
                 # v4.0.25: Map hero_type to endpoint (use -with-image for background images)
                 endpoint_map = {
                     'title_slide': '/v1.2/hero/title-with-image',
@@ -1250,11 +1578,79 @@ class WebSocketHandlerV4:
             else:
                 # Content slides: Call text-service
                 # v4.0.31: Use print() for Railway visibility
+                # v4.3: Use unified /v1.2/slides/C1-text for combined generation (1 LLM call)
                 print(f"[SLIDE] Slide {idx+1}/{total_slides}: type=content")
 
+                # v4.0: Check for I-series (image+text) generation
+                settings = get_settings()
+                if settings.USE_ISERIES_GENERATION:
+                    needs_image = slide.get('needs_image', False)
+                    suggested_iseries = slide.get('suggested_iseries')
+                    if needs_image and suggested_iseries:
+                        print(f"[SLIDE] Slide {idx+1}: I-series detected ({suggested_iseries})")
+                        return await self._generate_iseries_slide(idx, slide, session, total_slides)
+
+                # Get settings for configuration checks
+                settings = get_settings()
+
+                # v4.3: Use unified slides API for combined generation (67% LLM savings!)
+                if settings.USE_UNIFIED_SLIDES_API:
+                    strawman_variant = slide.get('variant_id', 'bullets')
+                    topics = slide.get('topics', [])
+                    narrative = slide.get('notes') or slide.get('narrative') or ''
+
+                    # Handle empty topics
+                    if not topics:
+                        slide_title_text = slide.get('title', 'Slide')
+                        slide_notes = slide.get('notes', '')
+                        if slide_notes:
+                            topics = [f"Key point: {slide_notes[:80]}"]
+                        else:
+                            topics = [f"Key aspects of {slide_title_text}"]
+
+                    context = {
+                        "tone": session.tone or "professional",
+                        "audience": session.audience or "general"
+                    }
+
+                    try:
+                        print(f"[SLIDE] Using unified API: /v1.2/slides/C1-text (1 LLM call)")
+
+                        result = await self.text_service_client.generate_c1_text(
+                            slide_number=idx + 1,
+                            narrative=narrative,
+                            variant_id=strawman_variant,
+                            slide_title=slide.get('title'),
+                            subtitle=slide.get('subtitle'),
+                            topics=topics,
+                            content_style="bullets",
+                            context=context
+                        )
+
+                        # v4.3: Response includes slide_title, subtitle, body, background_color
+                        print(f"[SLIDE-OK] Slide {idx+1} generated via unified API (C1-text)")
+
+                        return {
+                            'idx': idx,
+                            'slide_id': slide_id,
+                            'layout': 'C1-text',
+                            'content': result.get('body', '') or result.get('rich_content', ''),
+                            'slide_title': result.get('slide_title', ''),
+                            'subtitle': result.get('subtitle', ''),
+                            'body': result.get('body', ''),
+                            'rich_content': result.get('rich_content', ''),
+                            'background_color': result.get('background_color'),
+                            'is_hero': False,
+                            'title': slide.get('title', '')
+                        }
+
+                    except Exception as e:
+                        print(f"[SLIDE-ERROR] Unified API failed, falling back to legacy: {str(e)[:100]}")
+                        # Fall through to legacy behavior
+
+                # Legacy behavior (USE_UNIFIED_SLIDES_API=False or fallback)
                 # v4.0.24: Fetch layout info for layout-aware variant selection
                 layout_info = None
-                settings = get_settings()
                 if settings.USE_LAYOUT_SERVICE_COORDINATION:
                     layout_info = await self._get_layout_info(slide.get('layout', 'L25'))
 
@@ -1404,6 +1800,147 @@ class WebSocketHandlerV4:
                 'fallback': True
             }
 
+    async def _generate_iseries_slide(
+        self,
+        idx: int,
+        slide: Dict[str, Any],
+        session: SessionV4,
+        total_slides: int
+    ) -> Dict[str, Any]:
+        """
+        Generate I-series slide (image + text combined layout).
+
+        v4.0: Called when USE_ISERIES_GENERATION is enabled and slide has
+        needs_image=True and suggested_iseries set.
+
+        I-series layouts:
+        - I1: Wide image left (660x1080), content right (1200x840)
+        - I2: Wide image right (660x1080), content left (1140x840)
+        - I3: Narrow image left (360x1080), content right (1500x840)
+        - I4: Narrow image right (360x1080), content left (1440x840)
+
+        Args:
+            idx: Slide index (0-based)
+            slide: Slide dict from strawman
+            session: Current session
+            total_slides: Total number of slides
+
+        Returns:
+            Dict with slide content and 'idx' for ordering
+        """
+        import traceback
+
+        slide_id = slide.get('slide_id', f'slide_{idx+1}')
+        layout_type = slide.get('suggested_iseries', 'I1')
+
+        # Get settings for I-series defaults
+        settings = get_settings()
+        visual_style = settings.ISERIES_DEFAULT_VISUAL_STYLE
+        content_style = settings.ISERIES_DEFAULT_CONTENT_STYLE
+
+        try:
+            # Build I-series request
+            title = slide.get('title', 'Untitled')
+            narrative = slide.get('notes') or slide.get('narrative') or f"Key points about {title}"
+            topics = slide.get('topics', [])
+
+            # Context for I-series generation
+            context = {
+                "presentation_title": session.topic or session.initial_request or 'Presentation',
+                "total_slides": total_slides,
+                "current_slide": idx + 1,
+                "tone": session.tone or "professional",
+                "audience": session.audience or "general"
+            }
+
+            print(f"[ISERIES] Generating {layout_type} for slide {idx+1}: '{title[:40]}...'")
+            print(f"[ISERIES]   visual_style={visual_style}, topics={len(topics)}")
+
+            # Call Text Service I-series endpoint
+            result = await self.text_service_client.generate_iseries(
+                layout_type=layout_type,
+                slide_number=idx + 1,
+                title=title,
+                narrative=narrative,
+                topics=topics,
+                visual_style=visual_style,
+                content_style=content_style,
+                context=context,
+                max_bullets=5
+            )
+
+            # I-series returns combined HTML
+            # The service may return 'content' or separate 'image_html' + 'content_html'
+            if 'content' in result:
+                html_content = result['content']
+            else:
+                # Combine image and content HTML
+                image_html = result.get('image_html', '')
+                content_html = result.get('content_html', '')
+                title_html = result.get('title_html', f'<h2>{title}</h2>')
+
+                # Assemble into container based on layout
+                if layout_type in ('I1', 'I3'):
+                    # Image on left
+                    html_content = f'''
+                    <div class="iseries-container iseries-{layout_type.lower()}" style="display: flex; width: 100%; height: 100%;">
+                        <div class="iseries-image" style="flex-shrink: 0;">{image_html}</div>
+                        <div class="iseries-content" style="flex: 1; padding: 20px;">
+                            {title_html}
+                            {content_html}
+                        </div>
+                    </div>
+                    '''
+                else:
+                    # Image on right (I2, I4)
+                    html_content = f'''
+                    <div class="iseries-container iseries-{layout_type.lower()}" style="display: flex; width: 100%; height: 100%;">
+                        <div class="iseries-content" style="flex: 1; padding: 20px;">
+                            {title_html}
+                            {content_html}
+                        </div>
+                        <div class="iseries-image" style="flex-shrink: 0;">{image_html}</div>
+                    </div>
+                    '''
+
+            image_fallback = result.get('image_fallback', False)
+            fallback_msg = " (gradient fallback)" if image_fallback else ""
+            print(f"[ISERIES-OK] Slide {idx+1} generated{fallback_msg}")
+
+            return {
+                'idx': idx,
+                'slide_id': slide_id,
+                'layout': f'I{layout_type[1]}' if len(layout_type) > 1 else 'I1',
+                'content': html_content,
+                'is_hero': False,
+                'is_iseries': True,
+                'title': title,
+                'image_fallback': image_fallback
+            }
+
+        except Exception as e:
+            full_traceback = traceback.format_exc()
+            error_msg = str(e)[:150]
+            print(f"[ISERIES-ERROR] Slide {idx+1} FAILED: {type(e).__name__}: {error_msg}")
+            print(f"[ISERIES-ERROR]   Falling back to standard content generation")
+
+            # Capture error
+            from src.utils.debug_capture import capture_text_service_request
+            capture_text_service_request(
+                session_id=session.id,
+                slide_index=idx,
+                request={'layout_type': layout_type, 'title': slide.get('title')},
+                error=f"I-series failed: {str(e)}\n{full_traceback}"
+            )
+
+            # Fallback: generate as regular content slide
+            # Clear the iseries flag so it doesn't loop
+            slide_copy = slide.copy()
+            slide_copy['needs_image'] = False
+            slide_copy['suggested_iseries'] = None
+
+            return await self._generate_single_slide(idx, slide_copy, session, total_slides)
+
     async def _generate_slide_content(
         self,
         strawman: Dict[str, Any],
@@ -1487,6 +2024,10 @@ class WebSocketHandlerV4:
         Create final presentation with generated content.
 
         v4.0.6: Creates NEW presentation with enriched content (v3.4 approach).
+        v4.2: Uses LayoutPayloadAssembler for layout-specific payloads
+              aligned to SLIDE_GENERATION_INPUT_SPEC.md.
+        v4.3: Supports unified slides API response format with slide_title,
+              subtitle, body, rich_content fields directly from Text Service.
 
         Args:
             enriched_slides: List of slides with generated content
@@ -1495,23 +2036,92 @@ class WebSocketHandlerV4:
         Returns:
             Tuple of (presentation_url, presentation_id)
         """
-        # Build presentation payload
+        # v4.2: Use LayoutPayloadAssembler for layout-specific payloads
+        assembler = LayoutPayloadAssembler()
         slides_payload = []
+        total_slides = len(enriched_slides)
 
-        for slide in enriched_slides:
-            if slide.get('is_hero') or slide.get('layout') == 'L29':
-                slides_payload.append({
-                    'layout': 'L29',
-                    'content': {'hero_content': slide['content']}
-                })
+        # Get branding if available
+        branding = session.get_branding() if hasattr(session, 'get_branding') else None
+
+        for idx, slide in enumerate(enriched_slides):
+            layout = slide.get('layout', 'L25')
+            is_hero = slide.get('is_hero', False) or layout in ['L29', 'H1-generated', 'H1-structured', 'H2-section', 'H3-closing']
+
+            # Build context for assembly
+            context = AssemblyContext(
+                slide_number=idx + 1,
+                total_slides=total_slides,
+                presentation_title=session.topic or session.initial_request
+            )
+
+            # v4.3: Unified API returns 'slide_title' directly; legacy uses 'title'
+            # Prefer slide_title (HTML formatted), fall back to title
+            slide_title = slide.get('slide_title') or slide.get('title', '')
+            subtitle = slide.get('subtitle', '')
+
+            # Build content dict for assembler
+            content_dict = {}
+
+            if is_hero or layout in ['L29', 'H1-generated']:
+                # Full-bleed hero - content is the complete HTML
+                content_dict['hero_content'] = slide.get('content', '')
+            elif layout == 'H1-structured':
+                content_dict['author_info'] = slide.get('author_info', '')
+            elif layout == 'H2-section':
+                content_dict['section_number'] = slide.get('section_number', '')
+            elif layout == 'H3-closing':
+                content_dict['contact_info'] = slide.get('contact_info', '')
+            elif layout.startswith('I') and len(layout) > 1 and layout[1].isdigit():
+                # I-series: image + text
+                # v4.3: Unified API returns 'body' directly
+                content_dict['image_url'] = slide.get('image_url', '')
+                content_dict['body'] = slide.get('body') or slide.get('content', '')
+            elif layout in ['C3-chart', 'C3', 'V2-chart-text', 'V2']:
+                # Chart layouts
+                content_dict['chart_html'] = slide.get('chart_html') or slide.get('content', '')
+                if layout in ['V2-chart-text', 'V2']:
+                    content_dict['body'] = slide.get('body') or slide.get('insights', '')
+            elif layout == 'L02':
+                # Analytics-native layout
+                content_dict['element_1'] = slide.get('element_1', '')
+                content_dict['element_2'] = slide.get('element_2', '')
+                content_dict['element_3'] = slide.get('element_3', '')
+                content_dict['element_4'] = slide.get('element_4', '')
+            elif layout in ['C5-diagram', 'C5', 'V3-diagram-text', 'V3']:
+                # Diagram layouts
+                content_dict['diagram_html'] = slide.get('diagram_html') or slide.get('svg_content') or slide.get('content', '')
+                if layout in ['V3-diagram-text', 'V3']:
+                    content_dict['body'] = slide.get('body', '')
+            elif layout in ['C4-infographic', 'C4', 'V4-infographic-text', 'V4']:
+                # Infographic layouts
+                content_dict['infographic_html'] = slide.get('infographic_html') or slide.get('content', '')
+                if layout in ['V4-infographic-text', 'V4']:
+                    content_dict['body'] = slide.get('body', '')
+            elif layout == 'C1-text':
+                # v4.3: C1-text unified API returns body and rich_content directly
+                content_dict['body'] = slide.get('body') or slide.get('content', '')
+                content_dict['rich_content'] = slide.get('rich_content', '')
+                content_dict['html'] = slide.get('content', '')
             else:
-                slides_payload.append({
-                    'layout': 'L25',
-                    'content': {
-                        'slide_title': slide.get('title', ''),
-                        'rich_content': slide['content']
-                    }
-                })
+                # Default: L25 - use rich_content
+                # v4.3: Prefer body/rich_content from unified API, fall back to content
+                content_dict['rich_content'] = slide.get('rich_content') or slide.get('body') or slide.get('content', '')
+                content_dict['html'] = slide.get('content', '')
+
+            # Assemble payload using LayoutPayloadAssembler
+            payload = assembler.assemble(
+                layout=layout,
+                slide_title=slide_title,
+                subtitle=subtitle,
+                content=content_dict,
+                branding=branding,
+                context=context,
+                background_color=slide.get('background_color'),
+                background_image=slide.get('background_image')
+            )
+
+            slides_payload.append(payload)
 
         # Create NEW presentation (v3.4 approach - not update)
         presentation_data = {

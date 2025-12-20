@@ -1,0 +1,27 @@
+{
+  "version": "1.0.0",
+  "description": "Registry of presentation playbooks indexed by (audience, purpose, duration)",
+  "playbooks": {
+    "professionals-investor_pitch-15": {
+      "path": "professionals/investor_pitch_15.json",
+      "audience": "professionals",
+      "purpose": "investor_pitch",
+      "duration": 15,
+      "description": "Standard investor pitch deck (YC-style)"
+    },
+    "college_students-training-15": {
+      "path": "college_students/training_15.json",
+      "audience": "college_students",
+      "purpose": "training",
+      "duration": 15,
+      "description": "Educational training presentation for college students"
+    },
+    "professionals-qbr-20": {
+      "path": "professionals/qbr_20.json",
+      "audience": "professionals",
+      "purpose": "qbr",
+      "duration": 20,
+      "description": "Quarterly Business Review for executive audiences"
+    }
+  }
+}

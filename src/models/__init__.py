@@ -45,6 +45,16 @@ from .layout import (
     LayoutCapabilities
 )
 
+from .content_hints import (
+    PatternType,
+    SuggestedService,
+    ContentHints,
+    CanHandleRequest,
+    CanHandleResponse,
+    VariantRecommendation,
+    RecommendVariantResponse
+)
+
 __all__ = [
     # Decision models
     'ActionType',
@@ -81,5 +91,14 @@ __all__ = [
     'LayoutTemplate',
     'LayoutRecommendation',
     'CanFitResponse',
-    'LayoutCapabilities'
+    'LayoutCapabilities',
+
+    # Content Hints models (v4.0 Multi-Service Coordination)
+    'PatternType',
+    'SuggestedService',
+    'ContentHints',
+    'CanHandleRequest',
+    'CanHandleResponse',
+    'VariantRecommendation',
+    'RecommendVariantResponse'
 ]

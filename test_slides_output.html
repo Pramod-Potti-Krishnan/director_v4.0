@@ -1,0 +1,777 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Text + Layout Service Test - The Story of Hanuman</title>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: #fff;
+            padding: 40px;
+            min-height: 100vh;
+            margin: 0;
+        }
+        h1 {
+            text-align: center;
+            color: #eee;
+            margin-bottom: 10px;
+            font-size: 32px;
+        }
+        .subtitle {
+            text-align: center;
+            color: #94a3b8;
+            margin-bottom: 40px;
+        }
+        .slide-container {
+            max-width: 1000px;
+            margin: 40px auto;
+            background: linear-gradient(145deg, #1e2a4a 0%, #16213e 100%);
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        .slide-header {
+            background: linear-gradient(90deg, #0f3460 0%, #1a4f7a 100%);
+            padding: 18px 25px;
+            font-size: 14px;
+            color: #94a3b8;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+        .slide-content {
+            padding: 50px;
+            min-height: 400px;
+            background: #fff;
+            color: #1a1a2e;
+        }
+        .layout-tag {
+            display: inline-block;
+            background: linear-gradient(135deg, #e94560 0%, #ff6b6b 100%);
+            color: white;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        .variant-tag {
+            display: inline-block;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        .slide-number {
+            display: inline-block;
+            background: rgba(255,255,255,0.15);
+            color: #a5b4fc;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 12px;
+        }
+        .slide-info {
+            color: #fff;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        /* L25 Slide Title/Subtitle Header */
+        .l25-header {
+            background: linear-gradient(135deg, #1e3a5f 0%, #2d4a6f 100%);
+            padding: 30px 50px;
+            border-bottom: 3px solid #3b82f6;
+        }
+        .l25-header h2 {
+            margin: 0 0 8px 0;
+            font-size: 28px;
+            font-weight: 700;
+            color: #fff;
+        }
+        .l25-header p {
+            margin: 0;
+            font-size: 16px;
+            color: #94a3b8;
+        }
+
+        /* Hero slide styling */
+        .hero-slide {
+            min-height: 500px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Style the generated content */
+        .slide-content h1, .slide-content h2, .slide-content h3 {
+            color: #1a1a2e;
+        }
+        .slide-content ul {
+            list-style-type: none;
+            padding: 0;
+        }
+        .slide-content li {
+            padding: 10px 0;
+        }
+
+        /* Timestamp */
+        .timestamp {
+            text-align: center;
+            color: #64748b;
+            font-size: 12px;
+            margin-top: 40px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Text Service + Layout Service Integration Test</h1>
+    <p class="subtitle">
+        Testing L29 (Hero) + L25 (Content) slide generation<br>
+        <strong>L29</strong>: Text Service generates FULL content |
+        <strong>L25</strong>: Text Service generates main content, Layout Service adds title/subtitle
+    </p>
+
+    <div class="slide-container">
+        <div class="slide-header">
+            <span class="layout-tag">L29</span>
+            <span class="variant-tag">hero</span>
+            <span class="slide-number">Slide 1 of 5</span>
+            <span class="slide-info">The Story of Hanuman</span>
+        </div>
+        <div class="slide-content hero-slide">
+            <div style="width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #ffa751 0%, #ffe259 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 80px;">
+
+  <h1 style="font-size: 96px;
+             color: white;
+             font-weight: 900;
+             text-align: center;
+             margin: 0 0 40px 0;
+             text-shadow: 0 4px 12px rgba(0,0,0,0.3);
+             line-height: 1.1;
+             letter-spacing: -2px;">
+    The Story of Hanuman
+  </h1>
+
+  <p style="font-size: 42px;
+            color: rgba(255,255,255,0.95);
+            text-align: center;
+            margin: 0 0 64px 0;
+            line-height: 1.4;
+            text-shadow: 0 2px 8px rgba(0,0,0,0.2);">
+    Discover the amazing adventures of the brave and powerful monkey god!
+  </p>
+
+  <div style="font-size: 32px;
+              color: rgba(255,255,255,0.9);
+              text-align: center;
+              text-shadow: 0 2px 6px rgba(0,0,0,0.2);">
+    Your Name | Storytellers Inc. | January 1, 2024
+  </div>
+
+</div>
+        </div>
+    </div>
+
+    <div class="slide-container">
+        <div class="slide-header">
+            <span class="layout-tag">L25</span>
+            <span class="variant-tag">grid_2x2_centered</span>
+            <span class="slide-number">Slide 2 of 5</span>
+            <span class="slide-info">Who is Hanuman?</span>
+        </div>
+        <div class="l25-header">
+            <h2>Who is Hanuman?</h2>
+            <p>The greatest devotee of Lord Rama</p>
+        </div>
+        <div class="slide-content">
+            <div style="display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            grid-template-rows: repeat(2, 1fr);
+            gap: 40px;
+            padding: 0 40px 40px 0;
+            height: 100%;
+            background: white;
+            align-items: stretch;
+            overflow: hidden;">
+
+  <!-- Box 1 -->
+  <div style="padding: 38px;
+              border-radius: 12px;
+              background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+              border: 2px solid #e5e7eb;
+              display: flex;
+              flex-direction: column;
+              align-items: center;
+              justify-content: center;
+              text-align: center;
+              box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
+
+    <div style="font-size: 64px; margin: 0 0 20px 0; line-height: 1;">☁️</div>
+
+    <h3 style="font-size: 28px;
+               font-weight: 700;
+               color: #1f2937;
+               margin: 0 0 15px 0;
+               line-height: 1.2;">
+      Son of the Mighty Wind God
+    </h3>
+
+    <p style="font-size: 20px;
+              font-weight: 400;
+              color: #6b7280;
+              line-height: 1.6;
+              margin: 0;">
+      Hanuman's dad is Vayu, the amazing Wind God! This means Hanuman was born with special powers, like being super fast and strong, just like the wind itself. He wasn't born in the usual way, making him truly unique and magical from the very beginning of his life. How cool is that?
+    </p>
+
+  </div>
+
+  <!-- Box 2 -->
+  <div style="padding: 38px;
+              border-radius: 12px;
+              background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+              border: 2px solid #e5e7eb;
+              display: flex;
+              flex-direction: column;
+              align-items: center;
+              justify-content: center;
+              text-align: center;
+              box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
+
+    <div style="font-size: 64px; margin: 0 0 20px 0; line-height: 1;">⚡</div>
+
+    <h3 style="font-size: 28px;
+               font-weight: 700;
+               color: #1f2937;
+               margin: 0 0 15px 0;
+               line-height: 1.2;">
+      Incredible Super Strength
+    </h3>
+
+    <p style="font-size: 20px;
+              font-weight: 400;
+              color: #6b7280;
+              line-height: 1.6;
+              margin: 0;">
+      Imagine being so strong you could lift a whole mountain! That's Hanuman! He has incredible power, making him able to do amazing things like jumping across oceans and carrying huge objects. His strength is legendary and always used for good.
+    </p>
+
+  </div>
+
+  <!-- Box 3 -->
+  <div style="padding: 38px;
+              border-radius: 12px;
+              background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+              border: 2px solid #e5e7eb;
+              display: flex;
+              flex-direction: column;
+              align-items: center;
+              justify-content: center;
+              text-align: center;
+              box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
+
+    <div style="font-size: 64px; margin: 0 0 20px 0; line-height: 1;">🎯</div>
+
+    <h3 style="font-size: 28px;
+               font-weight: 700;
+               color: #1f2937;
+               margin: 0 0 15px 0;
+               line-height: 1.2;">
+      Loyal Friend to Lord Rama
+    </h3>
+
+    <p style="font-size: 20px;
+              font-weight: 400;
+              color: #6b7280;
+              line-height: 1.6;
+              margin: 0;">
+      Hanuman loves Lord Rama with all his heart! He is Rama's most loyal friend and helper, always ready to do anything to support him. His devotion is so strong, it gives him even more power to overcome challenges and help those in need.
+    </p>
+
+  </div>
+
+  <!-- Box 4 -->
+  <div style="padding: 38px;
+              border-radius: 12px;
+              background: linear-gradient(135deg, #fce7f3 0%, #fbcfe8 100%);
+              border: 2px solid #e5e7eb;
+              display: flex;
+              flex-direction: column;
+              align-items: center;
+              justify-content: center;
+              text-align: center;
+              box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
+
+    <div style="font-size: 64px; margin: 0 0 20px 0; line-height: 1;">⚙️</div>
+
+    <h3 style="font-size: 28px;
+               font-weight: 700;
+               color: #1f2937;
+               margin: 0 0 15px 0;
+               line-height: 1.2;">
+      Amazing Shape-Shifter
+    </h3>
+
+    <p style="font-size: 20px;
+              font-weight: 400;
+              color: #6b7280;
+              line-height: 1.6;
+              margin: 0;">
+      Hanuman can change his size whenever he wants! He can become as tiny as a fly to sneak around, or as big as a mountain to scare away bad guys. This amazing power helps him in all his adventures, making him super adaptable and clever!
+    </p>
+
+  </div>
+
+</div>
+
+        </div>
+    </div>
+
+    <div class="slide-container">
+        <div class="slide-header">
+            <span class="layout-tag">L25</span>
+            <span class="variant-tag">sequential_4col</span>
+            <span class="slide-number">Slide 3 of 5</span>
+            <span class="slide-info">Hanuman's Greatest Adventures</span>
+        </div>
+        <div class="l25-header">
+            <h2>Hanuman's Greatest Adventures</h2>
+            <p>From birth to becoming a hero</p>
+        </div>
+        <div class="slide-content">
+            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 48px; padding: 0 40px 40px 40px; height: 100%; background: white; align-items: start; position: relative;">
+
+  <!-- Step 1: Purple -->
+  <div style="text-align: center; position: relative; z-index: 1;">
+    <div style="width: 120px;
+                height: 120px;
+                margin: 0 auto 24px;
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                box-shadow: 0 8px 24px rgba(102, 126, 234, 0.3);">
+      <span style="font-size: 62px; font-weight: 900; color: white;">1</span>
+    </div>
+    <h3 style="font-size: 29px; color: #1f2937; margin: 0 0 16px 0; font-weight: 700;">Flying Towards the Sun</h3>
+    <p style="font-size: 20px; color: #6b7280; line-height: 1.6; margin: 0 0 10px 0; text-align: center;">
+      As a baby, Hanuman was very curious and saw the sun as a yummy, juicy fruit.
+    </p>
+    <p style="font-size: 20px; color: #6b7280; line-height: 1.6; margin: 0 0 10px 0; text-align: center;">
+      He bravely used his special powers to fly super high, wanting to take a big bite!
+    </p>
+    <p style="font-size: 20px; color: #6b7280; line-height: 1.6; margin: 0 0 10px 0; text-align: center;">
+      This adventure shows us that it's great to be curious and brave, but we must listen.
+    </p>
+    <p style="font-size: 20px; color: #6b7280; line-height: 1.6; margin: 0; text-align: center;">
+      His story teaches us to explore our world while also understanding our own limits.
+    </p>
+  </div>
+
+  <!-- Step 2: Pink -->
+  <div style="text-align: center; position: relative; z-index: 1;">
+    <div style="width: 120px;
+                height: 120px;
+                margin: 0 auto 24px;
+                background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                box-shadow: 0 8px 24px rgba(240, 147, 251, 0.3);">
+      <span style="font-size: 62px; font-weight: 900; color: white;">2</span>
+    </div>
+    <h3 style="font-size: 29px; color: #1f2937; margin: 0 0 16px 0; font-weight: 700;">Meeting the Prince, Rama</h3>
+    <p style="font-size: 20px; color: #6b7280; line-height: 1.6; margin: 0 0 10px 0; text-align: center;">
+      Lost and unsure of his great powers, Hanuman wandered the forests with his friends.
+    </p>
+    <p style="font-size: 20px; color: #6b7280; line-height: 1.6; margin: 0 0 10px 0; text-align: center;">
+      One day, he met the noble prince Rama and his brother, who were searching for Sita.
+    </p>
+    <p style="font-size: 20px; color: #6b7280; line-height: 1.6; margin: 0 0 10px 0; text-align: center;">
+      Hanuman felt an instant connection and knew his purpose was to serve the good prince.
+    </p>
+    <p style="font-size: 20px; color: #6b7280; line-height: 1.6; margin: 0; text-align: center;">
+      This teaches us that finding the right friends and goals can give our life meaning.
+    </p>
+  </div>
+
+  <!-- Step 3: Blue -->
+  <div style="text-align: center; position: relative; z-index: 1;">
+    <div style="width: 120px;
+                height: 120px;
+                margin: 0 auto 24px;
+                background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                box-shadow: 0 8px 24px rgba(79, 172, 254, 0.3);">
+      <span style="font-size: 62px; font-weight: 900; color: white;">3</span>
+    </div>
+    <h3 style="font-size: 29px; color: #1f2937; margin: 0 0 16px 0; font-weight: 700;">The Great Leap to Lanka</h3>
+    <p style="font-size: 20px; color: #6b7280; line-height: 1.6; margin: 0 0 10px 0; text-align: center;">
+      To find Sita, Hanuman had to cross a huge ocean to the island kingdom of Lanka.
+    </p>
+    <p style="font-size: 20px; color: #6b7280; line-height: 1.6; margin: 0 0 10px 0; text-align: center;">
+      He grew to the size of a mountain and took a mighty leap, flying across the water.
+    </p>
+    <p style="font-size: 20px; color: #6b7280; line-height: 1.6; margin: 0 0 10px 0; text-align: center;">
+      He faced many tricky monsters in the sky but his determination helped him succeed.
+    </p>
+    <p style="font-size: 20px; color: #6b7280; line-height: 1.6; margin: 0; text-align: center;">
+      His amazing courage shows that with focus, no obstacle is too big to overcome.
+    </p>
+  </div>
+
+  <!-- Step 4: Green -->
+  <div style="text-align: center; position: relative; z-index: 1;">
+    <div style="width: 120px;
+                height: 120px;
+                margin: 0 auto 24px;
+                background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                box-shadow: 0 8px 24px rgba(17, 153, 142, 0.3);">
+      <span style="font-size: 62px; font-weight: 900; color: white;">4</span>
+    </div>
+    <h3 style="font-size: 29px; color: #1f2937; margin: 0 0 16px 0; font-weight: 700;">Lifting a Whole Mountain</h3>
+    <p style="font-size: 20px; color: #6b7280; line-height: 1.6; margin: 0 0 10px 0; text-align: center;">
+      When Rama's brother was hurt, Hanuman flew to find a special healing herb.
+    </p>
+    <p style="font-size: 20px; color: #6b7280; line-height: 1.6; margin: 0 0 10px 0; text-align: center;">
+      He couldn't find the exact plant, so he did something amazing to save his friend.
+    </p>
+    <p style="font-size: 20px; color: #6b7280; line-height: 1.6; margin: 0 0 10px 0; text-align: center;">
+      He lifted the entire mountain and carried it back so the doctors could find the herb.
+    </p>
+    <p style="font-size: 20px; color: #6b7280; line-height: 1.6; margin: 0; text-align: center;">
+      This shows us that when we care for others, we should never give up on helping.
+    </p>
+  </div>
+
+</div>
+
+        </div>
+    </div>
+
+    <div class="slide-container">
+        <div class="slide-header">
+            <span class="layout-tag">L25</span>
+            <span class="variant-tag">comparison_2col</span>
+            <span class="slide-number">Slide 4 of 5</span>
+            <span class="slide-info">Hanuman's Superpowers</span>
+        </div>
+        <div class="l25-header">
+            <h2>Hanuman's Superpowers</h2>
+            <p>Physical strength meets spiritual wisdom</p>
+        </div>
+        <div class="slide-content">
+            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 38px; padding: 40px 48px; height: 100%; background: white; align-items: start;">
+
+  <!-- Column 1 -->
+  <div>
+    <h3 style="color: #1a73e8; font-size: 32px; margin: 0 0 24px 0; font-weight: 700; border-bottom: 4px solid #1a73e8; padding-bottom: 14px;">Hanuman's Awesome Body Powers</h3>
+    <div style="font-size: 23px; line-height: 1.8; color: #1f2937;">
+      <ul><li><strong>Super Strength:</strong> So strong he can lift a mountain! He uses this power to protect friends and fight off anyone who stands in the way of what is right.</li><li><strong>Flight:</strong> He can fly through the sky and leap across the ocean in a single jump. This helped him quickly deliver Rama's message of hope to Sita in Lanka.</li><li><strong>Size-Changing:</strong> He can grow as big as a mountain or shrink to the size of a bug. This helps him sneak past guards or show his awesome power to his enemies.</li></ul>
+    </div>
+  </div>
+
+  <!-- Column 2 -->
+  <div>
+    <h3 style="color: #ea4335; font-size: 32px; margin: 0 0 24px 0; font-weight: 700; border-bottom: 4px solid #ea4335; padding-bottom: 14px;">Hanuman's Powerful Heart Powers</h3>
+    <div style="font-size: 23px; line-height: 1.8; color: #1f2937;">
+      <ul><li><strong>Devotion:</strong> So full of love for Rama that his heart is his greatest guide. This love gives him the courage to face any challenge without any fear.</li><li><strong>Wisdom:</strong> He knows when to be strong and when to be clever. This helped him outsmart powerful enemies and give the right advice to friends when they needed it most.</li><li><strong>Humility:</strong> Even with all his powers, he is never proud. He knows his true strength comes from serving others and always remembers he is a humble servant of Rama.</li></ul>
+    </div>
+  </div>
+
+</div>
+
+<style type="text/css">
+ul {
+  margin: 0;
+  padding: 0;
+  list-style-type: square;
+  list-style-position: outside;
+}
+li {
+  margin-left: 1.2em;
+  padding-left: 0.5em;
+  margin-bottom: 0.4em;
+}
+</style>
+        </div>
+    </div>
+
+    <div class="slide-container">
+        <div class="slide-header">
+            <span class="layout-tag">L25</span>
+            <span class="variant-tag">grid_2x3_numbered</span>
+            <span class="slide-number">Slide 5 of 5</span>
+            <span class="slide-info">Lessons from Hanuman</span>
+        </div>
+        <div class="l25-header">
+            <h2>Lessons from Hanuman</h2>
+            <p>Values we can learn from the mighty hero</p>
+        </div>
+        <div class="slide-content">
+            <div style="display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            grid-template-rows: repeat(2, 1fr);
+            gap: 40px;
+            padding: 0 40px 40px 0;
+            height: 100%;
+            background: white;
+            align-items: stretch;
+            overflow: hidden;">
+
+  <!-- Box 1 -->
+  <div style="padding: 40px;
+              border-radius: 12px;
+              background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+              border: 2px solid #e5e7eb;
+              display: flex;
+              flex-direction: row;
+              align-items: flex-start;
+              text-align: left;
+              box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
+
+    <div style="font-size: 72px;
+                font-weight: 800;
+                color: #0369a1;
+                line-height: 1;
+                margin-right: 24px;
+                flex-shrink: 0;
+                font-family: system-ui, -apple-system, sans-serif;">1</div>
+
+    <div style="flex: 1;">
+      <h3 style="font-size: 24px;
+                 font-weight: 700;
+                 color: #1f2937;
+                 margin: 0 0 12px 0;
+                 line-height: 1.2;">
+        1. Be Devoted & Stay Loyal!
+      </h3>
+
+      <p style="font-size: 18px;
+                font-weight: 400;
+                color: #6b7280;
+                line-height: 1.6;
+                margin: 0;">
+        Hanuman showed amazing loyalty to Lord Rama. He always stood by his friends and family, no matter what! Just like Hanuman, we should always be true to the people we care about and never give up on them. Being devoted means being a great friend and a loving family member.
+      </p>
+    </div>
+  </div>
+
+  <!-- Box 2 -->
+  <div style="padding: 40px;
+              border-radius: 12px;
+              background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+              border: 2px solid #e5e7eb;
+              display: flex;
+              flex-direction: row;
+              align-items: flex-start;
+              text-align: left;
+              box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
+
+    <div style="font-size: 72px;
+                font-weight: 800;
+                color: #15803d;
+                line-height: 1;
+                margin-right: 24px;
+                flex-shrink: 0;
+                font-family: system-ui, -apple-system, sans-serif;">2</div>
+
+    <div style="flex: 1;">
+      <h3 style="font-size: 24px;
+                 font-weight: 700;
+                 color: #1f2937;
+                 margin: 0 0 12px 0;
+                 line-height: 1.2;">
+        2. Be Brave, Face Your Fears!
+      </h3>
+
+      <p style="font-size: 18px;
+                font-weight: 400;
+                color: #6b7280;
+                line-height: 1.6;
+                margin: 0;">
+        Hanuman faced many scary challenges, like jumping across the ocean or fighting powerful demons. He didn't let fear stop him! When you feel a little scared, remember Hanuman. Take a deep breath and be brave. You're stronger than you think, and you can overcome anything.
+      </p>
+    </div>
+  </div>
+
+  <!-- Box 3 -->
+  <div style="padding: 40px;
+              border-radius: 12px;
+              background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+              border: 2px solid #e5e7eb;
+              display: flex;
+              flex-direction: row;
+              align-items: flex-start;
+              text-align: left;
+              box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
+
+    <div style="font-size: 72px;
+                font-weight: 800;
+                color: #a16207;
+                line-height: 1;
+                margin-right: 24px;
+                flex-shrink: 0;
+                font-family: system-ui, -apple-system, sans-serif;">3</div>
+
+    <div style="flex: 1;">
+      <h3 style="font-size: 24px;
+                 font-weight: 700;
+                 color: #1f2937;
+                 margin: 0 0 12px 0;
+                 line-height: 1.2;">
+        3. Be Humble with Great Power
+      </h3>
+
+      <p style="font-size: 18px;
+                font-weight: 400;
+                color: #6b7280;
+                line-height: 1.6;
+                margin: 0;">
+        Even though Hanuman was super strong and could do amazing things, he never bragged or showed off. He always used his powers to help others, not to feel important. Being humble means understanding your strengths but always being kind and respecting everyone.
+      </p>
+    </div>
+  </div>
+
+  <!-- Box 4 -->
+  <div style="padding: 40px;
+              border-radius: 12px;
+              background: linear-gradient(135deg, #ede9fe 0%, #ddd6fe 100%);
+              border: 2px solid #e5e7eb;
+              display: flex;
+              flex-direction: row;
+              align-items: flex-start;
+              text-align: left;
+              box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
+
+    <div style="font-size: 72px;
+                font-weight: 800;
+                color: #6d28d9;
+                line-height: 1;
+                margin-right: 24px;
+                flex-shrink: 0;
+                font-family: system-ui, -apple-system, sans-serif;">4</div>
+
+    <div style="flex: 1;">
+      <h3 style="font-size: 24px;
+                 font-weight: 700;
+                 color: #1f2937;
+                 margin: 0 0 12px 0;
+                 line-height: 1.2;">
+        4. Be Helpful to Everyone
+      </h3>
+
+      <p style="font-size: 18px;
+                font-weight: 400;
+                color: #6b7280;
+                line-height: 1.6;
+                margin: 0;">
+        Hanuman always used his incredible strength and intelligence to help those in need, especially Lord Rama. He never hesitated to lend a hand. Look around you! How can you use your unique talents and kindness to help your friends, family, or even someone new today?
+      </p>
+    </div>
+  </div>
+
+  <!-- Box 5 -->
+  <div style="padding: 40px;
+              border-radius: 12px;
+              background: linear-gradient(135deg, #fce7f3 0%, #fbcfe8 100%);
+              border: 2px solid #e5e7eb;
+              display: flex;
+              flex-direction: row;
+              align-items: flex-start;
+              text-align: left;
+              box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
+
+    <div style="font-size: 72px;
+                font-weight: 800;
+                color: #be185d;
+                line-height: 1;
+                margin-right: 24px;
+                flex-shrink: 0;
+                font-family: system-ui, -apple-system, sans-serif;">5</div>
+
+    <div style="flex: 1;">
+      <h3 style="font-size: 24px;
+                 font-weight: 700;
+                 color: #1f2937;
+                 margin: 0 0 12px 0;
+                 line-height: 1.2;">
+        5. Be Patient, Good Things Come
+      </h3>
+
+      <p style="font-size: 18px;
+                font-weight: 400;
+                color: #6b7280;
+                line-height: 1.6;
+                margin: 0;">
+        Hanuman had to be very patient during his long search for Sita and while waiting for the right moment to act. He knew that some goals take time and effort. Remember that good things don't always happen instantly. Keep working hard and stay patient, your efforts will pay off.
+      </p>
+    </div>
+  </div>
+
+  <!-- Box 6 -->
+  <div style="padding: 40px;
+              border-radius: 12px;
+              background: linear-gradient(135deg, #fed7aa 0%, #fdba74 100%);
+              border: 2px solid #e5e7eb;
+              display: flex;
+              flex-direction: row;
+              align-items: flex-start;
+              text-align: left;
+              box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
+
+    <div style="font-size: 72px;
+                font-weight: 800;
+                color: #c2410c;
+                line-height: 1;
+                margin-right: 24px;
+                flex-shrink: 0;
+                font-family: system-ui, -apple-system, sans-serif;">6</div>
+
+    <div style="flex: 1;">
+      <h3 style="font-size: 24px;
+                 font-weight: 700;
+                 color: #1f2937;
+                 margin: 0 0 12px 0;
+                 line-height: 1.2;">
+        6. Be Faithful & Believe!
+      </h3>
+
+      <p style="font-size: 18px;
+                font-weight: 400;
+                color: #6b7280;
+                line-height: 1.6;
+                margin: 0;">
+        Hanuman had unwavering faith in Lord Rama and in his own abilities, even when things looked impossible. This faith gave him the power to achieve the incredible! Believe in yourself, believe in your friends, and believe that good things are possible. Your belief is a superpower!
+      </p>
+    </div>
+  </div>
+
+</div>
+
+        </div>
+    </div>
+
+    <p class="timestamp">Generated: 2025-12-13 20:40:13</p>
+</body>
+</html>

@@ -8,11 +8,17 @@ Key differences from v3.4:
 - No `current_state` field (replaced by progress flags)
 - Generic `context` dict for flexible data storage
 - Progress flags indicate what has been accomplished
+
+v4.2: Added branding field for per-presentation footer/logo configuration.
 """
 
-from typing import List, Optional, Dict, Any
+from typing import List, Optional, Dict, Any, TYPE_CHECKING
 from datetime import datetime
 from pydantic import BaseModel, Field
+
+# Avoid circular import - only import for type checking
+if TYPE_CHECKING:
+    from src.models.presentation_config import PresentationBranding
 
 
 class SessionV4(BaseModel):
@@ -63,6 +69,12 @@ class SessionV4(BaseModel):
     )
     presentation_id: Optional[str] = Field(None, description="Deck builder presentation ID")
     presentation_url: Optional[str] = Field(None, description="Preview URL")
+
+    # v4.2: Per-presentation branding configuration
+    branding: Optional[Dict[str, Any]] = Field(
+        None,
+        description="Branding configuration (footer/logo) as dict for Supabase compatibility"
+    )
 
     # Timestamps
     created_at: datetime = Field(default_factory=datetime.utcnow)
@@ -121,7 +133,29 @@ class SessionV4(BaseModel):
         self.generated_slides = None
         self.presentation_id = None
         self.presentation_url = None
+        self.branding = None  # v4.2: Clear branding for new presentation
         # Keep conversation history for context
+        self.updated_at = datetime.utcnow()
+
+    def get_branding(self) -> Optional["PresentationBranding"]:
+        """
+        Get branding configuration as PresentationBranding model.
+
+        v4.2: Converts dict to PresentationBranding for type safety.
+        """
+        if not self.branding:
+            return None
+
+        from src.models.presentation_config import PresentationBranding
+        return PresentationBranding(**self.branding)
+
+    def set_branding(self, branding: "PresentationBranding") -> None:
+        """
+        Set branding configuration from PresentationBranding model.
+
+        v4.2: Converts to dict for Supabase storage.
+        """
+        self.branding = branding.dict()
         self.updated_at = datetime.utcnow()
 
     def get_decision_context(self) -> Dict[str, Any]:

@@ -1,0 +1,298 @@
+"""
+Content Analyzer for Director Agent v4.0.25
+
+Simplified content analyzer for variant selection hints.
+
+v4.0.25: This analyzer no longer handles service routing. Service routing is now
+story-driven via the LayoutAnalyzer. This analyzer only provides hints for
+variant selection (comparison, sequential, topic_count, etc.).
+
+The analyzer examines:
+- Slide title and topics
+- Content structure (comparison, sequence) for variant selection
+- Topic count for variant capacity matching
+
+Usage:
+    analyzer = ContentAnalyzer()
+    hints = analyzer.analyze(slide)  # Returns ContentHints with variant hints
+"""
+
+import re
+from typing import Optional, List, Set
+from src.models.content_hints import (
+    ContentHints,
+    PatternType,
+    SuggestedService
+)
+from src.models.decision import StrawmanSlide
+from src.utils.logger import setup_logger
+
+logger = setup_logger(__name__)
+
+
+class ContentAnalyzer:
+    """
+    Simplified content analyzer for variant selection hints.
+
+    v4.0.25: Service routing is now story-driven (handled by LayoutAnalyzer).
+    This analyzer focuses on:
+    - Detecting comparison patterns (for comparison_* variants)
+    - Detecting sequential patterns (for sequential_* variants)
+    - Topic count (for variant capacity matching)
+    - Basic content structure hints
+    """
+
+    # Comparison patterns - for selecting comparison_* variants
+    COMPARISON_PATTERNS = [
+        r'\bvs\.?\b',
+        r'\bversus\b',
+        r'\bcompare[ds]?\b',
+        r'\boption\s+[a-c]\b',
+        r'\btier\s+\d\b',
+        r'\bplan\s+(a|b|c|basic|pro|enterprise)\b',
+        r'\bpros?\s+(and|&)\s+cons?\b'
+    ]
+
+    # Sequential/process patterns - for selecting sequential_* variants
+    SEQUENTIAL_PATTERNS = [
+        r'\bstep\s+\d\b',
+        r'\bphase\s+\d\b',
+        r'\bstage\s+\d\b',
+        r'\b\d+\s+steps?\b',
+        r'\b(first|second|third|finally|next|then)\b'
+    ]
+
+    # Numeric patterns - for detecting metrics content
+    NUMERIC_PATTERNS = [
+        r'\d+%',           # Percentages
+        r'\$[\d,.]+',      # Currency
+        r'[\d,.]+[KMB]',   # Shorthand numbers (5K, 10M, 2B)
+        r'\d+\.\d+',       # Decimals
+    ]
+
+    # =========================================================================
+    # MAIN ANALYSIS METHOD
+    # =========================================================================
+
+    def analyze(self, slide: StrawmanSlide) -> ContentHints:
+        """
+        Analyze slide content and generate variant selection hints.
+
+        v4.0.25: Simplified to focus on variant selection only.
+        Service routing is now story-driven (handled by LayoutAnalyzer).
+
+        Args:
+            slide: StrawmanSlide with title, topics, etc.
+
+        Returns:
+            ContentHints with variant selection hints
+        """
+        # Build text corpus from slide content
+        text_corpus = self._build_text_corpus(slide)
+        text_lower = text_corpus.lower()
+
+        # Count topics (critical for variant capacity matching)
+        topic_count = len(slide.topics) if slide.topics else 0
+
+        # Detect patterns for variant selection
+        is_comparison = self._detect_comparison(text_lower)
+        is_sequential = self._detect_sequential(text_lower)
+        has_numbers = self._detect_numbers(text_lower)
+
+        # Determine pattern type for variant selection
+        pattern_type = self._detect_pattern_type(is_comparison, is_sequential, has_numbers)
+
+        # Calculate numeric density (for metrics variants)
+        numeric_density = self._calculate_numeric_density(text_corpus)
+
+        # Check if slide would benefit from I-series layout
+        needs_image = self._detect_image_need(text_lower, topic_count)
+        suggested_iseries = self._suggest_iseries_layout(needs_image, topic_count)
+
+        hints = ContentHints(
+            has_numbers=has_numbers,
+            is_comparison=is_comparison,
+            is_time_based=False,  # Simplified - not used for variant selection
+            is_hierarchical=False,  # Simplified - not used for variant selection
+            is_process_flow=is_sequential,  # Map to sequential for variant selection
+            is_sequential=is_sequential,
+            detected_keywords=[],  # Simplified - keywords not used for variant selection
+            pattern_type=pattern_type,
+            numeric_density=numeric_density,
+            topic_count=topic_count,
+            needs_image=needs_image,
+            suggested_iseries=suggested_iseries,
+            suggested_service=None,  # v4.0.25: No longer used - service from LayoutAnalyzer
+            service_confidence=0.0  # v4.0.25: No longer used - service from LayoutAnalyzer
+        )
+
+        logger.debug(
+            f"ContentAnalyzer: slide='{slide.title[:30]}...' "
+            f"pattern={pattern_type} topics={topic_count} "
+            f"comparison={is_comparison} sequential={is_sequential}"
+        )
+
+        return hints
+
+    # =========================================================================
+    # DETECTION METHODS (Simplified for variant selection)
+    # =========================================================================
+
+    def _build_text_corpus(self, slide: StrawmanSlide) -> str:
+        """Build combined text corpus from slide content."""
+        parts = [
+            slide.title or "",
+            " ".join(slide.topics) if slide.topics else "",
+            slide.notes or ""
+        ]
+        return " ".join(parts)
+
+    def _detect_numbers(self, text: str) -> bool:
+        """Detect if text contains numeric content (for metrics variants)."""
+        for pattern in self.NUMERIC_PATTERNS:
+            if re.search(pattern, text, re.IGNORECASE):
+                return True
+        return False
+
+    def _detect_comparison(self, text: str) -> bool:
+        """Detect comparison patterns (for comparison_* variants)."""
+        for pattern in self.COMPARISON_PATTERNS:
+            if re.search(pattern, text, re.IGNORECASE):
+                return True
+        # Also check keywords
+        return self._contains_any(text, {"compare", "versus", "vs", "pros", "cons", "alternative"})
+
+    def _detect_sequential(self, text: str) -> bool:
+        """Detect sequential patterns (for sequential_* variants)."""
+        for pattern in self.SEQUENTIAL_PATTERNS:
+            if re.search(pattern, text, re.IGNORECASE):
+                return True
+        return self._contains_any(text, {"step", "phase", "stage", "sequence", "order", "workflow", "process"})
+
+    def _calculate_numeric_density(self, text: str) -> float:
+        """Calculate ratio of numeric content (0-1) for metrics variant selection."""
+        if not text:
+            return 0.0
+
+        words = text.split()
+        if not words:
+            return 0.0
+
+        numeric_count = 0
+        for word in words:
+            if re.search(r'\d', word):
+                numeric_count += 1
+
+        return min(1.0, numeric_count / len(words))
+
+    def _detect_pattern_type(
+        self,
+        is_comparison: bool,
+        is_sequential: bool,
+        has_numbers: bool
+    ) -> Optional[PatternType]:
+        """
+        Determine the primary content pattern for variant selection.
+
+        v4.0.25: Simplified to focus on patterns that affect variant choice.
+        """
+        if is_comparison:
+            return PatternType.COMPARISON
+        if is_sequential:
+            return PatternType.FLOW
+        if has_numbers:
+            return PatternType.METRICS
+        # Default to narrative for standard text content
+        return PatternType.NARRATIVE
+
+    # =========================================================================
+    # I-SERIES RECOMMENDATIONS
+    # =========================================================================
+
+    def _detect_image_need(self, text: str, topic_count: int) -> bool:
+        """Determine if content would benefit from an image."""
+        # Image-benefiting keywords
+        image_keywords = {
+            "visual", "show", "demonstrate", "illustrate", "example",
+            "product", "feature", "solution", "team", "office",
+            "environment", "concept", "idea", "innovation", "technology"
+        }
+
+        # Check for image-related keywords
+        if self._contains_any(text, image_keywords):
+            return True
+
+        # Slides with 3-5 topics often benefit from image+text layout
+        if 3 <= topic_count <= 5:
+            # Check for narrative content that pairs well with images
+            if self._contains_any(text, {"benefit", "advantage", "feature", "highlight", "key"}):
+                return True
+
+        return False
+
+    def _suggest_iseries_layout(
+        self,
+        needs_image: bool,
+        topic_count: int
+    ) -> Optional[str]:
+        """
+        Suggest I-series layout if image would enhance content.
+
+        I-series layouts:
+        - I1: Wide image left (660×1080), content right (1200×840) - balanced
+        - I2: Wide image right (660×1080), content left (1140×840) - balanced
+        - I3: Narrow image left (360×1080), content right (1500×840) - text-heavy
+        - I4: Narrow image right (360×1080), content left (1440×840) - text-heavy
+
+        Returns:
+            Layout ID (I1, I2, I3, I4) or None
+        """
+        if not needs_image:
+            return None
+
+        # More topics = need more content space = narrow image
+        if topic_count >= 5:
+            # Alternate between left and right for variety
+            return "I3"  # Narrow left for more content space
+        elif topic_count >= 3:
+            return "I1"  # Wide left, balanced
+        else:
+            return "I2"  # Wide right for visual focus
+
+    def suggest_iseries(self, hints: ContentHints) -> Optional[str]:
+        """
+        Public method to suggest I-series layout from content hints.
+
+        Args:
+            hints: ContentHints from analyze()
+
+        Returns:
+            Layout ID (I1, I2, I3, I4) or None
+        """
+        return hints.suggested_iseries
+
+    # =========================================================================
+    # HELPER METHODS
+    # =========================================================================
+
+    def _contains_any(self, text: str, keywords: Set[str]) -> bool:
+        """Check if text contains any of the keywords."""
+        for keyword in keywords:
+            if keyword in text:
+                return True
+        return False
+
+
+# Convenience function
+def analyze_slide_content(slide: StrawmanSlide) -> ContentHints:
+    """
+    Analyze slide content and return hints (convenience function).
+
+    Args:
+        slide: StrawmanSlide to analyze
+
+    Returns:
+        ContentHints with analysis results
+    """
+    analyzer = ContentAnalyzer()
+    return analyzer.analyze(slide)

@@ -1,0 +1,186 @@
+{
+  "playbook_id": "college_students-training-15",
+  "version": "1.0.0",
+  "metadata": {
+    "audience": "college_students",
+    "purpose": "training",
+    "duration": 15,
+    "description": "Educational training presentation for college students"
+  },
+  "structure": {
+    "total_slides": 8,
+    "sections": [
+      {"section_id": "intro", "section_name": "Introduction", "is_required": true},
+      {"section_id": "content", "section_name": "Main Content", "is_required": true, "can_expand": true, "max_expansion_slides": 4},
+      {"section_id": "practice", "section_name": "Practice", "is_required": true},
+      {"section_id": "wrap_up", "section_name": "Wrap Up", "is_required": true}
+    ]
+  },
+  "slides": [
+    {
+      "slot_id": "title",
+      "slide_number": 1,
+      "section_id": "intro",
+      "title_template": "Understanding {topic}",
+      "slide_type_hint": "hero",
+      "purpose": "title_slide",
+      "layout": "L29",
+      "is_hero": true,
+      "hero_type": "title_slide",
+      "suggested_variant": null,
+      "topic_templates": [
+        "Learning objectives",
+        "What you'll master"
+      ],
+      "narrative_template": "Engaging introduction to {topic} for students"
+    },
+    {
+      "slot_id": "agenda",
+      "slide_number": 2,
+      "section_id": "intro",
+      "title_template": "What We'll Cover",
+      "slide_type_hint": "text",
+      "purpose": "agenda",
+      "layout": "L25",
+      "is_hero": false,
+      "hero_type": null,
+      "suggested_variant": "sequential_4col",
+      "topic_templates": [
+        "Key concepts of {topic}",
+        "Real-world applications",
+        "Hands-on practice",
+        "Q&A and discussion"
+      ],
+      "narrative_template": "Roadmap for today's {topic} session",
+      "is_optional": true
+    },
+    {
+      "slot_id": "fundamentals",
+      "slide_number": 3,
+      "section_id": "content",
+      "title_template": "Core Concepts of {topic}",
+      "slide_type_hint": "text",
+      "purpose": "fundamentals",
+      "layout": "L25",
+      "is_hero": false,
+      "hero_type": null,
+      "suggested_variant": "grid_2x2_centered",
+      "topic_templates": [
+        "Definition and scope",
+        "Historical context",
+        "Why it matters",
+        "Key principles"
+      ],
+      "narrative_template": "Foundation knowledge for understanding {topic}"
+    },
+    {
+      "slot_id": "deep_dive_section",
+      "slide_number": 4,
+      "section_id": "content",
+      "title_template": "Deep Dive",
+      "slide_type_hint": "hero",
+      "purpose": "section_transition",
+      "layout": "L29",
+      "is_hero": true,
+      "hero_type": "section_divider",
+      "suggested_variant": null,
+      "topic_templates": [],
+      "narrative_template": "Transition to detailed exploration of {topic}",
+      "is_optional": true
+    },
+    {
+      "slot_id": "details",
+      "slide_number": 5,
+      "section_id": "content",
+      "title_template": "{topic} in Detail",
+      "slide_type_hint": "text",
+      "purpose": "detailed_content",
+      "layout": "L25",
+      "is_hero": false,
+      "hero_type": null,
+      "suggested_variant": "comparison_3col",
+      "topic_templates": [
+        "Component breakdown",
+        "How they interact",
+        "Common patterns"
+      ],
+      "narrative_template": "Detailed examination of {topic} components"
+    },
+    {
+      "slot_id": "examples",
+      "slide_number": 6,
+      "section_id": "practice",
+      "title_template": "Real-World Examples",
+      "slide_type_hint": "text",
+      "purpose": "examples",
+      "layout": "L25",
+      "is_hero": false,
+      "hero_type": null,
+      "suggested_variant": "grid_2x3",
+      "topic_templates": [
+        "Case study 1",
+        "Case study 2",
+        "Industry application",
+        "Student project ideas",
+        "Career relevance",
+        "Further exploration"
+      ],
+      "narrative_template": "Practical examples of {topic} in action"
+    },
+    {
+      "slot_id": "key_takeaways",
+      "slide_number": 7,
+      "section_id": "wrap_up",
+      "title_template": "Key Takeaways",
+      "slide_type_hint": "text",
+      "purpose": "summary",
+      "layout": "L25",
+      "is_hero": false,
+      "hero_type": null,
+      "suggested_variant": "sequential_3col",
+      "topic_templates": [
+        "Remember this about {topic}",
+        "Apply what you learned",
+        "Continue exploring"
+      ],
+      "narrative_template": "Summary of key points about {topic}"
+    },
+    {
+      "slot_id": "closing",
+      "slide_number": 8,
+      "section_id": "wrap_up",
+      "title_template": "Questions & Discussion",
+      "slide_type_hint": "hero",
+      "purpose": "closing_slide",
+      "layout": "L29",
+      "is_hero": true,
+      "hero_type": "closing_slide",
+      "suggested_variant": null,
+      "topic_templates": [
+        "Discussion prompts",
+        "Resources"
+      ],
+      "narrative_template": "Closing slide for {topic} training with discussion opportunity"
+    }
+  ],
+  "adaptation_rules": {
+    "shorter_duration_removes": ["agenda", "deep_dive_section"],
+    "longer_duration_adds": [
+      {
+        "after_slot": "examples",
+        "slide_templates": [
+          {
+            "title_template": "Practice Exercise",
+            "purpose": "practice",
+            "suggested_variant": "sequential_3col"
+          }
+        ]
+      }
+    ],
+    "audience_tone_map": {
+      "college_students": "engaging",
+      "high_school_students": "accessible",
+      "professionals": "formal"
+    }
+  }
+}

@@ -181,6 +181,112 @@ class DeckBuilderClient:
 
         logger.debug(f"Presentation data validated: {len(data['slides'])} slides")
 
+    async def get_presentation_state(self, presentation_id: str) -> Optional[Dict[str, Any]]:
+        """
+        Get presentation state for diff comparison (Stage 5).
+
+        Returns a normalized format suitable for StrawmanDiffer:
+        {
+            "id": str,
+            "title": str,
+            "slides": [
+                {
+                    "slide_id": str,
+                    "slide_number": int,
+                    "layout": str,
+                    "title": str,
+                    "topics": List[str],
+                    "notes": str,
+                    "content": dict,
+                    "metadata": dict
+                }
+            ],
+            "updated_at": str,
+            "slide_count": int
+        }
+
+        Args:
+            presentation_id: Presentation UUID
+
+        Returns:
+            Normalized presentation state or None if not found
+        """
+        raw = await self.get_presentation(presentation_id)
+        if not raw:
+            return None
+
+        # Normalize the response for diff comparison
+        slides = []
+        for idx, slide in enumerate(raw.get("slides", [])):
+            # Extract content fields
+            content = slide.get("content", {})
+
+            normalized_slide = {
+                "slide_id": slide.get("slide_id", f"slide_{idx + 1}"),
+                "slide_number": idx + 1,
+                "layout": slide.get("layout", "L25"),
+                # Extract title from content or slide-level
+                "title": content.get("slide_title") or slide.get("title", ""),
+                # Extract topics from content or metadata
+                "topics": (
+                    slide.get("metadata", {}).get("topics", []) or
+                    content.get("topics", [])
+                ),
+                # Extract notes
+                "notes": content.get("notes", "") or slide.get("notes", ""),
+                # Keep original content for reference
+                "content": content,
+                # Keep metadata
+                "metadata": slide.get("metadata", {}),
+                # Additional fields that might be relevant
+                "is_hero": slide.get("metadata", {}).get("is_hero", False),
+                "variant_id": slide.get("metadata", {}).get("variant_id"),
+            }
+            slides.append(normalized_slide)
+
+        return {
+            "id": raw.get("id", presentation_id),
+            "title": raw.get("title", ""),
+            "slides": slides,
+            "updated_at": raw.get("updated_at", ""),
+            "slide_count": len(slides)
+        }
+
+    async def update_slide(
+        self,
+        presentation_id: str,
+        slide_index: int,
+        slide_data: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """
+        Update a single slide in a presentation.
+
+        Args:
+            presentation_id: Presentation UUID
+            slide_index: 0-indexed position of the slide
+            slide_data: Updated slide data
+
+        Returns:
+            Updated presentation data
+        """
+        endpoint = f"{self.api_url}/api/presentations/{presentation_id}/slides/{slide_index}"
+
+        try:
+            async with httpx.AsyncClient(timeout=self.timeout) as client:
+                response = await client.put(endpoint, json=slide_data)
+                response.raise_for_status()
+                result = response.json()
+                logger.info(f"Slide {slide_index} updated in presentation {presentation_id}")
+                return result
+
+        except httpx.HTTPStatusError as e:
+            logger.error(f"HTTP error updating slide: {e.response.status_code}")
+            raise DeckBuilderError(f"Failed to update slide: {e.response.text}")
+
+        except httpx.RequestError as e:
+            logger.error(f"Connection error updating slide: {str(e)}")
+            raise DeckBuilderError(f"Connection error: {str(e)}")
+
     async def health_check(self) -> bool:
         """
         Check if deck-builder API is available.

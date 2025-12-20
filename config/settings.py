@@ -161,6 +161,138 @@ class Settings(BaseSettings):
     )
     LAYOUT_SERVICE_TIMEOUT: int = Field(10, env="LAYOUT_SERVICE_TIMEOUT")
 
+    # v4.0.25: Layout Series Mode (Story-Driven Multi-Service Coordination)
+    # Controls which layout series are available for slide generation
+    LAYOUT_SERIES_MODE: str = Field(
+        "L_ONLY",
+        env="LAYOUT_SERIES_MODE",
+        description="Which layout series to use: L_ONLY, L_AND_C, C_AND_H, ALL"
+    )
+
+    # v4.0.25: Multi-Service Coordination
+    # When enabled, story-driven routing can direct slides to Analytics/Diagram/Illustrator services
+    USE_MULTI_SERVICE_COORDINATION: bool = Field(
+        False,
+        env="USE_MULTI_SERVICE_COORDINATION",
+        description="Enable story-driven routing to Analytics/Diagram/Illustrator services"
+    )
+
+    # v4.0: Text Service Coordination (Phase 1 - Multi-Service Coordination)
+    # Enables intelligent variant selection via Text Service coordination endpoints
+    USE_TEXT_SERVICE_COORDINATION: bool = Field(
+        False,  # Default: disabled (use existing hardcoded variant selection)
+        env="USE_TEXT_SERVICE_COORDINATION",
+        description="Enable Text Service /can-handle and /recommend-variant coordination endpoints"
+    )
+    TEXT_SERVICE_COORDINATION_TIMEOUT: int = Field(
+        10,  # Coordination calls should be fast (not content generation)
+        env="TEXT_SERVICE_COORDINATION_TIMEOUT"
+    )
+    TEXT_SERVICE_CONFIDENCE_THRESHOLD: float = Field(
+        0.70,  # Minimum confidence to use Text Service recommendation
+        ge=0.0,
+        le=1.0,
+        env="TEXT_SERVICE_CONFIDENCE_THRESHOLD",
+        description="Minimum confidence (0-1) required to accept Text Service routing"
+    )
+
+    # v4.0: I-Series Generation (Phase 1 - Text Service Image+Text Layouts)
+    # Enables I-series layouts (I1-I4) for combined image + text slides
+    USE_ISERIES_GENERATION: bool = Field(
+        False,  # Default: disabled (use standard content variants)
+        env="USE_ISERIES_GENERATION",
+        description="Enable I-series (image+text) slide generation for content slides"
+    )
+    ISERIES_DEFAULT_VISUAL_STYLE: str = Field(
+        "professional",  # professional, illustrated, kids
+        env="ISERIES_DEFAULT_VISUAL_STYLE",
+        description="Default visual style for I-series images: professional, illustrated, kids"
+    )
+    ISERIES_DEFAULT_CONTENT_STYLE: str = Field(
+        "bullets",  # bullets, paragraphs, mixed
+        env="ISERIES_DEFAULT_CONTENT_STYLE",
+        description="Default content style for I-series text: bullets, paragraphs, mixed"
+    )
+
+    # v4.3: Unified Slides API (Text Service v1.2.2)
+    # Uses new /v1.2/slides/* endpoints that return spec-compliant responses
+    # - Combined generation: C1-text uses 1 LLM call instead of 3 (67% savings)
+    # - Structured H-series: H1-structured, H2-section, H3-closing return proper fields
+    # - I-series aliases: slide_title, body returned directly (no mapping needed)
+    USE_UNIFIED_SLIDES_API: bool = Field(
+        True,  # Enabled by default - use new efficient endpoints
+        env="USE_UNIFIED_SLIDES_API",
+        description="Use Text Service v1.2.2 unified /v1.2/slides/* endpoints for combined generation"
+    )
+
+    # v4.1: Playbook System
+    # Pre-defined presentation structures indexed by (audience, purpose, duration)
+    # Three-tier selection: Full match (90%+), Partial match (60-89%), No match (<60%)
+    USE_PLAYBOOK_SYSTEM: bool = Field(
+        True,  # Enabled by default
+        env="USE_PLAYBOOK_SYSTEM",
+        description="Enable playbook-based strawman generation for known presentation types"
+    )
+    PLAYBOOK_FULL_MATCH_THRESHOLD: float = Field(
+        0.90,
+        ge=0.0,
+        le=1.0,
+        env="PLAYBOOK_FULL_MATCH_THRESHOLD",
+        description="Minimum confidence for full playbook match (use playbook directly)"
+    )
+    PLAYBOOK_PARTIAL_MATCH_THRESHOLD: float = Field(
+        0.60,
+        ge=0.0,
+        le=1.0,
+        env="PLAYBOOK_PARTIAL_MATCH_THRESHOLD",
+        description="Minimum confidence for partial match (merge playbook with custom slides)"
+    )
+
+    # v4.2: Stage 5 - Strawman Refinement System
+    # Enables user feedback loop for refining strawman via chat and direct edits
+    # Uses "Diff on Generate" approach: compare with Deck-Builder before content generation
+    STRAWMAN_REFINEMENT_ENABLED: bool = Field(
+        True,
+        env="STRAWMAN_REFINEMENT_ENABLED",
+        description="Enable strawman refinement from user chat feedback"
+    )
+    DIFF_ON_GENERATE_ENABLED: bool = Field(
+        True,
+        env="DIFF_ON_GENERATE_ENABLED",
+        description="Enable diff-on-generate sync with Deck-Builder before content generation"
+    )
+    GCP_MODEL_REFINE_STRAWMAN: str = Field(
+        "gemini-2.5-flash",
+        env="GCP_MODEL_REFINE_STRAWMAN",
+        description="Model for AI-driven strawman refinement"
+    )
+    REFINEMENT_MAX_ITERATIONS: int = Field(
+        5,
+        ge=1,
+        le=10,
+        env="REFINEMENT_MAX_ITERATIONS",
+        description="Maximum refinement iterations before suggesting content generation"
+    )
+
+    # v4.2: Stage 6 - Service-Owned Content Generation
+    # Delegates title/subtitle generation to content services
+    # Director only adds footer/logo (consistent across slides)
+    USE_SERVICE_OWNED_CONTENT: bool = Field(
+        False,  # Start disabled for backward compatibility
+        env="USE_SERVICE_OWNED_CONTENT",
+        description="Enable services to generate title/subtitle HTML (Stage 6)"
+    )
+    USE_TITLE_SUBTITLE_ENDPOINTS: bool = Field(
+        True,
+        env="USE_TITLE_SUBTITLE_ENDPOINTS",
+        description="Use Text Service /api/ai/slide/title and /subtitle endpoints for title generation"
+    )
+    TITLE_GENERATION_PARALLEL: bool = Field(
+        True,
+        env="TITLE_GENERATION_PARALLEL",
+        description="Generate title/subtitle in parallel with content (when possible)"
+    )
+
     class Config:
         env_file = ".env"
         env_file_encoding = "utf-8"

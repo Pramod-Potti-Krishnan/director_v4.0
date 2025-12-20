@@ -23,6 +23,7 @@ from src.models.decision import (
     Strawman, StrawmanSlide, PresentationPlan
 )
 from src.models.layout import LayoutRecommendation
+from src.models.content_hints import ContentHints
 from src.tools.registry import ToolRegistry, get_registry
 from src.utils.logger import setup_logger
 from config.settings import get_settings
@@ -482,6 +483,10 @@ class StrawmanGenerator:
 
     Uses AI to create slide structure based on topic and context.
 
+    v4.0.25: Story-driven multi-service coordination with two-step process:
+    - Step 1: Generate storyline with AI (slide_type_hint, purpose)
+    - Step 2: Apply Layout Analysis (layout, service, variant strategy)
+
     v4.0.24: Added Layout Service coordination support.
     When USE_LAYOUT_SERVICE_COORDINATION is enabled, layouts and variants
     are selected dynamically via the Layout Service instead of hardcoded L25/L29.
@@ -501,6 +506,43 @@ class StrawmanGenerator:
                 logger.info("StrawmanGenerator: Layout Service coordination enabled")
             except Exception as e:
                 logger.warning(f"Failed to initialize Layout Service client: {e}")
+
+        # v4.0.25: Layout Analyzer for story-driven routing
+        self.layout_analyzer = None
+        try:
+            from src.core.layout_analyzer import LayoutAnalyzer, LayoutSeriesMode
+            series_mode_str = getattr(self.settings, 'LAYOUT_SERIES_MODE', 'L_ONLY')
+            series_mode = LayoutSeriesMode(series_mode_str)
+            self.layout_analyzer = LayoutAnalyzer(series_mode=series_mode)
+            logger.info(f"StrawmanGenerator: LayoutAnalyzer initialized with mode={series_mode_str}")
+        except Exception as e:
+            logger.warning(f"Failed to initialize LayoutAnalyzer: {e}")
+
+        # v4.0: Content analyzer and Text Service coordination
+        self.content_analyzer = None
+        self.text_coord_client = None
+        if self.settings.USE_TEXT_SERVICE_COORDINATION:
+            try:
+                from src.core.content_analyzer import ContentAnalyzer
+                from src.clients.text_service_coordination import TextServiceCoordinationClient
+                self.content_analyzer = ContentAnalyzer()
+                self.text_coord_client = TextServiceCoordinationClient()
+                logger.info("StrawmanGenerator: Text Service coordination enabled")
+            except Exception as e:
+                logger.warning(f"Failed to initialize Text Service coordination: {e}")
+
+        # v4.1: Playbook system for pre-defined presentation structures
+        self.playbook_manager = None
+        self.playbook_merger = None
+        if getattr(self.settings, 'USE_PLAYBOOK_SYSTEM', True):
+            try:
+                from src.core.playbook_manager import PlaybookManager
+                from src.core.playbook_merger import PlaybookMerger
+                self.playbook_manager = PlaybookManager()
+                self.playbook_merger = PlaybookMerger()
+                logger.info("StrawmanGenerator: Playbook system enabled")
+            except Exception as e:
+                logger.warning(f"Failed to initialize playbook system: {e}")
 
     def _init_agent(self):
         """Initialize the strawman generation agent."""
@@ -536,6 +578,36 @@ You MUST create slides specifically about the provided topic. Every slide title 
 - Keep slide titles concise and clear
 - Balance content vs. hero slides appropriately
 
+## STORY-DRIVEN SLIDE CATEGORIZATION (v4.0.25 - CRITICAL)
+
+For EACH slide, you MUST determine:
+
+### slide_type_hint (REQUIRED)
+What type of visualization does this slide need based on the STORY you're telling?
+- "hero" - Title slide, section divider, or closing slide
+- "text" - Standard content (bullets, features, comparisons, benefits) - DEFAULT for ~70% of slides
+- "chart" - Data visualization (trends, metrics, growth, performance data)
+- "diagram" - Architecture, workflow, process flow, system diagrams
+- "infographic" - Pyramids, funnels, visual hierarchies, value propositions
+
+IMPORTANT: The slide_type_hint is determined by WHAT STORY you're telling, NOT by keywords.
+- A slide about "Revenue Growth" could be "text" (bullet points about growth) OR "chart" (line chart showing growth)
+- YOU decide based on how the story should be visualized
+
+### purpose (REQUIRED)
+What story is this slide telling in the narrative?
+Examples:
+- title_slide, opening
+- problem_statement, challenge
+- solution_overview, our_approach
+- traction, metrics, market_size
+- technical_overview, architecture, implementation
+- features, benefits, value_proposition
+- use_cases, case_studies
+- team, about_us
+- pricing, plans
+- closing_slide, call_to_action, thank_you
+
 ## HERO SLIDE NARRATIVE REQUIREMENTS (CRITICAL)
 
 Hero slides require RICH narratives that describe section content. Generic narratives like "Transition to the next section" will produce poor results.
@@ -549,6 +621,8 @@ GOOD Section Divider:
 - title: "Evolution and Consolidation"
 - narrative: "This section covers how our AI technology evolved from basic automation to full consolidation, covering the key milestones and the three major product pivots that led to our current platform."
 - topics: ["AI automation journey", "Key milestones", "Platform consolidation"]
+- slide_type_hint: "hero"
+- purpose: "section_transition"
 
 BAD Section Divider:
 - title: "Evolution and Consolidation"
@@ -563,19 +637,19 @@ GOOD Closing Slide:
 - title: "Thank You & Questions"
 - narrative: "After covering our AI platform's 40% cost savings, 3x faster processing, and seamless integration capabilities, we invite questions and discussions about implementation."
 - topics: ["Key benefits recap", "Implementation discussion", "Contact information"]
-
-BAD Closing Slide:
-- title: "Thank You"
-- narrative: "Conclude the presentation" ← TOO VAGUE!
+- slide_type_hint: "hero"
+- purpose: "closing_slide"
 
 ## STRUCTURE RULES
 - 5-10 slides: Simple structure (title, 3-8 content, closing)
 - 10-20 slides: Include section dividers every 4-6 slides
 - 20+ slides: Executive summary after title, multiple sections
 
-## LAYOUT RULES (v4.0.23)
+## LAYOUT RULES (v4.0.25)
 - Hero slides (title, section_divider, closing): layout = "L29"
 - Content slides: layout = "L25"
+
+Note: The layout may be updated by the Layout Analyzer after storyline generation.
 
 ## VARIANT SELECTION (v4.0.23 - Required for content slides)
 For each L25 content slide, select variant_id based on content type and topic count:
@@ -607,6 +681,8 @@ Create a complete Strawman with slide definitions including:
 - topics (3-5 specific key points related to the slide title)
 - is_hero (true for title/section/closing)
 - hero_type (title_slide, section_divider, or closing_slide for hero slides)
+- slide_type_hint (REQUIRED: hero, text, chart, diagram, or infographic)
+- purpose (REQUIRED: what story this slide tells)
 """
 
     async def generate(
@@ -620,11 +696,47 @@ Create a complete Strawman with slide definitions including:
         """
         Generate a strawman for the given topic.
 
+        v4.1: Playbook-based generation with three-tier matching:
+        - 90%+ confidence: Use playbook directly (FULL_MATCH)
+        - 60-89% confidence: Merge playbook with custom slides (PARTIAL_MATCH)
+        - <60% confidence: Generate from scratch (NO_MATCH)
+
+        v4.0.25: Story-driven multi-service coordination:
+        - Step 1: Generate storyline with AI (slide_type_hint, purpose)
+        - Step 2: Apply Layout Analysis (layout, service, variant strategy)
+        - Step 3: Resolve variants for text slides via Text Service
+
         v4.0.24: If Layout Service coordination is enabled and available,
         layouts will be selected dynamically. Otherwise falls back to
         hardcoded L25/L29 approach.
         """
-        logger.info(f"StrawmanGenerator.generate() called with topic='{topic}'")
+        logger.info(f"StrawmanGenerator.generate() called with topic='{topic}', audience='{audience}', duration={duration}, purpose='{purpose}'")
+
+        # v4.1: Try playbook matching first
+        if self.playbook_manager:
+            from src.models.playbook import MatchConfidence
+            match = self.playbook_manager.find_best_match(
+                audience=audience,
+                purpose=purpose,
+                duration=duration,
+                topic=topic
+            )
+
+            logger.info(f"Playbook match: confidence={match.confidence:.2f}, type={match.match_type}")
+
+            if match.match_type == MatchConfidence.FULL_MATCH:
+                # Use playbook directly (90%+ confidence)
+                logger.info(f"FULL_MATCH: Using playbook '{match.playbook_id}' directly")
+                return await self._generate_from_playbook(
+                    match.playbook, topic, audience, purpose, duration
+                )
+
+            elif match.match_type == MatchConfidence.PARTIAL_MATCH:
+                # Merge playbook with custom slides (60-89% confidence)
+                logger.info(f"PARTIAL_MATCH: Merging playbook '{match.playbook_id}' with custom content")
+                return await self._generate_with_playbook_merge(
+                    match, topic, audience, duration, purpose, additional_context
+                )
 
         if not self.agent:
             logger.warning("Agent not initialized, using fallback")
@@ -651,6 +763,17 @@ This presentation MUST be about "{topic}". Every slide title and every topic poi
 3. Closing slide: Summary and thank you
 4. Include 3-5 topic points per slide, all related to {topic}
 
+## STORY-DRIVEN CATEGORIZATION (REQUIRED)
+For each slide, you MUST include:
+- slide_type_hint: hero, text, chart, diagram, or infographic
+- purpose: what story this slide tells (e.g., problem_statement, traction, features)
+
+Think about the STORY: What visualization best tells this part of the narrative?
+- Most slides should be "text" (~70%)
+- Use "chart" only when data visualization is essential to the story
+- Use "diagram" only for architecture/workflow/process flows
+- Use "infographic" only for pyramids/funnels/visual hierarchies
+
 Additional Context: {json.dumps(additional_context or {})}
 
 Generate a complete strawman with {slide_count} slides about {topic}.
@@ -658,6 +781,9 @@ Generate a complete strawman with {slide_count} slides about {topic}.
 
         try:
             from src.utils.vertex_retry import call_with_retry
+
+            # STEP 1: Generate storyline with AI
+            logger.info("Step 1: Generating storyline with AI...")
             result = await call_with_retry(
                 lambda: self.agent.run(prompt),
                 operation_name="Strawman Generator"
@@ -665,14 +791,223 @@ Generate a complete strawman with {slide_count} slides about {topic}.
             # Pydantic-AI 1.0+: use .output instead of .data
             strawman = result.output
 
-            # v4.0.24: Enhance with Layout Service if enabled
+            # STEP 2: Apply Layout Analysis (story-driven routing)
+            if self.layout_analyzer:
+                logger.info("Step 2: Applying Layout Analysis...")
+                strawman = await self._apply_layout_analysis(strawman)
+
+            # STEP 3: Resolve variants for text slides via Text Service
+            if self.text_coord_client:
+                logger.info("Step 3: Resolving variants via Text Service...")
+                strawman = await self._resolve_variants(strawman)
+
+            # v4.0.24: Enhance with Layout Service if enabled (optional additional step)
             if self.layout_client:
                 strawman = await self._enhance_with_layout_service(strawman)
+
+            # v4.0: Enhance with Content Analysis if enabled (for additional hints)
+            if self.content_analyzer:
+                strawman = await self._enhance_with_content_analysis(strawman)
 
             return strawman
         except Exception as e:
             logger.error(f"Strawman generation failed: {e}")
-            return self._fallback_strawman(topic, duration)
+            # v4.0.25: Apply layout analysis to fallback as well
+            fallback = self._fallback_strawman(topic, duration)
+            if self.layout_analyzer:
+                try:
+                    fallback = await self._apply_layout_analysis(fallback)
+                except Exception as layout_error:
+                    logger.warning(f"Failed to apply layout analysis to fallback: {layout_error}")
+            return fallback
+
+    async def _generate_from_playbook(
+        self,
+        playbook,
+        topic: str,
+        audience: str,
+        purpose: str,
+        duration: int
+    ) -> Strawman:
+        """
+        Generate strawman directly from playbook (FULL_MATCH scenario).
+
+        v4.1: Used when playbook confidence >= 90%.
+        """
+        import uuid
+
+        # Apply playbook template to generate slides
+        playbook_slides = self.playbook_manager.apply_playbook(
+            playbook, topic, audience, purpose, duration
+        )
+
+        # Convert to StrawmanSlide objects
+        strawman_slides = []
+        for slide_data in playbook_slides:
+            strawman_slides.append(StrawmanSlide(
+                slide_id=slide_data.get("slide_id", str(uuid.uuid4())),
+                slide_number=slide_data.get("slide_number", len(strawman_slides) + 1),
+                title=slide_data.get("title", ""),
+                layout=slide_data.get("layout", "L25"),
+                variant_id=slide_data.get("variant_id"),
+                topics=slide_data.get("topics", []),
+                is_hero=slide_data.get("is_hero", False),
+                hero_type=slide_data.get("hero_type"),
+                slide_type_hint=slide_data.get("slide_type_hint"),
+                purpose=slide_data.get("purpose"),
+                service=slide_data.get("service", "text"),
+                generation_instructions=slide_data.get("generation_instructions")
+            ))
+
+        strawman = Strawman(
+            title=topic,
+            slides=strawman_slides,
+            metadata={
+                "generated": "playbook",
+                "playbook_id": playbook.playbook_id,
+                "duration": duration,
+                "topic": topic
+            }
+        )
+
+        # Apply layout analysis for service routing
+        if self.layout_analyzer:
+            strawman = await self._apply_layout_analysis(strawman)
+
+        # Resolve variants for text slides
+        if self.text_coord_client:
+            strawman = await self._resolve_variants(strawman)
+
+        logger.info(f"Generated strawman from playbook '{playbook.playbook_id}': {len(strawman_slides)} slides")
+        return strawman
+
+    async def _generate_with_playbook_merge(
+        self,
+        match,
+        topic: str,
+        audience: str,
+        duration: int,
+        purpose: str,
+        additional_context: Optional[Dict[str, Any]]
+    ) -> Strawman:
+        """
+        Generate strawman by merging playbook with custom slides (PARTIAL_MATCH scenario).
+
+        v4.1: Used when playbook confidence is 60-89%.
+        """
+        import uuid
+
+        # Get base slides from playbook
+        playbook = match.playbook
+        playbook_slides = self.playbook_manager.apply_playbook(
+            playbook, topic, audience, purpose, duration
+        )
+
+        # Identify gaps that need custom content
+        gaps = self.playbook_merger.identify_gaps(playbook, topic, purpose, duration)
+
+        # Generate custom slides for gaps (if any)
+        custom_slides = []
+        if gaps:
+            logger.info(f"Generating {len(gaps)} custom slides to fill gaps...")
+            custom_slides = await self._generate_gap_slides(
+                gaps, topic, audience, purpose, duration, additional_context
+            )
+
+        # Merge playbook slides with custom slides
+        merged_slides = self.playbook_merger.merge(
+            playbook_slides,
+            custom_slides,
+            match.match_details,
+            match.adaptation_notes
+        )
+
+        # Convert to StrawmanSlide objects
+        strawman_slides = []
+        for slide_data in merged_slides:
+            strawman_slides.append(StrawmanSlide(
+                slide_id=slide_data.get("slide_id", str(uuid.uuid4())),
+                slide_number=slide_data.get("slide_number", len(strawman_slides) + 1),
+                title=slide_data.get("title", ""),
+                layout=slide_data.get("layout", "L25"),
+                variant_id=slide_data.get("variant_id"),
+                topics=slide_data.get("topics", []),
+                is_hero=slide_data.get("is_hero", False),
+                hero_type=slide_data.get("hero_type"),
+                slide_type_hint=slide_data.get("slide_type_hint"),
+                purpose=slide_data.get("purpose"),
+                service=slide_data.get("service", "text"),
+                generation_instructions=slide_data.get("generation_instructions")
+            ))
+
+        strawman = Strawman(
+            title=topic,
+            slides=strawman_slides,
+            metadata={
+                "generated": "playbook_merged",
+                "playbook_id": playbook.playbook_id,
+                "confidence": match.confidence,
+                "gaps_filled": len(gaps),
+                "duration": duration,
+                "topic": topic
+            }
+        )
+
+        # Apply layout analysis for service routing
+        if self.layout_analyzer:
+            strawman = await self._apply_layout_analysis(strawman)
+
+        # Resolve variants for text slides
+        if self.text_coord_client:
+            strawman = await self._resolve_variants(strawman)
+
+        logger.info(
+            f"Generated merged strawman from playbook '{playbook.playbook_id}': "
+            f"{len(strawman_slides)} slides (playbook: {len(playbook_slides)}, custom: {len(custom_slides)})"
+        )
+        return strawman
+
+    async def _generate_gap_slides(
+        self,
+        gaps,
+        topic: str,
+        audience: str,
+        purpose: str,
+        duration: int,
+        additional_context: Optional[Dict[str, Any]]
+    ) -> List[Dict[str, Any]]:
+        """
+        Generate custom slides to fill gaps in playbook.
+
+        v4.1: Used for PARTIAL_MATCH scenario.
+        """
+        import uuid
+
+        custom_slides = []
+
+        for gap in gaps:
+            # Generate slide for this gap
+            slide = {
+                "slide_id": str(uuid.uuid4()),
+                "title": f"{gap.purpose.replace('_', ' ').title()}: {topic}",
+                "layout": "L25",
+                "variant_id": None,
+                "topics": [
+                    f"Key point about {gap.purpose.replace('_', ' ')} of {topic}",
+                    f"Important information for {gap.purpose.replace('_', ' ')}",
+                    f"Details on {topic}"
+                ],
+                "is_hero": False,
+                "hero_type": None,
+                "slide_type_hint": "text",
+                "purpose": gap.purpose,
+                "service": "text",
+                "generation_instructions": None
+            }
+            custom_slides.append(slide)
+
+        logger.info(f"Generated {len(custom_slides)} gap-filling slides")
+        return custom_slides
 
     def _select_fallback_variant(self, topic_count: int) -> str:
         """Select default variant based on topic count.
@@ -767,6 +1102,193 @@ Generate a complete strawman with {slide_count} slides about {topic}.
             slides=slides,
             metadata={"generated": "fallback", "duration": duration, "topic": topic}
         )
+
+    async def _apply_layout_analysis(self, strawman: Strawman) -> Strawman:
+        """
+        Apply Layout Analysis to determine exact layout, service, and variant strategy.
+
+        v4.0.25: Step 2 of the two-step process.
+        Uses LayoutAnalyzer to map slide_type_hint → layout → service.
+
+        Args:
+            strawman: Raw strawman from AI with slide_type_hint and purpose
+
+        Returns:
+            Enhanced strawman with layout, service, and generation_instructions
+        """
+        if not self.layout_analyzer:
+            logger.warning("LayoutAnalyzer not initialized, skipping layout analysis")
+            return strawman
+
+        try:
+            enhanced_slides = []
+            for slide in strawman.slides:
+                # Get slide_type_hint (default to "text" if not set)
+                slide_type_hint = getattr(slide, 'slide_type_hint', None) or (
+                    "hero" if slide.is_hero else "text"
+                )
+                purpose = getattr(slide, 'purpose', None)
+
+                # Run layout analysis
+                analysis = self.layout_analyzer.analyze(
+                    slide_type_hint=slide_type_hint,
+                    hero_type=slide.hero_type,
+                    topic_count=len(slide.topics) if slide.topics else 0,
+                    purpose=purpose,
+                    title=slide.title,
+                    topics=slide.topics
+                )
+
+                # Create enhanced slide with analysis results
+                enhanced_slide = StrawmanSlide(
+                    slide_id=slide.slide_id,
+                    slide_number=slide.slide_number,
+                    title=slide.title,
+                    layout=analysis.layout,
+                    topics=slide.topics,
+                    variant_id=analysis.variant_id or slide.variant_id,
+                    notes=slide.notes,
+                    is_hero=slide.is_hero,
+                    hero_type=slide.hero_type,
+                    # Preserve existing fields
+                    content_hints=slide.content_hints,
+                    suggested_service=slide.suggested_service,
+                    service_confidence=slide.service_confidence,
+                    needs_image=slide.needs_image,
+                    suggested_iseries=slide.suggested_iseries,
+                    # v4.0.25: New story-driven fields
+                    slide_type_hint=slide_type_hint,
+                    purpose=purpose,
+                    service=analysis.service,
+                    generation_instructions=analysis.generation_instructions
+                )
+                enhanced_slides.append(enhanced_slide)
+
+                logger.debug(
+                    f"Slide {slide.slide_number}: {slide_type_hint} → "
+                    f"layout={analysis.layout}, service={analysis.service}"
+                )
+
+            # Update metadata
+            metadata = strawman.metadata or {}
+            metadata["layout_analysis_applied"] = True
+
+            return Strawman(
+                title=strawman.title,
+                slides=enhanced_slides,
+                metadata=metadata
+            )
+
+        except Exception as e:
+            logger.error(f"Layout analysis failed: {e}")
+            return strawman
+
+    async def _resolve_variants(self, strawman: Strawman) -> Strawman:
+        """
+        Resolve variants for text slides via Text Service /recommend-variant.
+
+        v4.0.25: Step 3 of the two-step process.
+        For slides with service="text" and layout in VARIANT_LAYOUTS,
+        calls Text Service to get the best variant_id.
+
+        Args:
+            strawman: Strawman with layout analysis applied
+
+        Returns:
+            Strawman with variant_id populated for text slides
+        """
+        if not self.text_coord_client:
+            logger.debug("Text Service coordination not enabled, skipping variant resolution")
+            return strawman
+
+        try:
+            # Check Text Service availability
+            is_healthy = await self.text_coord_client.health_check()
+            if not is_healthy:
+                logger.warning("Text Service not available for variant resolution")
+                return strawman
+
+            enhanced_slides = []
+            variant_layouts = {"L25", "C1"}  # Layouts that support variants
+
+            for slide in strawman.slides:
+                # Only resolve variants for text slides with variant-supporting layouts
+                if (
+                    slide.service == "text" and
+                    slide.layout in variant_layouts and
+                    not slide.is_hero and
+                    not slide.variant_id  # Don't override if already set
+                ):
+                    try:
+                        # Build request for Text Service
+                        slide_content = {
+                            "title": slide.title,
+                            "topics": slide.topics,
+                            "topic_count": len(slide.topics) if slide.topics else 0
+                        }
+                        available_space = {
+                            "width": 1800,  # Default content zone
+                            "height": 720,
+                            "layout_id": slide.layout
+                        }
+
+                        # Get variant recommendation
+                        from src.models.content_hints import ContentHints
+                        hints = ContentHints(
+                            topic_count=len(slide.topics) if slide.topics else 0
+                        )
+
+                        best_variant = await self.text_coord_client.get_best_variant(
+                            slide_content=slide_content,
+                            content_hints=hints,
+                            available_space=available_space,
+                            confidence_threshold=self.settings.TEXT_SERVICE_CONFIDENCE_THRESHOLD
+                        )
+
+                        if best_variant:
+                            # Create slide with resolved variant
+                            slide = StrawmanSlide(
+                                slide_id=slide.slide_id,
+                                slide_number=slide.slide_number,
+                                title=slide.title,
+                                layout=slide.layout,
+                                topics=slide.topics,
+                                variant_id=best_variant,
+                                notes=slide.notes,
+                                is_hero=slide.is_hero,
+                                hero_type=slide.hero_type,
+                                content_hints=slide.content_hints,
+                                suggested_service=slide.suggested_service,
+                                service_confidence=slide.service_confidence,
+                                needs_image=slide.needs_image,
+                                suggested_iseries=slide.suggested_iseries,
+                                slide_type_hint=slide.slide_type_hint,
+                                purpose=slide.purpose,
+                                service=slide.service,
+                                generation_instructions=slide.generation_instructions
+                            )
+                            logger.debug(
+                                f"Slide {slide.slide_number}: Resolved variant={best_variant}"
+                            )
+
+                    except Exception as e:
+                        logger.warning(f"Failed to resolve variant for slide {slide.slide_number}: {e}")
+
+                enhanced_slides.append(slide)
+
+            # Update metadata
+            metadata = strawman.metadata or {}
+            metadata["variants_resolved"] = True
+
+            return Strawman(
+                title=strawman.title,
+                slides=enhanced_slides,
+                metadata=metadata
+            )
+
+        except Exception as e:
+            logger.error(f"Variant resolution failed: {e}")
+            return strawman
 
     async def _enhance_with_layout_service(self, strawman: Strawman) -> Strawman:
         """
@@ -891,4 +1413,142 @@ Generate a complete strawman with {slide_count} slides about {topic}.
                 f"Failed to enhance slide {slide.slide_number}: {e}"
             )
             # Return original slide on error
+            return slide
+
+    async def _enhance_with_content_analysis(self, strawman: Strawman) -> Strawman:
+        """
+        Enhance strawman with Content Analysis for service routing.
+
+        v4.0: Uses ContentAnalyzer to analyze slide content and determine:
+        - Content hints (has_numbers, is_comparison, etc.)
+        - Suggested service (text, analytics, diagram, illustrator)
+        - I-series recommendations (needs_image, suggested_iseries)
+
+        This enables intelligent service routing during content generation.
+
+        Args:
+            strawman: The strawman to enhance
+
+        Returns:
+            Enhanced strawman with content hints on each slide
+        """
+        if not self.content_analyzer:
+            return strawman
+
+        try:
+            logger.info(f"Enhancing strawman with content analysis ({len(strawman.slides)} slides)")
+
+            enhanced_slides = []
+            for slide in strawman.slides:
+                enhanced_slide = await self._analyze_slide_content(slide)
+                enhanced_slides.append(enhanced_slide)
+
+            # Update metadata
+            metadata = strawman.metadata or {}
+            metadata["content_analyzed"] = True
+            metadata["text_service_coordination"] = bool(self.text_coord_client)
+
+            return Strawman(
+                title=strawman.title,
+                slides=enhanced_slides,
+                metadata=metadata
+            )
+
+        except Exception as e:
+            logger.error(f"Content analysis enhancement failed: {e}")
+            return strawman
+
+    async def _analyze_slide_content(self, slide: StrawmanSlide) -> StrawmanSlide:
+        """
+        Analyze a single slide's content and populate hints.
+
+        Args:
+            slide: Original slide from strawman
+
+        Returns:
+            Enhanced slide with content_hints, suggested_service, etc.
+        """
+        # Skip hero slides - they always use Text Service
+        if slide.is_hero:
+            return slide
+
+        try:
+            # Run content analysis
+            hints = self.content_analyzer.analyze(slide)
+
+            # Convert ContentHints to dict for storage
+            hints_dict = {
+                "has_numbers": hints.has_numbers,
+                "is_comparison": hints.is_comparison,
+                "is_time_based": hints.is_time_based,
+                "is_hierarchical": hints.is_hierarchical,
+                "is_process_flow": hints.is_process_flow,
+                "is_sequential": hints.is_sequential,
+                "detected_keywords": hints.detected_keywords,
+                "pattern_type": hints.pattern_type.value if hints.pattern_type else None,
+                "numeric_density": hints.numeric_density,
+                "topic_count": hints.topic_count
+            }
+
+            # Determine service routing
+            suggested_service = None
+            service_confidence = None
+            if hints.suggested_service:
+                suggested_service = hints.suggested_service.value
+                service_confidence = hints.service_confidence
+
+            # Check for I-series recommendation
+            needs_image = hints.needs_image
+            suggested_iseries = hints.suggested_iseries
+
+            # If Text Service coordination is enabled, get variant recommendation
+            variant_id = slide.variant_id
+            if self.text_coord_client and suggested_service == "text":
+                try:
+                    slide_content = {
+                        "title": slide.title,
+                        "topics": slide.topics,
+                        "topic_count": len(slide.topics) if slide.topics else 0
+                    }
+                    available_space = {
+                        "width": 1800,  # Default content zone
+                        "height": 720,
+                        "layout_id": slide.layout
+                    }
+
+                    best_variant = await self.text_coord_client.get_best_variant(
+                        slide_content=slide_content,
+                        content_hints=hints,
+                        available_space=available_space,
+                        confidence_threshold=self.settings.TEXT_SERVICE_CONFIDENCE_THRESHOLD
+                    )
+
+                    if best_variant:
+                        variant_id = best_variant
+                        logger.debug(
+                            f"Slide {slide.slide_number}: Text Service recommended {variant_id}"
+                        )
+                except Exception as e:
+                    logger.warning(f"Text Service coordination failed: {e}")
+
+            # Create enhanced slide with all fields
+            return StrawmanSlide(
+                slide_id=slide.slide_id,
+                slide_number=slide.slide_number,
+                title=slide.title,
+                layout=slide.layout,
+                topics=slide.topics,
+                variant_id=variant_id,
+                notes=slide.notes,
+                is_hero=slide.is_hero,
+                hero_type=slide.hero_type,
+                content_hints=hints_dict,
+                suggested_service=suggested_service,
+                service_confidence=service_confidence,
+                needs_image=needs_image,
+                suggested_iseries=suggested_iseries
+            )
+
+        except Exception as e:
+            logger.warning(f"Failed to analyze slide {slide.slide_number}: {e}")
             return slide

@@ -208,6 +208,52 @@ class StrawmanSlide(BaseModel):
     is_hero: bool = Field(default=False, description="Whether this is a hero slide")
     hero_type: Optional[str] = Field(default=None, description="title_slide, section_divider, or closing_slide")
 
+    # v4.0: Multi-Service Coordination fields
+    # These are populated by ContentAnalyzer during strawman enhancement
+    content_hints: Optional[Dict[str, Any]] = Field(
+        default=None,
+        description="Content analysis hints for service routing (from ContentAnalyzer)"
+    )
+    suggested_service: Optional[str] = Field(
+        default=None,
+        description="Recommended service: text, analytics, diagram, illustrator"
+    )
+    service_confidence: Optional[float] = Field(
+        default=None,
+        description="Confidence in service recommendation (0-1)"
+    )
+
+    # v4.0: I-series layout fields (image + text combined)
+    needs_image: bool = Field(
+        default=False,
+        description="True if content would benefit from I-series layout"
+    )
+    suggested_iseries: Optional[str] = Field(
+        default=None,
+        description="Suggested I-series layout (I1, I2, I3, I4) if needs_image is True"
+    )
+
+    # v4.0.25: Story-driven multi-service coordination fields
+    # These are populated during storyline generation (Step 1)
+    slide_type_hint: Optional[str] = Field(
+        default=None,
+        description="Story-driven type: hero, text, chart, diagram, infographic"
+    )
+    purpose: Optional[str] = Field(
+        default=None,
+        description="What story this slide tells: title_slide, problem_statement, traction, etc."
+    )
+
+    # v4.0.25: Routing fields (from Step 2: Layout Analysis)
+    service: Optional[str] = Field(
+        default=None,
+        description="Service to handle this slide: text, analytics, diagram, illustrator"
+    )
+    generation_instructions: Optional[str] = Field(
+        default=None,
+        description="Precise instructions for content generation (for non-variant slides like charts, diagrams)"
+    )
+
 
 class Strawman(BaseModel):
     """Complete strawman (presentation outline)."""

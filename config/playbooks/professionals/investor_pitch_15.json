@@ -1,0 +1,226 @@
+{
+  "playbook_id": "professionals-investor_pitch-15",
+  "version": "1.0.0",
+  "metadata": {
+    "audience": "professionals",
+    "purpose": "investor_pitch",
+    "duration": 15,
+    "description": "Standard investor pitch deck structure (YC-style) for professional investors"
+  },
+  "structure": {
+    "total_slides": 10,
+    "sections": [
+      {"section_id": "opening", "section_name": "Opening", "is_required": true},
+      {"section_id": "problem", "section_name": "Problem", "is_required": true},
+      {"section_id": "solution", "section_name": "Solution", "is_required": true},
+      {"section_id": "traction", "section_name": "Traction", "is_required": true},
+      {"section_id": "team", "section_name": "Team", "is_required": true},
+      {"section_id": "ask", "section_name": "The Ask", "is_required": true},
+      {"section_id": "closing", "section_name": "Closing", "is_required": true}
+    ]
+  },
+  "slides": [
+    {
+      "slot_id": "title",
+      "slide_number": 1,
+      "section_id": "opening",
+      "title_template": "{topic}",
+      "slide_type_hint": "hero",
+      "purpose": "title_slide",
+      "layout": "L29",
+      "is_hero": true,
+      "hero_type": "title_slide",
+      "suggested_variant": null,
+      "topic_templates": [
+        "Transforming the industry",
+        "Investment opportunity"
+      ],
+      "narrative_template": "Opening slide introducing {topic} to potential investors"
+    },
+    {
+      "slot_id": "problem",
+      "slide_number": 2,
+      "section_id": "problem",
+      "title_template": "The Problem",
+      "slide_type_hint": "text",
+      "purpose": "problem_statement",
+      "layout": "L25",
+      "is_hero": false,
+      "hero_type": null,
+      "suggested_variant": "sequential_3col",
+      "topic_templates": [
+        "Current pain point in the {topic} space",
+        "Why existing solutions fail",
+        "The cost of inaction"
+      ],
+      "narrative_template": "Articulate the core problem that {topic} solves"
+    },
+    {
+      "slot_id": "solution",
+      "slide_number": 3,
+      "section_id": "solution",
+      "title_template": "Our Solution: {topic}",
+      "slide_type_hint": "text",
+      "purpose": "solution_overview",
+      "layout": "L25",
+      "is_hero": false,
+      "hero_type": null,
+      "suggested_variant": "grid_2x2_centered",
+      "topic_templates": [
+        "Core value proposition",
+        "Key differentiators",
+        "Technology advantage",
+        "Unique approach"
+      ],
+      "narrative_template": "Present {topic} as the solution to the stated problem"
+    },
+    {
+      "slot_id": "how_it_works",
+      "slide_number": 4,
+      "section_id": "solution",
+      "title_template": "How {topic} Works",
+      "slide_type_hint": "diagram",
+      "purpose": "technical_overview",
+      "layout": "L25",
+      "is_hero": false,
+      "hero_type": null,
+      "suggested_variant": null,
+      "topic_templates": [
+        "Step 1: User interaction",
+        "Step 2: Core processing",
+        "Step 3: Value delivery"
+      ],
+      "narrative_template": "Simple explanation of how {topic} delivers value"
+    },
+    {
+      "slot_id": "traction",
+      "slide_number": 5,
+      "section_id": "traction",
+      "title_template": "Traction & Metrics",
+      "slide_type_hint": "chart",
+      "purpose": "traction",
+      "layout": "L25",
+      "is_hero": false,
+      "hero_type": null,
+      "suggested_variant": "metrics_4col",
+      "topic_templates": [
+        "Revenue/Growth metrics",
+        "User acquisition",
+        "Engagement metrics",
+        "Key milestones"
+      ],
+      "narrative_template": "Demonstrate market validation for {topic}"
+    },
+    {
+      "slot_id": "market",
+      "slide_number": 6,
+      "section_id": "traction",
+      "title_template": "Market Opportunity",
+      "slide_type_hint": "infographic",
+      "purpose": "market_size",
+      "layout": "L25",
+      "is_hero": false,
+      "hero_type": null,
+      "suggested_variant": null,
+      "topic_templates": [
+        "Total Addressable Market (TAM)",
+        "Serviceable Market (SAM)",
+        "Target Market (SOM)"
+      ],
+      "narrative_template": "Size of the opportunity for {topic}",
+      "is_optional": true
+    },
+    {
+      "slot_id": "business_model",
+      "slide_number": 7,
+      "section_id": "solution",
+      "title_template": "Business Model",
+      "slide_type_hint": "text",
+      "purpose": "business_model",
+      "layout": "L25",
+      "is_hero": false,
+      "hero_type": null,
+      "suggested_variant": "comparison_3col",
+      "topic_templates": [
+        "Revenue streams",
+        "Pricing strategy",
+        "Unit economics"
+      ],
+      "narrative_template": "How {topic} generates sustainable revenue",
+      "is_optional": true
+    },
+    {
+      "slot_id": "team",
+      "slide_number": 8,
+      "section_id": "team",
+      "title_template": "The Team",
+      "slide_type_hint": "text",
+      "purpose": "team",
+      "layout": "L25",
+      "is_hero": false,
+      "hero_type": null,
+      "suggested_variant": "grid_3x2",
+      "topic_templates": [
+        "Founding team credentials",
+        "Key hires",
+        "Advisory board",
+        "Domain expertise"
+      ],
+      "narrative_template": "Why this team will win in {topic}"
+    },
+    {
+      "slot_id": "ask",
+      "slide_number": 9,
+      "section_id": "ask",
+      "title_template": "The Ask",
+      "slide_type_hint": "text",
+      "purpose": "ask",
+      "layout": "L25",
+      "is_hero": false,
+      "hero_type": null,
+      "suggested_variant": "sequential_3col",
+      "topic_templates": [
+        "Funding amount",
+        "Use of funds",
+        "Key milestones to achieve"
+      ],
+      "narrative_template": "Investment request for {topic}"
+    },
+    {
+      "slot_id": "closing",
+      "slide_number": 10,
+      "section_id": "closing",
+      "title_template": "Thank You",
+      "slide_type_hint": "hero",
+      "purpose": "closing_slide",
+      "layout": "L29",
+      "is_hero": true,
+      "hero_type": "closing_slide",
+      "suggested_variant": null,
+      "topic_templates": [
+        "Contact information",
+        "Next steps"
+      ],
+      "narrative_template": "Closing slide for {topic} pitch with call to action"
+    }
+  ],
+  "adaptation_rules": {
+    "shorter_duration_removes": ["market", "business_model"],
+    "longer_duration_adds": [
+      {
+        "after_slot": "solution",
+        "slide_templates": [
+          {
+            "title_template": "Competitive Landscape",
+            "purpose": "competition",
+            "suggested_variant": "matrix_2x2"
+          }
+        ]
+      }
+    ],
+    "audience_tone_map": {
+      "professionals": "formal",
+      "college_students": "engaging"
+    }
+  }
+}
