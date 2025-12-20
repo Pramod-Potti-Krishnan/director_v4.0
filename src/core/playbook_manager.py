@@ -152,6 +152,24 @@ class PlaybookManager:
 
         logger.info(f"Finding playbook match: audience={audience}, purpose={purpose}, duration={duration}")
 
+        # v4.1.1: If purpose couldn't be normalized (unknown purpose),
+        # force NO_MATCH to generate from scratch with AI
+        if purpose is None:
+            logger.info(f"Purpose couldn't be normalized - forcing NO_MATCH")
+            return PlaybookMatch(
+                playbook_id=None,
+                playbook=None,
+                confidence=0.0,
+                match_type=MatchConfidence.NO_MATCH,
+                match_details={
+                    "reason": "unknown_purpose",
+                    "original_purpose": purpose,
+                    "searched_audience": audience,
+                    "searched_duration": duration
+                },
+                adaptation_notes=["Unknown purpose type - generate custom content with AI"]
+            )
+
         # Try exact match first
         exact_key = (audience, purpose, duration)
         if exact_key in self.index:
@@ -351,7 +369,12 @@ class PlaybookManager:
         if purpose in self.PURPOSES:
             return purpose
 
-        return "informational"  # Default
+        # v4.1.1: Don't default to "informational" for unknown purposes.
+        # This was causing QBR templates to be used for unrelated topics
+        # (e.g., "actor dileep - films and life" got QBR slides).
+        # Return None to force NO_MATCH and generate from scratch with AI.
+        logger.warning(f"Unknown purpose '{purpose}' - will generate from scratch")
+        return None
 
     def _normalize_duration(self, duration: int) -> int:
         """Normalize duration to nearest supported value."""
