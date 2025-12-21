@@ -86,6 +86,24 @@ class SessionV4(BaseModel):
         description="ContentContext for audience-aware generation (built at strawman stage)"
     )
 
+    # v4.5: Smart Context Extraction
+    requested_slide_count: Optional[int] = Field(
+        None,
+        description="Explicit slide count if user specified (e.g., 'I need 20 slides')"
+    )
+    audience_preset: Optional[str] = Field(
+        None,
+        description="Mapped audience preset: kids_young, middle_school, high_school, college, professional, executive, general"
+    )
+    purpose_preset: Optional[str] = Field(
+        None,
+        description="Mapped purpose preset: inform, educate, persuade, inspire, entertain, qbr"
+    )
+    time_preset: Optional[str] = Field(
+        None,
+        description="Mapped time preset: lightning, quick, standard, extended, comprehensive"
+    )
+
     # Timestamps
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)

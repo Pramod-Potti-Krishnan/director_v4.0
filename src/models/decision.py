@@ -28,6 +28,8 @@ class ExtractedContext(BaseModel):
     v4.0.10: Replaces Dict[str, Any] which Gemini strips due to
     additionalProperties not being supported. Using explicit typed fields
     ensures Gemini can properly return extracted context values.
+
+    v4.5: Added slide_count, preset mappings for Smart Context Extraction.
     """
     # Core presentation context
     topic: Optional[str] = Field(None, description="The presentation topic extracted from user message")
@@ -41,6 +43,31 @@ class ExtractedContext(BaseModel):
     has_audience: bool = Field(default=False, description="True if user mentioned audience")
     has_duration: bool = Field(default=False, description="True if user specified duration")
     has_purpose: bool = Field(default=False, description="True if user stated the goal/purpose")
+
+    # v4.5: Explicit slide count (overrides playbook defaults)
+    slide_count: Optional[int] = Field(
+        None,
+        description="Explicit slide count if user specifies (e.g., 'I need 20 slides')"
+    )
+    has_explicit_slide_count: bool = Field(
+        default=False,
+        description="True if user explicitly specified a slide count"
+    )
+
+    # v4.5: Mapped presets for ContentContext
+    # These map user descriptions to our internal presets
+    audience_preset: Optional[str] = Field(
+        None,
+        description="Maps audience to preset: kids_young, kids_older, middle_school, high_school, college, professional, executive, general"
+    )
+    purpose_preset: Optional[str] = Field(
+        None,
+        description="Maps purpose to preset: inform, educate, persuade, inspire, entertain, qbr"
+    )
+    time_preset: Optional[str] = Field(
+        None,
+        description="Maps duration to preset: lightning (5min), quick (10min), standard (20min), extended (30min), comprehensive (45min)"
+    )
 
 
 class ToolCallRequest(BaseModel):

@@ -487,24 +487,26 @@ class WebSocketHandlerV4:
 
         logger.info(f"Generating strawman for topic: {topic}")
 
-        # Generate strawman
+        # v4.5: Generate strawman with explicit slide count if user specified
         strawman = await self.strawman_generator.generate(
             topic=topic,
             audience=session.audience or "general",
             duration=session.duration or 15,
-            purpose=session.purpose or "inform"
+            purpose=session.purpose or "inform",
+            requested_slide_count=session.requested_slide_count
         )
 
         # v4.5: Build ContentContext at strawman stage (THEME_SYSTEM_DESIGN.md v2.3)
+        # Use presets if available (from Smart Context Extraction), otherwise raw values
         from src.models.content_context import build_content_context
         content_context = build_content_context(
-            audience=session.audience,
-            purpose=session.purpose,
+            audience=session.audience_preset or session.audience,
+            purpose=session.purpose_preset or session.purpose,
             duration=session.duration,
             tone=session.tone
         )
         session.content_context = content_context.to_text_service_format()
-        logger.info(f"v4.5: Built ContentContext for session: audience={session.audience}, purpose={session.purpose}")
+        logger.info(f"v4.5: Built ContentContext for session: audience={session.audience_preset or session.audience}, purpose={session.purpose_preset or session.purpose}")
 
         # Save strawman
         strawman_dict = strawman.dict()
@@ -913,6 +915,56 @@ class WebSocketHandlerV4:
             flag_value = get_value(extracted, flag)
             if flag_value is True and flag not in updates:
                 updates[flag] = True
+
+        # v4.5: Extract Smart Context Extraction fields
+        slide_count = get_value(extracted, 'slide_count')
+        has_explicit_slide_count = get_value(extracted, 'has_explicit_slide_count')
+        if slide_count and has_explicit_slide_count:
+            if not session.requested_slide_count:
+                try:
+                    updates['requested_slide_count'] = int(slide_count)
+                    logger.info(f"  → Extracted explicit slide count: {slide_count}")
+                except (ValueError, TypeError):
+                    pass
+
+        # v4.5: Extract preset mappings
+        audience_preset = get_value(extracted, 'audience_preset')
+        if audience_preset and not session.audience_preset:
+            updates['audience_preset'] = audience_preset
+            logger.info(f"  → Extracted audience preset: {audience_preset}")
+
+        purpose_preset = get_value(extracted, 'purpose_preset')
+        if purpose_preset and not session.purpose_preset:
+            updates['purpose_preset'] = purpose_preset
+            logger.info(f"  → Extracted purpose preset: {purpose_preset}")
+
+        time_preset = get_value(extracted, 'time_preset')
+        if time_preset and not session.time_preset:
+            updates['time_preset'] = time_preset
+            logger.info(f"  → Extracted time preset: {time_preset}")
+
+        # v4.5: Build ContentContext from presets if we have enough info
+        # This bridges the extracted presets to the Theme System's content_context
+        if not session.content_context:
+            # Use extracted presets or derive from raw values
+            final_audience = audience_preset or updates.get('audience_preset') or session.audience_preset
+            final_purpose = purpose_preset or updates.get('purpose_preset') or session.purpose_preset
+            final_duration = updates.get('duration') or session.duration or 20
+
+            # Only build if we have at least audience or purpose preset
+            if final_audience or final_purpose:
+                try:
+                    from src.models.content_context import build_content_context
+                    content_context = build_content_context(
+                        audience=final_audience or "professional",
+                        purpose=final_purpose or "inform",
+                        duration=final_duration,
+                        tone=updates.get('tone') or session.tone
+                    )
+                    updates['content_context'] = content_context.to_text_service_format()
+                    logger.info(f"  → Built ContentContext from presets: audience={final_audience}, purpose={final_purpose}")
+                except Exception as e:
+                    logger.warning(f"  → Failed to build ContentContext: {e}")
 
         # Update session if we have changes
         if updates:

@@ -195,6 +195,70 @@ You must return a structured decision with:
   - has_audience: true if user mentioned who the audience is
   - has_duration: true if user specified duration/length
   - has_purpose: true if user stated the goal/purpose
+  - slide_count: Explicit slide count if user specifies (e.g., "I need 20 slides" -> 20)
+  - has_explicit_slide_count: true if user explicitly specified slide count
+  - audience_preset: Map audience to preset (see below)
+  - purpose_preset: Map purpose to preset (see below)
+  - time_preset: Map duration to preset (see below)
+
+## v4.5: SMART CONTEXT EXTRACTION (CRITICAL!)
+
+### SLIDE COUNT PARSING
+If user explicitly specifies slide count, extract it:
+- "I need 20 slides" → slide_count=20, has_explicit_slide_count=true
+- "make it 15 slides max" → slide_count=15, has_explicit_slide_count=true
+- "about 10 slides" → slide_count=10, has_explicit_slide_count=true
+- "create a 12-slide presentation" → slide_count=12, has_explicit_slide_count=true
+
+### AUDIENCE PRESET MAPPING
+Map user's audience description to the closest preset:
+- "for my team" / "internal meeting" / "colleagues" → audience_preset="professional"
+- "board meeting" / "C-suite" / "executives" / "leadership" → audience_preset="executive"
+- "investors" / "VCs" / "fundraising" → audience_preset="executive"
+- "kindergarten" / "kids" / "children" / "young children" → audience_preset="kids_young"
+- "middle school" / "tweens" → audience_preset="middle_school"
+- "high school" / "teenagers" → audience_preset="high_school"
+- "college" / "university" / "students" → audience_preset="college"
+- "training" / "workshop" / "new hires" → audience_preset="professional"
+- "general public" / "everyone" → audience_preset="general"
+
+### PURPOSE PRESET MAPPING
+Map user's purpose/goal to the closest preset:
+- "pitch" / "sell" / "convince" / "persuade" → purpose_preset="persuade"
+- "teach" / "training" / "explain" / "educate" → purpose_preset="educate"
+- "update" / "status" / "report" / "share information" → purpose_preset="inform"
+- "inspire" / "motivate" / "rally" → purpose_preset="inspire"
+- "QBR" / "quarterly review" / "quarterly business review" → purpose_preset="qbr"
+- "entertain" / "fun" / "engage" → purpose_preset="entertain"
+
+### TIME/DURATION PRESET MAPPING
+Map user's time/duration description to preset:
+- "quick" / "5 minutes" / "lightning" / "brief" → time_preset="lightning"
+- "10 minutes" / "short" → time_preset="quick"
+- "15-20 minutes" / "standard" / "regular" → time_preset="standard"
+- "30 minutes" / "deep dive" / "detailed" → time_preset="extended"
+- "45 minutes" / "comprehensive" / "thorough" → time_preset="comprehensive"
+
+## v4.5: CONTEXTUAL QUESTIONS (Don't Be a Broken Record!)
+
+BEFORE asking a question, check what you already know from context:
+
+1. If user said "board meeting" → DON'T ask about audience (infer: executive)
+2. If user said "15 minute presentation" → DON'T ask about duration (infer: standard)
+3. If user said "training for new hires" → DON'T ask about purpose (infer: educate)
+4. If user said "pitch deck" → DON'T ask about purpose (infer: persuade)
+5. If user said "for kids" → DON'T ask about audience (infer: kids_young/kids_older)
+
+ONLY ask what's genuinely unclear. Use CONTEXTUAL questions:
+
+✗ BAD: "Who is your audience?" (generic, robotic)
+✓ GOOD: "For your board meeting, should this be a quick 10-minute update or a detailed 30-minute review?"
+
+✗ BAD: "What is the purpose of this presentation?" (always same question)
+✓ GOOD: "Should we focus on persuading them to approve the budget, or informing them about progress?"
+
+✗ BAD: "How long should the presentation be?" (generic)
+✓ GOOD: "Since this is for executives, would you prefer a concise 10-minute overview or a comprehensive 20-minute deep dive?"
 
 ## CRITICAL RULES FOR CONTEXT EXTRACTION
 1. When user says "make your assumptions" or similar, set has_audience=true, has_duration=true, has_purpose=true
@@ -202,6 +266,9 @@ You must return a structured decision with:
 3. Don't keep asking questions if user has provided enough context
 4. After 1-2 rounds of questions, proceed to propose_plan if you have a topic
 5. If user says "just create something" or "make assumptions", proceed without more questions
+6. v4.5: ALWAYS extract slide_count if user explicitly mentions slide count
+7. v4.5: ALWAYS map audience/purpose/time to presets when they can be inferred
+8. v4.5: If you can INFER something from context, DON'T ask about it
 """
 
     def _get_tools_summary(self) -> str:
@@ -691,10 +758,14 @@ Create a complete Strawman with slide definitions including:
         audience: str = "general",
         duration: int = 15,
         purpose: str = "inform",
-        additional_context: Optional[Dict[str, Any]] = None
+        additional_context: Optional[Dict[str, Any]] = None,
+        requested_slide_count: Optional[int] = None
     ) -> Strawman:
         """
         Generate a strawman for the given topic.
+
+        v4.5: Added requested_slide_count to respect explicit user slide count.
+        If user said "I need 20 slides", this overrides playbook/duration-based calculation.
 
         v4.1: Playbook-based generation with three-tier matching:
         - 90%+ confidence: Use playbook directly (FULL_MATCH)
@@ -710,7 +781,7 @@ Create a complete Strawman with slide definitions including:
         layouts will be selected dynamically. Otherwise falls back to
         hardcoded L25/L29 approach.
         """
-        logger.info(f"StrawmanGenerator.generate() called with topic='{topic}', audience='{audience}', duration={duration}, purpose='{purpose}'")
+        logger.info(f"StrawmanGenerator.generate() called with topic='{topic}', audience='{audience}', duration={duration}, purpose='{purpose}', requested_slide_count={requested_slide_count}")
 
         # v4.1: Try playbook matching first
         if self.playbook_manager:
@@ -740,10 +811,15 @@ Create a complete Strawman with slide definitions including:
 
         if not self.agent:
             logger.warning("Agent not initialized, using fallback")
-            return self._fallback_strawman(topic, duration)
+            return self._fallback_strawman(topic, duration, requested_slide_count)
 
-        # Calculate approximate slide count
-        slide_count = max(5, min(15, duration // 2 + 2))
+        # v4.5: Use explicit slide count if user specified, otherwise calculate from duration
+        if requested_slide_count and requested_slide_count >= 3:
+            slide_count = min(30, max(3, requested_slide_count))
+            logger.info(f"Using explicit slide count: {slide_count} (user requested {requested_slide_count})")
+        else:
+            # Calculate approximate slide count from duration (roughly 2 min per slide)
+            slide_count = max(5, min(15, duration // 2 + 2))
 
         prompt = f"""Create a presentation outline for:
 
@@ -1026,9 +1102,10 @@ Generate a complete strawman with {slide_count} slides about {topic}.
         else:
             return 'grid_2x3'
 
-    def _fallback_strawman(self, topic: str, duration: int) -> Strawman:
+    def _fallback_strawman(self, topic: str, duration: int, requested_slide_count: Optional[int] = None) -> Strawman:
         """Generate a basic fallback strawman with topic-specific content.
 
+        v4.5: Added requested_slide_count parameter to respect explicit user slide count.
         v4.0.4: Improved to generate topic-specific slide titles and points
         instead of generic "Section 1", "Section 2" placeholders.
         """
@@ -1036,8 +1113,12 @@ Generate a complete strawman with {slide_count} slides about {topic}.
 
         logger.info(f"Generating fallback strawman for topic: {topic}")
 
-        # Estimate slide count (roughly 2 min per slide)
-        slide_count = max(5, min(15, duration // 2 + 2))
+        # v4.5: Use explicit slide count if provided, otherwise estimate from duration
+        if requested_slide_count and requested_slide_count >= 3:
+            slide_count = min(30, max(3, requested_slide_count))
+        else:
+            # Estimate slide count (roughly 2 min per slide)
+            slide_count = max(5, min(15, duration // 2 + 2))
 
         # Generate topic-specific section titles
         # These are generic but at least reference the topic
