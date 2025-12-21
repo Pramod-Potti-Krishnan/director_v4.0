@@ -59,6 +59,60 @@ class StrawmanTransformer:
     # Infographic layouts
     INFOGRAPHIC_LAYOUTS = {"C3", "V4"}
 
+    # v4.5.9: Layout ID mapping - short-form to Layout Service full-form
+    # This fixes 422 errors from Layout Service validation
+    LAYOUT_MAP = {
+        # Hero layouts
+        "H1": "H1-generated",   # AI-generated title (uses hero_content)
+        "H2": "H2-section",     # Section divider
+        "H3": "H3-closing",     # Closing slide
+
+        # Content layouts
+        "C1": "C1-text",        # Standard text content (uses body field)
+        "V1": "V1-image-text",
+
+        # Image+Content layouts
+        "I1": "I1-image-left",
+        "I2": "I2-image-right",
+        "I3": "I3-image-left-narrow",
+        "I4": "I4-image-right-narrow",
+
+        # Visual layouts
+        "V2": "V2-chart-text",
+        "V3": "V3-diagram-text",
+        "V4": "V4-infographic-text",
+
+        # Analytics/Chart layouts
+        "C2": "C3-chart",
+
+        # Diagram layouts
+        "C4": "C5-diagram",
+
+        # Infographic layouts
+        "C3": "C4-infographic",
+
+        # Backend layouts (already full names - pass through)
+        "L25": "L25",
+        "L29": "L29",
+        "L02": "L02",
+    }
+
+    def _map_layout_id(self, layout: str) -> str:
+        """
+        Map short-form layout ID to Layout Service full-form.
+
+        v4.5.9: Fixes 422 errors by converting Director's short layout IDs
+        (e.g., H1, C1, I1) to Layout Service's expected full names
+        (e.g., H1-generated, L25, I1-image-left).
+
+        Args:
+            layout: Short-form layout ID from strawman
+
+        Returns:
+            Layout Service full-form layout ID
+        """
+        return self.LAYOUT_MAP.get(layout, layout)
+
     def transform(self, strawman_dict: Dict[str, Any], topic: str) -> Dict[str, Any]:
         """
         Transform strawman to deck-builder API format with precise fields.
@@ -157,8 +211,17 @@ class StrawmanTransformer:
                     'company_logo': 'STRAWMAN'
                 }
 
+            elif layout == 'C1':
+                # v4.5.9: C1-text expects 'body' field, not 'rich_content'
+                content = {
+                    'slide_title': slide.get('title', 'Slide'),
+                    'subtitle': slide.get('subtitle', ''),
+                    'body': self._create_content_metadata_html(slide, layout),
+                    'company_logo': 'STRAWMAN'
+                }
+
             else:
-                # Default content slide (L25, C1, V1)
+                # Default content slide (L25, V1) - uses rich_content
                 # v4.5.7: Added subtitle and company_logo for Layout Service
                 content = {
                     'slide_title': slide.get('title', 'Slide'),
@@ -168,8 +231,9 @@ class StrawmanTransformer:
                 }
 
             # Build transformed slide with metadata
+            # v4.5.9: Map layout to Layout Service full-form to fix 422 errors
             transformed_slide = {
-                'layout': layout,
+                'layout': self._map_layout_id(layout),
                 'content': content,
                 # v4.0.25: Include precise metadata for content generation
                 'metadata': {
