@@ -220,6 +220,7 @@ class SessionV4(BaseModel):
         """Convert to dict for Supabase storage.
 
         v4.2.1: Excludes 'branding' field until column is added to Supabase table.
+        v4.5: Excludes Smart Context Extraction fields until columns are added.
         """
         data = self.dict()
         data['created_at'] = self.created_at.isoformat()
@@ -227,6 +228,16 @@ class SessionV4(BaseModel):
         # v4.2.1: Remove branding until column exists in dr_sessions_v4 table
         # TODO: Remove this line after running: ALTER TABLE dr_sessions_v4 ADD COLUMN branding JSONB DEFAULT NULL;
         data.pop('branding', None)
+        # v4.5: Remove Smart Context Extraction fields until columns exist
+        # TODO: Remove these lines after running the following SQL:
+        # ALTER TABLE dr_sessions_v4 ADD COLUMN requested_slide_count INTEGER DEFAULT NULL;
+        # ALTER TABLE dr_sessions_v4 ADD COLUMN audience_preset TEXT DEFAULT NULL;
+        # ALTER TABLE dr_sessions_v4 ADD COLUMN purpose_preset TEXT DEFAULT NULL;
+        # ALTER TABLE dr_sessions_v4 ADD COLUMN time_preset TEXT DEFAULT NULL;
+        data.pop('requested_slide_count', None)
+        data.pop('audience_preset', None)
+        data.pop('purpose_preset', None)
+        data.pop('time_preset', None)
         return data
 
     @classmethod
