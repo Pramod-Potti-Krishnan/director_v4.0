@@ -17,11 +17,24 @@ Layouts:
 - I1-I4: Image+Text slides
 
 v4.0.6: Enhanced title slide handling with dedicated method.
+v4.5.5: Real variant templates from Text Service + proper hero templates.
+- Loads actual HTML templates based on variant_id
+- Uses H1/H2/H3 styled hero slides for preview
 """
-from typing import Dict, Any, List
+import os
+import re
+from typing import Dict, Any, List, Optional
 from src.utils.logger import setup_logger
 
 logger = setup_logger(__name__)
+
+# Base path to Text Service templates (relative to project root)
+# When deployed, this resolves to the text_table_builder templates
+TEXT_SERVICE_TEMPLATES_PATH = os.path.join(
+    os.path.dirname(__file__),  # src/utils
+    '..', '..', '..', '..',  # Go up to agents/
+    'text_table_builder', 'v1.2', 'app', 'templates'
+)
 
 
 class StrawmanTransformer:
@@ -50,6 +63,218 @@ class StrawmanTransformer:
 
     # Infographic layouts
     INFOGRAPHIC_LAYOUTS = {"C3", "V4"}
+
+    # v4.5.5: Variant ID to template category mapping
+    # Maps variant_id prefix to template subdirectory
+    VARIANT_CATEGORY_MAP = {
+        'grid': 'grid',
+        'metrics': 'metrics',
+        'asymmetric': 'asymmetric',
+        'hybrid': 'hybrid',
+        'impact_quote': 'impact_quote',
+        'matrix': 'matrix',
+        'comparison': 'multilateral_comparison',
+        'sequential': 'sequential',
+        'single_column': 'single_column',
+        'table': 'table'
+    }
+
+    # Default icons for placeholder content
+    DEFAULT_ICONS = ['🎯', '📊', '💡', '🚀', '⚡', '🔧', '📈', '✨', '🎨', '🔍']
+
+    def __init__(self):
+        """Initialize transformer with template cache."""
+        self._template_cache: Dict[str, str] = {}
+
+    def _get_template_path(self, variant_id: str) -> Optional[str]:
+        """
+        Map variant_id to template file path.
+
+        v4.5.5: Resolves variant_id to actual template HTML file.
+
+        Args:
+            variant_id: e.g., "grid_2x2_centered", "metrics_3col"
+
+        Returns:
+            Full path to template file, or None if not found
+        """
+        if not variant_id:
+            return None
+
+        # Determine category from variant_id prefix
+        category = None
+        for prefix, cat in self.VARIANT_CATEGORY_MAP.items():
+            if variant_id.startswith(prefix):
+                category = cat
+                break
+
+        if not category:
+            logger.debug(f"No category found for variant: {variant_id}")
+            return None
+
+        # Try _c1.html first (compact variant), then .html
+        base_path = os.path.join(TEXT_SERVICE_TEMPLATES_PATH, category)
+        for suffix in ['_c1.html', '.html']:
+            template_path = os.path.join(base_path, f"{variant_id}{suffix}")
+            if os.path.exists(template_path):
+                return template_path
+
+        logger.debug(f"Template file not found for variant: {variant_id}")
+        return None
+
+    def _load_template(self, variant_id: str) -> Optional[str]:
+        """
+        Load template HTML from file with caching.
+
+        v4.5.5: Loads actual variant templates from Text Service.
+
+        Args:
+            variant_id: Variant identifier
+
+        Returns:
+            HTML template string with placeholders, or None if not found
+        """
+        # Check cache first
+        if variant_id in self._template_cache:
+            return self._template_cache[variant_id]
+
+        template_path = self._get_template_path(variant_id)
+        if not template_path:
+            return None
+
+        try:
+            with open(template_path, 'r', encoding='utf-8') as f:
+                template_html = f.read()
+                self._template_cache[variant_id] = template_html
+                logger.info(f"Loaded template: {variant_id} from {template_path}")
+                return template_html
+        except Exception as e:
+            logger.warning(f"Failed to load template {variant_id}: {e}")
+            return None
+
+    def _populate_template(self, template_html: str, slide: Dict[str, Any]) -> str:
+        """
+        Populate template placeholders with slide content.
+
+        v4.5.5: Intelligent placeholder population from topics.
+
+        Placeholder patterns:
+        - {box_N_icon}, {box_N_title}, {box_N_description}
+        - {metric_N_number}, {metric_N_label}, {metric_N_description}
+        - {item_N_title}, {item_N_description}
+        - {insight_N}, {insights_heading}
+        - etc.
+
+        Args:
+            template_html: HTML template with {placeholders}
+            slide: Slide data with topics, title, subtitle
+
+        Returns:
+            Populated HTML string
+        """
+        topics = slide.get('topics', [])
+        title = slide.get('title', 'Slide')
+        subtitle = slide.get('subtitle', '')
+        notes = slide.get('notes', '')
+
+        # Find all placeholders in template
+        placeholders = re.findall(r'\{([^}]+)\}', template_html)
+        populated_html = template_html
+
+        # Count how many content items we have
+        num_topics = len(topics)
+
+        # Group placeholders by index to understand structure
+        # e.g., box_1_title, box_2_title -> we need to populate boxes 1-N
+        for placeholder in set(placeholders):
+            value = ''
+
+            # Parse placeholder name
+            if '_icon' in placeholder:
+                # Icon placeholders: {box_1_icon}, {item_1_icon}, etc.
+                idx = self._extract_index(placeholder)
+                if idx is not None and idx < len(self.DEFAULT_ICONS):
+                    value = self.DEFAULT_ICONS[idx]
+                else:
+                    value = '📌'
+
+            elif '_title' in placeholder and 'insight' not in placeholder:
+                # Title placeholders: {box_1_title}, {metric_1_label}, etc.
+                idx = self._extract_index(placeholder)
+                if idx is not None and idx < num_topics:
+                    # Use topic as title (often topics are short phrases)
+                    value = topics[idx]
+                else:
+                    value = f"Point {idx + 1 if idx else 1}"
+
+            elif '_description' in placeholder:
+                # Description placeholders: {box_1_description}, etc.
+                idx = self._extract_index(placeholder)
+                if idx is not None and idx < num_topics:
+                    # For preview, use the topic itself or a summary
+                    value = topics[idx] if idx < num_topics else "Description placeholder"
+                else:
+                    value = "Description placeholder"
+
+            elif '_number' in placeholder or '_value' in placeholder:
+                # Metric numbers: {metric_1_number}
+                idx = self._extract_index(placeholder)
+                # For preview, show placeholder numbers
+                default_numbers = ['100+', '50%', '24/7', '99.9%', '10x', '5★']
+                if idx is not None and idx < len(default_numbers):
+                    value = default_numbers[idx]
+                else:
+                    value = 'N/A'
+
+            elif '_label' in placeholder:
+                # Metric labels: {metric_1_label}
+                idx = self._extract_index(placeholder)
+                if idx is not None and idx < num_topics:
+                    value = topics[idx]
+                else:
+                    value = f"Metric {idx + 1 if idx else 1}"
+
+            elif 'insight_' in placeholder and placeholder != 'insights_heading':
+                # Insight items: {insight_1}, {insight_2}, etc.
+                idx = self._extract_index(placeholder)
+                if idx is not None and idx < num_topics:
+                    value = topics[idx]
+                else:
+                    value = f"Key insight {idx + 1 if idx else 1}"
+
+            elif placeholder == 'insights_heading':
+                value = 'Key Insights'
+
+            elif placeholder == 'heading' or placeholder == 'title':
+                value = title
+
+            elif placeholder == 'subheading' or placeholder == 'subtitle':
+                value = subtitle or notes or ''
+
+            # Replace placeholder (if value was set)
+            if value:
+                populated_html = populated_html.replace(f'{{{placeholder}}}', value)
+
+        return populated_html
+
+    def _extract_index(self, placeholder: str) -> Optional[int]:
+        """
+        Extract numeric index from placeholder name.
+
+        Args:
+            placeholder: e.g., "box_1_title", "metric_2_number"
+
+        Returns:
+            0-based index, or None if not found
+        """
+        match = re.search(r'_(\d+)_', placeholder)
+        if match:
+            return int(match.group(1)) - 1  # Convert to 0-based
+        # Try end of string: insight_1
+        match = re.search(r'_(\d+)$', placeholder)
+        if match:
+            return int(match.group(1)) - 1
+        return None
 
     def transform(self, strawman_dict: Dict[str, Any], topic: str) -> Dict[str, Any]:
         """
@@ -173,7 +398,11 @@ class StrawmanTransformer:
 
     def _create_hero_html(self, slide: Dict[str, Any], hero_type: str = None) -> str:
         """
-        Create HTML for hero slide (L29).
+        Create HTML for hero slide using H1/H2/H3 template styling.
+
+        v4.5.5: Updated to match Layout Builder hero templates.
+        - H2-section: Section divider with dark gray background
+        - H3-closing: Closing slide with deep blue gradient
 
         Args:
             slide: Slide data
@@ -183,46 +412,82 @@ class StrawmanTransformer:
             HTML string for hero_content field
         """
         title = slide.get('title', '')
+        subtitle = slide.get('subtitle', '')
         topics = slide.get('topics', [])
         notes = slide.get('notes', '')
+        slide_number = slide.get('slide_number', 0)
 
-        # Use first topic as subtitle, or notes (v4.0.24: null-safe to avoid "None" display)
-        subtitle = (topics[0] if topics else notes) or ""
+        # Use subtitle if set, otherwise first topic or notes
+        if not subtitle:
+            subtitle = (topics[0] if topics else notes) or ""
 
-        # Style based on hero type
+        # Style based on hero type (matching H1/H2/H3 templates)
         if hero_type == 'closing_slide':
+            # H3-closing: Deep blue gradient, centered content
             return f'''
 <div style="display:flex;flex-direction:column;justify-content:center;align-items:center;
-            text-align:center;height:100%;padding:60px;background:linear-gradient(135deg,#1f2937 0%,#374151 100%);">
-    <h1 style="font-size:64px;font-weight:bold;color:#ffffff;margin:0 0 24px 0;line-height:1.2;">
+            text-align:center;height:100%;padding:60px 80px;
+            background:linear-gradient(135deg, #1e3a5f 0%, #2d5a87 100%);">
+    <div style="margin-bottom:40px;">
+        <span style="background:#374151;color:#9ca3af;padding:8px 20px;border-radius:20px;
+                    font-size:16px;font-weight:500;text-transform:uppercase;letter-spacing:2px;">
+            H3 · Closing Slide
+        </span>
+    </div>
+    <h1 style="font-size:64px;font-weight:700;color:#ffffff;margin:0 0 24px 0;line-height:1.2;
+               text-shadow:0 2px 4px rgba(0,0,0,0.2);">
         {title}
     </h1>
-    <p style="font-size:28px;color:#9ca3af;margin:0;max-width:80%;line-height:1.5;">
+    <p style="font-size:28px;color:#94a3b8;margin:0 0 40px 0;max-width:70%;line-height:1.5;">
         {subtitle}
     </p>
+    <div style="color:#64748b;font-size:18px;">
+        Contact info placeholder · Logo area
+    </div>
 </div>
 '''
         elif hero_type == 'section_divider':
+            # H2-section: Dark gray, section number badge (NO subtitle per spec)
             return f'''
 <div style="display:flex;flex-direction:column;justify-content:center;align-items:center;
-            text-align:center;height:100%;padding:60px;background:#f3f4f6;">
-    <h1 style="font-size:56px;font-weight:bold;color:#1f2937;margin:0 0 16px 0;line-height:1.2;">
+            text-align:center;height:100%;padding:60px 80px;
+            background:linear-gradient(135deg, #374151 0%, #4b5563 100%);">
+    <div style="margin-bottom:32px;">
+        <span style="background:rgba(255,255,255,0.1);color:#9ca3af;padding:12px 28px;border-radius:30px;
+                    font-size:18px;font-weight:600;text-transform:uppercase;letter-spacing:3px;
+                    border:1px solid rgba(255,255,255,0.2);">
+            Section {slide_number}
+        </span>
+    </div>
+    <div style="margin-bottom:24px;">
+        <span style="background:#1f2937;color:#6b7280;padding:6px 16px;border-radius:16px;
+                    font-size:14px;font-weight:500;">
+            H2 · Section Divider
+        </span>
+    </div>
+    <h1 style="font-size:56px;font-weight:700;color:#ffffff;margin:0;line-height:1.3;
+               text-shadow:0 2px 4px rgba(0,0,0,0.3);max-width:80%;">
         {title}
     </h1>
-    <p style="font-size:24px;color:#6b7280;margin:0;max-width:70%;line-height:1.5;">
-        {subtitle}
-    </p>
 </div>
 '''
         else:
             # Generic hero slide (default) - for unspecified hero types
             return f'''
 <div style="display:flex;flex-direction:column;justify-content:center;align-items:center;
-            text-align:center;height:100%;padding:60px;">
-    <h1 style="font-size:72px;font-weight:bold;color:#1f2937;margin:0 0 24px 0;line-height:1.2;">
+            text-align:center;height:100%;padding:60px 80px;
+            background:linear-gradient(135deg, #1e3a5f 0%, #374151 100%);">
+    <div style="margin-bottom:24px;">
+        <span style="background:#374151;color:#9ca3af;padding:6px 16px;border-radius:16px;
+                    font-size:14px;font-weight:500;">
+            Hero Slide
+        </span>
+    </div>
+    <h1 style="font-size:72px;font-weight:700;color:#ffffff;margin:0 0 24px 0;line-height:1.2;
+               text-shadow:0 2px 4px rgba(0,0,0,0.2);">
         {title}
     </h1>
-    <p style="font-size:32px;color:#6b7280;margin:0;max-width:80%;line-height:1.5;">
+    <p style="font-size:32px;color:#94a3b8;margin:0;max-width:70%;line-height:1.5;">
         {subtitle}
     </p>
 </div>
@@ -230,10 +495,12 @@ class StrawmanTransformer:
 
     def _create_title_slide_html(self, presentation_title: str, slide: Dict[str, Any]) -> str:
         """
-        Create HTML specifically for title slide (first slide).
+        Create HTML specifically for title slide (first slide) using H1-structured styling.
 
-        v4.0.6: Dedicated handler for title slides with prominent presentation title
-        and gradient background for visual impact.
+        v4.5.5: Updated to match Layout Builder H1-structured template.
+        - Deep blue gradient background (matches theme hero color)
+        - Template badge for preview context
+        - Subtitle and footer area placeholders
 
         Args:
             presentation_title: The main presentation title (from strawman.title or topic)
@@ -242,39 +509,89 @@ class StrawmanTransformer:
         Returns:
             HTML string for hero_content field
         """
+        subtitle = slide.get('subtitle', '')
         topics = slide.get('topics', [])
         notes = slide.get('notes', '')
 
-        # Use first topic as subtitle, or notes (v4.0.24: null-safe to avoid "None" display)
-        subtitle = (topics[0] if topics else notes) or ""
+        # Use subtitle if set, otherwise first topic or notes
+        if not subtitle:
+            subtitle = (topics[0] if topics else notes) or ""
 
         return f'''
 <div style="display:flex;flex-direction:column;justify-content:center;align-items:center;
-            text-align:center;height:100%;padding:60px;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);">
-    <h1 style="font-size:72px;font-weight:bold;color:#ffffff;margin:0 0 24px 0;line-height:1.2;
-               text-shadow:2px 2px 4px rgba(0,0,0,0.3);">
+            text-align:center;height:100%;padding:60px 80px;
+            background:linear-gradient(135deg, #1e3a5f 0%, #2d5a87 100%);">
+    <div style="margin-bottom:40px;">
+        <span style="background:#374151;color:#9ca3af;padding:8px 20px;border-radius:20px;
+                    font-size:16px;font-weight:500;text-transform:uppercase;letter-spacing:2px;">
+            H1 · Title Slide
+        </span>
+    </div>
+    <h1 style="font-size:72px;font-weight:700;color:#ffffff;margin:0 0 24px 0;line-height:1.2;
+               text-shadow:0 4px 8px rgba(0,0,0,0.3);max-width:90%;">
         {presentation_title}
     </h1>
-    <p style="font-size:28px;color:#f0f0f0;margin:0;max-width:80%;line-height:1.5;">
+    <p style="font-size:28px;color:#94a3b8;margin:0 0 60px 0;max-width:70%;line-height:1.5;">
         {subtitle}
     </p>
+    <div style="color:#64748b;font-size:16px;">
+        Footer placeholder · Logo area
+    </div>
 </div>
 '''
 
     def _create_content_html(self, slide: Dict[str, Any]) -> str:
         """
-        Create HTML for content slide (L25).
+        Create HTML for content slide using real variant templates.
+
+        v4.5.5: Loads actual templates from Text Service based on variant_id.
+        Falls back to generic bullets if template not found.
 
         Args:
-            slide: Slide data with topics/key_points
+            slide: Slide data with topics/key_points and variant_id
 
         Returns:
             HTML string for rich_content field
         """
+        variant_id = slide.get('variant_id')
         topics = slide.get('topics', [])
         notes = slide.get('notes', '')
 
+        # v4.5.5: Try to load and populate real template
+        if variant_id:
+            template_html = self._load_template(variant_id)
+            if template_html:
+                populated_html = self._populate_template(template_html, slide)
+                logger.debug(f"Using real template for variant: {variant_id}")
+                return populated_html
+            else:
+                logger.debug(f"Template not found for variant: {variant_id}, using fallback")
+
+        # Fallback: Generic bullets (original behavior)
+        return self._create_generic_bullets(slide)
+
+    def _create_generic_bullets(self, slide: Dict[str, Any]) -> str:
+        """
+        Create generic bullet HTML as fallback when template not available.
+
+        Args:
+            slide: Slide data with topics/notes
+
+        Returns:
+            HTML string with bullet points
+        """
+        topics = slide.get('topics', [])
+        notes = slide.get('notes', '')
+        variant_id = slide.get('variant_id', 'unknown')
+
         parts = []
+
+        # Show variant info for preview context
+        parts.append(f'''
+<div style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px;padding:12px 16px;margin-bottom:20px;">
+    <span style="font-size:14px;color:#0369a1;font-weight:600;">📄 Template: {variant_id or "auto-select"}</span>
+</div>
+''')
 
         # Add notes/narrative if present
         if notes:
@@ -292,9 +609,9 @@ class StrawmanTransformer:
 </ul>
 ''')
 
-        if not parts:
+        if len(parts) <= 1:  # Only variant info
             # Fallback if no content
-            return '<p style="font-size:20px;color:#6b7280;">Content placeholder</p>'
+            return parts[0] + '<p style="font-size:20px;color:#6b7280;">Content placeholder</p>'
 
         return '\n'.join(parts)
 
