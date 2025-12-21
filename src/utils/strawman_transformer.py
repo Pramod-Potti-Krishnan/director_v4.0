@@ -17,24 +17,16 @@ Layouts:
 - I1-I4: Image+Text slides
 
 v4.0.6: Enhanced title slide handling with dedicated method.
-v4.5.5: Real variant templates from Text Service + proper hero templates.
-- Loads actual HTML templates based on variant_id
-- Uses H1/H2/H3 styled hero slides for preview
+v4.5.6: Metadata-only strawman preview (no template generation).
+- Displays all AI decisions as formatted text in content zone
+- Clear STRAWMAN indicator on all slides
+- Uses Layout Service templates (C1, I1, H1) for structure only
+- NO LLM calls - just shows decisions made
 """
-import os
-import re
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, List
 from src.utils.logger import setup_logger
 
 logger = setup_logger(__name__)
-
-# Base path to Text Service templates (relative to project root)
-# When deployed, this resolves to the text_table_builder templates
-TEXT_SERVICE_TEMPLATES_PATH = os.path.join(
-    os.path.dirname(__file__),  # src/utils
-    '..', '..', '..', '..',  # Go up to agents/
-    'text_table_builder', 'v1.2', 'app', 'templates'
-)
 
 
 class StrawmanTransformer:
@@ -44,6 +36,7 @@ class StrawmanTransformer:
     v4.0.5: Simplified transformer for preview generation only.
     v4.0.6: Enhanced title slide with dedicated handler.
     v4.0.25: Story-driven with precise fields and exact layouts.
+    v4.5.6: Metadata display - shows AI decisions without template generation.
     """
 
     # Hero layouts
@@ -63,218 +56,6 @@ class StrawmanTransformer:
 
     # Infographic layouts
     INFOGRAPHIC_LAYOUTS = {"C3", "V4"}
-
-    # v4.5.5: Variant ID to template category mapping
-    # Maps variant_id prefix to template subdirectory
-    VARIANT_CATEGORY_MAP = {
-        'grid': 'grid',
-        'metrics': 'metrics',
-        'asymmetric': 'asymmetric',
-        'hybrid': 'hybrid',
-        'impact_quote': 'impact_quote',
-        'matrix': 'matrix',
-        'comparison': 'multilateral_comparison',
-        'sequential': 'sequential',
-        'single_column': 'single_column',
-        'table': 'table'
-    }
-
-    # Default icons for placeholder content
-    DEFAULT_ICONS = ['🎯', '📊', '💡', '🚀', '⚡', '🔧', '📈', '✨', '🎨', '🔍']
-
-    def __init__(self):
-        """Initialize transformer with template cache."""
-        self._template_cache: Dict[str, str] = {}
-
-    def _get_template_path(self, variant_id: str) -> Optional[str]:
-        """
-        Map variant_id to template file path.
-
-        v4.5.5: Resolves variant_id to actual template HTML file.
-
-        Args:
-            variant_id: e.g., "grid_2x2_centered", "metrics_3col"
-
-        Returns:
-            Full path to template file, or None if not found
-        """
-        if not variant_id:
-            return None
-
-        # Determine category from variant_id prefix
-        category = None
-        for prefix, cat in self.VARIANT_CATEGORY_MAP.items():
-            if variant_id.startswith(prefix):
-                category = cat
-                break
-
-        if not category:
-            logger.debug(f"No category found for variant: {variant_id}")
-            return None
-
-        # Try _c1.html first (compact variant), then .html
-        base_path = os.path.join(TEXT_SERVICE_TEMPLATES_PATH, category)
-        for suffix in ['_c1.html', '.html']:
-            template_path = os.path.join(base_path, f"{variant_id}{suffix}")
-            if os.path.exists(template_path):
-                return template_path
-
-        logger.debug(f"Template file not found for variant: {variant_id}")
-        return None
-
-    def _load_template(self, variant_id: str) -> Optional[str]:
-        """
-        Load template HTML from file with caching.
-
-        v4.5.5: Loads actual variant templates from Text Service.
-
-        Args:
-            variant_id: Variant identifier
-
-        Returns:
-            HTML template string with placeholders, or None if not found
-        """
-        # Check cache first
-        if variant_id in self._template_cache:
-            return self._template_cache[variant_id]
-
-        template_path = self._get_template_path(variant_id)
-        if not template_path:
-            return None
-
-        try:
-            with open(template_path, 'r', encoding='utf-8') as f:
-                template_html = f.read()
-                self._template_cache[variant_id] = template_html
-                logger.info(f"Loaded template: {variant_id} from {template_path}")
-                return template_html
-        except Exception as e:
-            logger.warning(f"Failed to load template {variant_id}: {e}")
-            return None
-
-    def _populate_template(self, template_html: str, slide: Dict[str, Any]) -> str:
-        """
-        Populate template placeholders with slide content.
-
-        v4.5.5: Intelligent placeholder population from topics.
-
-        Placeholder patterns:
-        - {box_N_icon}, {box_N_title}, {box_N_description}
-        - {metric_N_number}, {metric_N_label}, {metric_N_description}
-        - {item_N_title}, {item_N_description}
-        - {insight_N}, {insights_heading}
-        - etc.
-
-        Args:
-            template_html: HTML template with {placeholders}
-            slide: Slide data with topics, title, subtitle
-
-        Returns:
-            Populated HTML string
-        """
-        topics = slide.get('topics', [])
-        title = slide.get('title', 'Slide')
-        subtitle = slide.get('subtitle', '')
-        notes = slide.get('notes', '')
-
-        # Find all placeholders in template
-        placeholders = re.findall(r'\{([^}]+)\}', template_html)
-        populated_html = template_html
-
-        # Count how many content items we have
-        num_topics = len(topics)
-
-        # Group placeholders by index to understand structure
-        # e.g., box_1_title, box_2_title -> we need to populate boxes 1-N
-        for placeholder in set(placeholders):
-            value = ''
-
-            # Parse placeholder name
-            if '_icon' in placeholder:
-                # Icon placeholders: {box_1_icon}, {item_1_icon}, etc.
-                idx = self._extract_index(placeholder)
-                if idx is not None and idx < len(self.DEFAULT_ICONS):
-                    value = self.DEFAULT_ICONS[idx]
-                else:
-                    value = '📌'
-
-            elif '_title' in placeholder and 'insight' not in placeholder:
-                # Title placeholders: {box_1_title}, {metric_1_label}, etc.
-                idx = self._extract_index(placeholder)
-                if idx is not None and idx < num_topics:
-                    # Use topic as title (often topics are short phrases)
-                    value = topics[idx]
-                else:
-                    value = f"Point {idx + 1 if idx else 1}"
-
-            elif '_description' in placeholder:
-                # Description placeholders: {box_1_description}, etc.
-                idx = self._extract_index(placeholder)
-                if idx is not None and idx < num_topics:
-                    # For preview, use the topic itself or a summary
-                    value = topics[idx] if idx < num_topics else "Description placeholder"
-                else:
-                    value = "Description placeholder"
-
-            elif '_number' in placeholder or '_value' in placeholder:
-                # Metric numbers: {metric_1_number}
-                idx = self._extract_index(placeholder)
-                # For preview, show placeholder numbers
-                default_numbers = ['100+', '50%', '24/7', '99.9%', '10x', '5★']
-                if idx is not None and idx < len(default_numbers):
-                    value = default_numbers[idx]
-                else:
-                    value = 'N/A'
-
-            elif '_label' in placeholder:
-                # Metric labels: {metric_1_label}
-                idx = self._extract_index(placeholder)
-                if idx is not None and idx < num_topics:
-                    value = topics[idx]
-                else:
-                    value = f"Metric {idx + 1 if idx else 1}"
-
-            elif 'insight_' in placeholder and placeholder != 'insights_heading':
-                # Insight items: {insight_1}, {insight_2}, etc.
-                idx = self._extract_index(placeholder)
-                if idx is not None and idx < num_topics:
-                    value = topics[idx]
-                else:
-                    value = f"Key insight {idx + 1 if idx else 1}"
-
-            elif placeholder == 'insights_heading':
-                value = 'Key Insights'
-
-            elif placeholder == 'heading' or placeholder == 'title':
-                value = title
-
-            elif placeholder == 'subheading' or placeholder == 'subtitle':
-                value = subtitle or notes or ''
-
-            # Replace placeholder (if value was set)
-            if value:
-                populated_html = populated_html.replace(f'{{{placeholder}}}', value)
-
-        return populated_html
-
-    def _extract_index(self, placeholder: str) -> Optional[int]:
-        """
-        Extract numeric index from placeholder name.
-
-        Args:
-            placeholder: e.g., "box_1_title", "metric_2_number"
-
-        Returns:
-            0-based index, or None if not found
-        """
-        match = re.search(r'_(\d+)_', placeholder)
-        if match:
-            return int(match.group(1)) - 1  # Convert to 0-based
-        # Try end of string: insight_1
-        match = re.search(r'_(\d+)$', placeholder)
-        if match:
-            return int(match.group(1)) - 1
-        return None
 
     def transform(self, strawman_dict: Dict[str, Any], topic: str) -> Dict[str, Any]:
         """
@@ -335,38 +116,38 @@ class StrawmanTransformer:
                 content = {'hero_content': html_content}
 
             elif layout in self.ANALYTICS_LAYOUTS:
-                # Analytics slide - placeholder for chart
+                # Analytics slide - metadata display
                 content = {
                     'slide_title': slide.get('title', 'Analytics'),
-                    'rich_content': self._create_analytics_placeholder_html(slide)
+                    'rich_content': self._create_analytics_metadata_html(slide, layout)
                 }
 
             elif layout in self.DIAGRAM_LAYOUTS:
-                # Diagram slide - placeholder for diagram
+                # Diagram slide - metadata display
                 content = {
                     'slide_title': slide.get('title', 'Diagram'),
-                    'rich_content': self._create_diagram_placeholder_html(slide)
+                    'rich_content': self._create_diagram_metadata_html(slide, layout)
                 }
 
             elif layout in self.INFOGRAPHIC_LAYOUTS:
-                # Infographic slide - placeholder for visual
+                # Infographic slide - metadata display
                 content = {
                     'slide_title': slide.get('title', 'Infographic'),
-                    'rich_content': self._create_infographic_placeholder_html(slide)
+                    'rich_content': self._create_infographic_metadata_html(slide, layout)
                 }
 
             elif layout in self.ISERIES_LAYOUTS:
-                # I-series slide - placeholder for image+text
+                # I-series slide - metadata display with image placeholder
                 content = {
                     'slide_title': slide.get('title', 'Visual'),
-                    'rich_content': self._create_iseries_placeholder_html(slide, layout)
+                    'rich_content': self._create_iseries_metadata_html(slide, layout)
                 }
 
             else:
                 # Default content slide (L25, C1, V1)
                 content = {
                     'slide_title': slide.get('title', 'Slide'),
-                    'rich_content': self._create_content_html(slide)
+                    'rich_content': self._create_content_metadata_html(slide, layout)
                 }
 
             # Build transformed slide with metadata
@@ -396,13 +177,98 @@ class StrawmanTransformer:
             'slides': transformed_slides
         }
 
+    def _create_strawman_badge(self) -> str:
+        """Create the STRAWMAN PREVIEW badge HTML."""
+        return '''
+<div style="background: #fef3c7; border: 2px solid #f59e0b; border-radius: 12px;
+            padding: 16px 24px; margin-bottom: 24px; text-align: center;">
+    <span style="font-size: 18px; font-weight: 700; color: #92400e;
+                 text-transform: uppercase; letter-spacing: 2px;">
+        📋 STRAWMAN PREVIEW
+    </span>
+</div>
+'''
+
+    def _create_metadata_table(self, rows: List[tuple]) -> str:
+        """
+        Create a formatted metadata table.
+
+        Args:
+            rows: List of (label, value) tuples
+
+        Returns:
+            HTML table string
+        """
+        table_rows = []
+        for i, (label, value) in enumerate(rows):
+            if value is None or value == '':
+                continue
+            bg = 'background: #f9fafb;' if i % 2 == 1 else ''
+            table_rows.append(f'''
+    <tr style="{bg}">
+        <td style="padding: 12px; font-weight: 600; color: #6b7280; width: 35%; vertical-align: top;">{label}</td>
+        <td style="padding: 12px; color: #1f2937;">{value}</td>
+    </tr>''')
+
+        return f'''
+<table style="width: 100%; font-size: 18px; border-collapse: collapse; border: 1px solid #e5e7eb; border-radius: 8px;">
+    {''.join(table_rows)}
+</table>
+'''
+
+    def _format_topics(self, topics: List[str]) -> str:
+        """Format topics as HTML bullet list."""
+        if not topics:
+            return '<span style="color: #9ca3af;">None specified</span>'
+        return '<br>'.join([f'• {topic}' for topic in topics])
+
+    def _create_content_metadata_html(self, slide: Dict[str, Any], layout: str) -> str:
+        """
+        Create strawman metadata display HTML for content slides (C1, L25, V1).
+
+        v4.5.6: Shows all AI decisions as formatted text.
+
+        Args:
+            slide: Slide data with all strawman fields
+            layout: Layout ID (C1, L25, V1)
+
+        Returns:
+            HTML string for rich_content field
+        """
+        variant_id = slide.get('variant_id') or 'auto-select'
+        service = slide.get('service') or 'text'
+        purpose = slide.get('purpose') or '-'
+        topics = slide.get('topics', [])
+        semantic_group = slide.get('semantic_group')
+        generation_instructions = slide.get('generation_instructions')
+
+        rows = [
+            ('Layout', f'{layout} (Content slide)'),
+            ('Selected Variant', variant_id),
+            ('Service', service),
+            ('Purpose', purpose),
+        ]
+
+        if semantic_group:
+            rows.append(('Semantic Group', semantic_group))
+
+        rows.append(('Topics', self._format_topics(topics)))
+
+        if generation_instructions:
+            rows.append(('Generation Notes', generation_instructions))
+
+        return f'''
+<div class="strawman-metadata" style="padding: 24px; font-family: system-ui, -apple-system, sans-serif;">
+    {self._create_strawman_badge()}
+    {self._create_metadata_table(rows)}
+</div>
+'''
+
     def _create_hero_html(self, slide: Dict[str, Any], hero_type: str = None) -> str:
         """
-        Create HTML for hero slide using H1/H2/H3 template styling.
+        Create HTML for hero slide with STRAWMAN indicator.
 
-        v4.5.5: Updated to match Layout Builder hero templates.
-        - H2-section: Section divider with dark gray background
-        - H3-closing: Closing slide with deep blue gradient
+        v4.5.6: Shows metadata in hero format with clear strawman badge.
 
         Args:
             slide: Slide data
@@ -416,78 +282,52 @@ class StrawmanTransformer:
         topics = slide.get('topics', [])
         notes = slide.get('notes', '')
         slide_number = slide.get('slide_number', 0)
+        layout = slide.get('layout', 'H1')
 
         # Use subtitle if set, otherwise first topic or notes
         if not subtitle:
             subtitle = (topics[0] if topics else notes) or ""
 
-        # Style based on hero type (matching H1/H2/H3 templates)
+        # Style based on hero type
         if hero_type == 'closing_slide':
-            # H3-closing: Deep blue gradient, centered content
-            return f'''
-<div style="display:flex;flex-direction:column;justify-content:center;align-items:center;
-            text-align:center;height:100%;padding:60px 80px;
-            background:linear-gradient(135deg, #1e3a5f 0%, #2d5a87 100%);">
-    <div style="margin-bottom:40px;">
-        <span style="background:#374151;color:#9ca3af;padding:8px 20px;border-radius:20px;
-                    font-size:16px;font-weight:500;text-transform:uppercase;letter-spacing:2px;">
-            H3 · Closing Slide
-        </span>
-    </div>
-    <h1 style="font-size:64px;font-weight:700;color:#ffffff;margin:0 0 24px 0;line-height:1.2;
-               text-shadow:0 2px 4px rgba(0,0,0,0.2);">
-        {title}
-    </h1>
-    <p style="font-size:28px;color:#94a3b8;margin:0 0 40px 0;max-width:70%;line-height:1.5;">
-        {subtitle}
-    </p>
-    <div style="color:#64748b;font-size:18px;">
-        Contact info placeholder · Logo area
-    </div>
-</div>
-'''
+            layout_label = 'H3 · Closing Slide'
+            bg_gradient = 'linear-gradient(135deg, #1e3a5f 0%, #2d5a87 100%)'
         elif hero_type == 'section_divider':
-            # H2-section: Dark gray, section number badge (NO subtitle per spec)
-            return f'''
-<div style="display:flex;flex-direction:column;justify-content:center;align-items:center;
-            text-align:center;height:100%;padding:60px 80px;
-            background:linear-gradient(135deg, #374151 0%, #4b5563 100%);">
-    <div style="margin-bottom:32px;">
-        <span style="background:rgba(255,255,255,0.1);color:#9ca3af;padding:12px 28px;border-radius:30px;
-                    font-size:18px;font-weight:600;text-transform:uppercase;letter-spacing:3px;
-                    border:1px solid rgba(255,255,255,0.2);">
-            Section {slide_number}
-        </span>
-    </div>
-    <div style="margin-bottom:24px;">
-        <span style="background:#1f2937;color:#6b7280;padding:6px 16px;border-radius:16px;
-                    font-size:14px;font-weight:500;">
-            H2 · Section Divider
-        </span>
-    </div>
-    <h1 style="font-size:56px;font-weight:700;color:#ffffff;margin:0;line-height:1.3;
-               text-shadow:0 2px 4px rgba(0,0,0,0.3);max-width:80%;">
-        {title}
-    </h1>
-</div>
-'''
+            layout_label = 'H2 · Section Divider'
+            bg_gradient = 'linear-gradient(135deg, #374151 0%, #4b5563 100%)'
         else:
-            # Generic hero slide (default) - for unspecified hero types
-            return f'''
-<div style="display:flex;flex-direction:column;justify-content:center;align-items:center;
-            text-align:center;height:100%;padding:60px 80px;
-            background:linear-gradient(135deg, #1e3a5f 0%, #374151 100%);">
-    <div style="margin-bottom:24px;">
-        <span style="background:#374151;color:#9ca3af;padding:6px 16px;border-radius:16px;
-                    font-size:14px;font-weight:500;">
-            Hero Slide
+            layout_label = f'{layout} · Hero Slide'
+            bg_gradient = 'linear-gradient(135deg, #1e3a5f 0%, #374151 100%)'
+
+        return f'''
+<div style="display: flex; flex-direction: column; justify-content: center; align-items: center;
+            text-align: center; height: 100%; padding: 60px 80px;
+            background: {bg_gradient};">
+
+    <!-- STRAWMAN Badge -->
+    <div style="background: rgba(245, 158, 11, 0.9); padding: 8px 24px;
+                border-radius: 20px; margin-bottom: 24px;">
+        <span style="font-size: 14px; font-weight: 700; color: #92400e;
+                     text-transform: uppercase; letter-spacing: 2px;">
+            📋 STRAWMAN
         </span>
     </div>
-    <h1 style="font-size:72px;font-weight:700;color:#ffffff;margin:0 0 24px 0;line-height:1.2;
-               text-shadow:0 2px 4px rgba(0,0,0,0.2);">
+
+    <!-- Layout indicator -->
+    <div style="margin-bottom: 32px;">
+        <span style="background: rgba(255,255,255,0.1); color: #9ca3af; padding: 8px 20px;
+                    border-radius: 16px; font-size: 14px; font-weight: 500;
+                    border: 1px solid rgba(255,255,255,0.2);">
+            {layout_label}
+        </span>
+    </div>
+
+    <h1 style="font-size: 64px; font-weight: 700; color: #ffffff; margin: 0 0 24px 0; line-height: 1.2;
+               text-shadow: 0 2px 4px rgba(0,0,0,0.2); max-width: 90%;">
         {title}
     </h1>
-    <p style="font-size:32px;color:#94a3b8;margin:0;max-width:70%;line-height:1.5;">
+
+    <p style="font-size: 28px; color: #94a3b8; margin: 0; max-width: 70%; line-height: 1.5;">
         {subtitle}
     </p>
 </div>
@@ -495,16 +335,13 @@ class StrawmanTransformer:
 
     def _create_title_slide_html(self, presentation_title: str, slide: Dict[str, Any]) -> str:
         """
-        Create HTML specifically for title slide (first slide) using H1-structured styling.
+        Create HTML specifically for title slide with STRAWMAN indicator.
 
-        v4.5.5: Updated to match Layout Builder H1-structured template.
-        - Deep blue gradient background (matches theme hero color)
-        - Template badge for preview context
-        - Subtitle and footer area placeholders
+        v4.5.6: Shows title slide with clear strawman badge and layout info.
 
         Args:
-            presentation_title: The main presentation title (from strawman.title or topic)
-            slide: Slide data with optional subtitle from topics/notes
+            presentation_title: The main presentation title
+            slide: Slide data with optional subtitle
 
         Returns:
             HTML string for hero_content field
@@ -512,311 +349,268 @@ class StrawmanTransformer:
         subtitle = slide.get('subtitle', '')
         topics = slide.get('topics', [])
         notes = slide.get('notes', '')
+        layout = slide.get('layout', 'H1')
 
         # Use subtitle if set, otherwise first topic or notes
         if not subtitle:
             subtitle = (topics[0] if topics else notes) or ""
 
         return f'''
-<div style="display:flex;flex-direction:column;justify-content:center;align-items:center;
-            text-align:center;height:100%;padding:60px 80px;
-            background:linear-gradient(135deg, #1e3a5f 0%, #2d5a87 100%);">
-    <div style="margin-bottom:40px;">
-        <span style="background:#374151;color:#9ca3af;padding:8px 20px;border-radius:20px;
-                    font-size:16px;font-weight:500;text-transform:uppercase;letter-spacing:2px;">
-            H1 · Title Slide
+<div style="display: flex; flex-direction: column; justify-content: center; align-items: center;
+            text-align: center; height: 100%; padding: 60px 80px;
+            background: linear-gradient(135deg, #1e3a5f 0%, #2d5a87 100%);">
+
+    <!-- STRAWMAN Badge -->
+    <div style="background: rgba(245, 158, 11, 0.9); padding: 8px 24px;
+                border-radius: 20px; margin-bottom: 24px;">
+        <span style="font-size: 14px; font-weight: 700; color: #92400e;
+                     text-transform: uppercase; letter-spacing: 2px;">
+            📋 STRAWMAN
         </span>
     </div>
-    <h1 style="font-size:72px;font-weight:700;color:#ffffff;margin:0 0 24px 0;line-height:1.2;
-               text-shadow:0 4px 8px rgba(0,0,0,0.3);max-width:90%;">
+
+    <!-- Layout indicator -->
+    <div style="margin-bottom: 40px;">
+        <span style="background: rgba(255,255,255,0.1); color: #9ca3af; padding: 8px 20px;
+                    border-radius: 16px; font-size: 14px; font-weight: 500;
+                    border: 1px solid rgba(255,255,255,0.2);">
+            {layout} · Title Slide
+        </span>
+    </div>
+
+    <h1 style="font-size: 72px; font-weight: 700; color: #ffffff; margin: 0 0 24px 0; line-height: 1.2;
+               text-shadow: 0 4px 8px rgba(0,0,0,0.3); max-width: 90%;">
         {presentation_title}
     </h1>
-    <p style="font-size:28px;color:#94a3b8;margin:0 0 60px 0;max-width:70%;line-height:1.5;">
+
+    <p style="font-size: 28px; color: #94a3b8; margin: 0 0 60px 0; max-width: 70%; line-height: 1.5;">
         {subtitle}
     </p>
-    <div style="color:#64748b;font-size:16px;">
-        Footer placeholder · Logo area
+
+    <div style="color: #64748b; font-size: 16px;">
+        Footer · Logo area
     </div>
 </div>
 '''
 
-    def _create_content_html(self, slide: Dict[str, Any]) -> str:
+    def _create_analytics_metadata_html(self, slide: Dict[str, Any], layout: str) -> str:
         """
-        Create HTML for content slide using real variant templates.
+        Create strawman metadata display for analytics/chart slides.
 
-        v4.5.5: Loads actual templates from Text Service based on variant_id.
-        Falls back to generic bullets if template not found.
+        v4.5.6: Shows chart type and data decisions.
 
         Args:
-            slide: Slide data with topics/key_points and variant_id
+            slide: Slide data
+            layout: Layout ID (L02, C2, V2)
 
         Returns:
             HTML string for rich_content field
         """
-        variant_id = slide.get('variant_id')
+        variant_id = slide.get('variant_id') or 'auto-select'
+        service = slide.get('service') or 'analytics'
+        purpose = slide.get('purpose') or '-'
         topics = slide.get('topics', [])
-        notes = slide.get('notes', '')
+        generation_instructions = slide.get('generation_instructions')
 
-        # v4.5.5: Try to load and populate real template
-        if variant_id:
-            template_html = self._load_template(variant_id)
-            if template_html:
-                populated_html = self._populate_template(template_html, slide)
-                logger.debug(f"Using real template for variant: {variant_id}")
-                return populated_html
-            else:
-                logger.debug(f"Template not found for variant: {variant_id}, using fallback")
+        rows = [
+            ('Layout', f'{layout} (Analytics/Chart)'),
+            ('Chart Type', variant_id),
+            ('Service', service),
+            ('Purpose', purpose),
+            ('Data Points', self._format_topics(topics)),
+        ]
 
-        # Fallback: Generic bullets (original behavior)
-        return self._create_generic_bullets(slide)
-
-    def _create_generic_bullets(self, slide: Dict[str, Any]) -> str:
-        """
-        Create generic bullet HTML as fallback when template not available.
-
-        Args:
-            slide: Slide data with topics/notes
-
-        Returns:
-            HTML string with bullet points
-        """
-        topics = slide.get('topics', [])
-        notes = slide.get('notes', '')
-        variant_id = slide.get('variant_id', 'unknown')
-
-        parts = []
-
-        # Show variant info for preview context
-        parts.append(f'''
-<div style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px;padding:12px 16px;margin-bottom:20px;">
-    <span style="font-size:14px;color:#0369a1;font-weight:600;">📄 Template: {variant_id or "auto-select"}</span>
-</div>
-''')
-
-        # Add notes/narrative if present
-        if notes:
-            parts.append(f'<p style="font-size:20px;color:#4b5563;line-height:1.6;margin-bottom:24px;">{notes}</p>')
-
-        # Add bullet points from topics
-        if topics:
-            items = ''.join([
-                f'<li style="margin-bottom:12px;color:#374151;">{topic}</li>'
-                for topic in topics
-            ])
-            parts.append(f'''
-<ul style="font-size:22px;line-height:1.8;padding-left:24px;margin:0;">
-{items}
-</ul>
-''')
-
-        if len(parts) <= 1:  # Only variant info
-            # Fallback if no content
-            return parts[0] + '<p style="font-size:20px;color:#6b7280;">Content placeholder</p>'
-
-        return '\n'.join(parts)
-
-    def _create_analytics_placeholder_html(self, slide: Dict[str, Any]) -> str:
-        """
-        Create placeholder HTML for analytics/chart slides (L02, C2, V2).
-
-        v4.0.25: Placeholder for chart generation. Will be replaced by Analytics Service.
-
-        Args:
-            slide: Slide data with topics/generation_instructions
-
-        Returns:
-            HTML string for rich_content field (chart placeholder)
-        """
-        title = slide.get('title', 'Analytics')
-        topics = slide.get('topics', [])
-        instructions = slide.get('generation_instructions', '')
-
-        # Format data points from topics
-        data_points = ''
-        if topics:
-            items = ''.join([
-                f'<li style="margin-bottom:8px;color:#374151;">{topic}</li>'
-                for topic in topics[:6]  # Max 6 data points
-            ])
-            data_points = f'''
-<div style="margin-top:16px;">
-    <p style="font-size:16px;color:#6b7280;margin-bottom:8px;">Data points:</p>
-    <ul style="font-size:18px;line-height:1.6;padding-left:20px;margin:0;">{items}</ul>
-</div>
-'''
+        if generation_instructions:
+            rows.append(('Chart Instructions', generation_instructions))
 
         return f'''
-<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;
-            height:100%;padding:40px;background:#f9fafb;border:2px dashed #d1d5db;border-radius:12px;">
-    <div style="font-size:48px;margin-bottom:16px;">📊</div>
-    <h3 style="font-size:24px;color:#1f2937;margin:0 0 8px 0;text-align:center;">
-        Chart: {title}
-    </h3>
-    <p style="font-size:16px;color:#6b7280;margin:0;text-align:center;max-width:80%;">
-        {instructions or 'Chart will be generated by Analytics Service'}
-    </p>
-    {data_points}
+<div class="strawman-metadata" style="padding: 24px; font-family: system-ui, -apple-system, sans-serif;">
+    {self._create_strawman_badge()}
+
+    <!-- Chart icon indicator -->
+    <div style="text-align: center; margin-bottom: 20px;">
+        <span style="font-size: 48px;">📊</span>
+        <p style="color: #6b7280; font-size: 14px; margin: 8px 0 0 0;">
+            Chart will be generated by Analytics Service
+        </p>
+    </div>
+
+    {self._create_metadata_table(rows)}
 </div>
 '''
 
-    def _create_diagram_placeholder_html(self, slide: Dict[str, Any]) -> str:
+    def _create_diagram_metadata_html(self, slide: Dict[str, Any], layout: str) -> str:
         """
-        Create placeholder HTML for diagram slides (C4, V3).
+        Create strawman metadata display for diagram slides.
 
-        v4.0.25: Placeholder for diagram generation. Will be replaced by Diagram Service.
+        v4.5.6: Shows diagram type and flow decisions.
 
         Args:
-            slide: Slide data with topics/generation_instructions
+            slide: Slide data
+            layout: Layout ID (C4, V3)
 
         Returns:
-            HTML string for rich_content field (diagram placeholder)
+            HTML string for rich_content field
         """
-        title = slide.get('title', 'Diagram')
+        variant_id = slide.get('variant_id') or 'auto-select'
+        service = slide.get('service') or 'diagram'
+        purpose = slide.get('purpose') or '-'
         topics = slide.get('topics', [])
-        instructions = slide.get('generation_instructions', '')
+        generation_instructions = slide.get('generation_instructions')
 
-        # Format steps/nodes from topics
-        steps = ''
-        if topics:
-            step_boxes = ' → '.join([
-                f'<span style="background:#e0e7ff;padding:8px 16px;border-radius:6px;white-space:nowrap;">{topic}</span>'
-                for topic in topics[:5]  # Max 5 steps
-            ])
-            steps = f'''
-<div style="margin-top:20px;display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:center;">
-    {step_boxes}
-</div>
-'''
+        rows = [
+            ('Layout', f'{layout} (Diagram)'),
+            ('Diagram Type', variant_id),
+            ('Service', service),
+            ('Purpose', purpose),
+            ('Flow Steps', self._format_topics(topics)),
+        ]
+
+        if generation_instructions:
+            rows.append(('Diagram Instructions', generation_instructions))
 
         return f'''
-<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;
-            height:100%;padding:40px;background:#f0f9ff;border:2px dashed #7dd3fc;border-radius:12px;">
-    <div style="font-size:48px;margin-bottom:16px;">🔀</div>
-    <h3 style="font-size:24px;color:#0c4a6e;margin:0 0 8px 0;text-align:center;">
-        Diagram: {title}
-    </h3>
-    <p style="font-size:16px;color:#64748b;margin:0;text-align:center;max-width:80%;">
-        {instructions or 'Diagram will be generated by Diagram Service'}
-    </p>
-    {steps}
+<div class="strawman-metadata" style="padding: 24px; font-family: system-ui, -apple-system, sans-serif;">
+    {self._create_strawman_badge()}
+
+    <!-- Diagram icon indicator -->
+    <div style="text-align: center; margin-bottom: 20px;">
+        <span style="font-size: 48px;">🔀</span>
+        <p style="color: #6b7280; font-size: 14px; margin: 8px 0 0 0;">
+            Diagram will be generated by Diagram Service
+        </p>
+    </div>
+
+    {self._create_metadata_table(rows)}
 </div>
 '''
 
-    def _create_infographic_placeholder_html(self, slide: Dict[str, Any]) -> str:
+    def _create_infographic_metadata_html(self, slide: Dict[str, Any], layout: str) -> str:
         """
-        Create placeholder HTML for infographic slides (C3, V4).
+        Create strawman metadata display for infographic slides.
 
-        v4.0.25: Placeholder for infographic generation. Will be replaced by Illustrator Service.
+        v4.5.6: Shows infographic type and visual decisions.
 
         Args:
-            slide: Slide data with topics/generation_instructions
+            slide: Slide data
+            layout: Layout ID (C3, V4)
 
         Returns:
-            HTML string for rich_content field (infographic placeholder)
+            HTML string for rich_content field
         """
-        title = slide.get('title', 'Infographic')
+        variant_id = slide.get('variant_id') or 'auto-select'
+        service = slide.get('service') or 'illustrator'
+        purpose = slide.get('purpose') or '-'
         topics = slide.get('topics', [])
-        instructions = slide.get('generation_instructions', '')
+        generation_instructions = slide.get('generation_instructions')
 
-        # Format levels from topics (for pyramid/funnel)
-        levels = ''
-        if topics:
-            level_items = ''.join([
-                f'<div style="background:linear-gradient(135deg,#fef3c7,#fde68a);padding:12px 24px;'
-                f'border-radius:6px;margin:4px 0;width:{90 - i*10}%;text-align:center;color:#92400e;">'
-                f'{topic}</div>'
-                for i, topic in enumerate(topics[:5])  # Max 5 levels
-            ])
-            levels = f'''
-<div style="display:flex;flex-direction:column;align-items:center;margin-top:20px;width:100%;">
-    {level_items}
-</div>
-'''
+        rows = [
+            ('Layout', f'{layout} (Infographic)'),
+            ('Visual Type', variant_id),
+            ('Service', service),
+            ('Purpose', purpose),
+            ('Content Elements', self._format_topics(topics)),
+        ]
+
+        if generation_instructions:
+            rows.append(('Visual Instructions', generation_instructions))
 
         return f'''
-<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;
-            height:100%;padding:40px;background:#fffbeb;border:2px dashed #fbbf24;border-radius:12px;">
-    <div style="font-size:48px;margin-bottom:16px;">🎨</div>
-    <h3 style="font-size:24px;color:#92400e;margin:0 0 8px 0;text-align:center;">
-        Infographic: {title}
-    </h3>
-    <p style="font-size:16px;color:#a16207;margin:0;text-align:center;max-width:80%;">
-        {instructions or 'Infographic will be generated by Illustrator Service'}
-    </p>
-    {levels}
+<div class="strawman-metadata" style="padding: 24px; font-family: system-ui, -apple-system, sans-serif;">
+    {self._create_strawman_badge()}
+
+    <!-- Infographic icon indicator -->
+    <div style="text-align: center; margin-bottom: 20px;">
+        <span style="font-size: 48px;">🎨</span>
+        <p style="color: #6b7280; font-size: 14px; margin: 8px 0 0 0;">
+            Infographic will be generated by Illustrator Service
+        </p>
+    </div>
+
+    {self._create_metadata_table(rows)}
 </div>
 '''
 
-    def _create_iseries_placeholder_html(self, slide: Dict[str, Any], layout: str) -> str:
+    def _create_iseries_metadata_html(self, slide: Dict[str, Any], layout: str) -> str:
         """
-        Create placeholder HTML for I-series slides (I1-I4: Image + Text layouts).
+        Create strawman metadata display for I-series slides with image placeholder.
 
-        v4.0.25: Placeholder for image+text generation.
+        v4.5.6: Shows image+text layout with image zone placeholder.
 
         I-series layouts:
-        - I1: Wide image left (660×1080), content right (1200×840)
-        - I2: Wide image right (660×1080), content left (1140×840)
-        - I3: Narrow image left (360×1080), content right (1500×840)
-        - I4: Narrow image right (360×1080), content left (1440×840)
+        - I1: Wide image left (660×1080), content right
+        - I2: Wide image right (660×1080), content left
+        - I3: Narrow image left (360×1080), content right
+        - I4: Narrow image right (360×1080), content left
 
         Args:
-            slide: Slide data with topics
+            slide: Slide data
             layout: Layout ID (I1, I2, I3, I4)
 
         Returns:
             HTML string for rich_content field
         """
+        variant_id = slide.get('variant_id') or 'auto-select'
+        service = slide.get('service') or 'text'
+        purpose = slide.get('purpose') or '-'
         topics = slide.get('topics', [])
-        notes = slide.get('notes', '')
+        semantic_group = slide.get('semantic_group')
 
-        # Determine image position and size from layout
+        # Determine image position and size
         image_left = layout in ['I1', 'I3']
         wide_image = layout in ['I1', 'I2']
 
-        image_width = '45%' if wide_image else '30%'
-        content_width = '50%' if wide_image else '65%'
+        image_dims = '660×1080' if wide_image else '360×1080'
+        position = 'Left' if image_left else 'Right'
+        size = 'Wide' if wide_image else 'Narrow'
+
+        rows = [
+            ('Layout', f'{layout} (Image + Content)'),
+            ('Image Position', f'{position} ({size})'),
+            ('Image Size', image_dims),
+            ('Selected Variant', variant_id),
+            ('Service', service),
+            ('Purpose', purpose),
+        ]
+
+        if semantic_group:
+            rows.append(('Semantic Group', semantic_group))
+
+        rows.append(('Topics', self._format_topics(topics)))
 
         # Image placeholder
         image_placeholder = f'''
-<div style="width:{image_width};height:300px;background:linear-gradient(135deg,#e0e7ff,#c7d2fe);
-            border-radius:12px;display:flex;flex-direction:column;align-items:center;justify-content:center;">
-    <div style="font-size:48px;margin-bottom:8px;">🖼️</div>
-    <p style="font-size:14px;color:#4338ca;margin:0;">Image placeholder</p>
-    <p style="font-size:12px;color:#6366f1;margin:4px 0 0 0;">{layout}: {'Wide' if wide_image else 'Narrow'} {'Left' if image_left else 'Right'}</p>
+<div style="width: 35%; min-height: 200px; background: linear-gradient(135deg, #e0e7ff, #c7d2fe);
+            border-radius: 12px; display: flex; flex-direction: column; align-items: center;
+            justify-content: center; border: 2px dashed #818cf8;">
+    <span style="font-size: 48px;">🖼️</span>
+    <p style="font-size: 14px; color: #4338ca; margin: 8px 0 0 0; font-weight: 600;">Image Zone</p>
+    <p style="font-size: 12px; color: #6366f1; margin: 4px 0 0 0;">{image_dims}</p>
 </div>
 '''
 
-        # Content
-        content_parts = []
-        if notes:
-            content_parts.append(f'<p style="font-size:18px;color:#4b5563;line-height:1.6;margin-bottom:16px;">{notes}</p>')
-        if topics:
-            items = ''.join([
-                f'<li style="margin-bottom:8px;color:#374151;">{topic}</li>'
-                for topic in topics
-            ])
-            content_parts.append(f'<ul style="font-size:18px;line-height:1.6;padding-left:20px;margin:0;">{items}</ul>')
-
-        content_html = ''.join(content_parts) if content_parts else '<p style="color:#6b7280;">Content placeholder</p>'
-
-        content_block = f'''
-<div style="width:{content_width};padding:20px;">
-    {content_html}
+        # Metadata content
+        metadata_content = f'''
+<div style="width: 60%; padding: 0 20px;">
+    {self._create_strawman_badge()}
+    {self._create_metadata_table(rows)}
 </div>
 '''
 
         # Arrange based on image position
         if image_left:
             return f'''
-<div style="display:flex;align-items:center;gap:24px;height:100%;padding:20px;">
+<div style="display: flex; align-items: stretch; gap: 24px; height: 100%; padding: 20px;
+            font-family: system-ui, -apple-system, sans-serif;">
     {image_placeholder}
-    {content_block}
+    {metadata_content}
 </div>
 '''
         else:
             return f'''
-<div style="display:flex;align-items:center;gap:24px;height:100%;padding:20px;">
-    {content_block}
+<div style="display: flex; align-items: stretch; gap: 24px; height: 100%; padding: 20px;
+            font-family: system-ui, -apple-system, sans-serif;">
+    {metadata_content}
     {image_placeholder}
 </div>
 '''
