@@ -201,6 +201,7 @@ class StrawmanSlide(BaseModel):
     slide_id: str = Field(..., description="Unique slide identifier")
     slide_number: int = Field(..., description="Position in presentation (1-based)")
     title: str = Field(..., description="Slide title")
+    subtitle: Optional[str] = Field(default=None, description="Slide subtitle (e.g., supporting context)")
     layout: str = Field(default="L25", description="Layout template ID (L25 content, L29 hero)")
     topics: List[str] = Field(default_factory=list, description="Key topics/points")
     variant_id: Optional[str] = Field(default=None, description="Content variant for generation")

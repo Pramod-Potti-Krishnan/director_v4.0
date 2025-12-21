@@ -759,9 +759,10 @@ This presentation MUST be about "{topic}". Every slide title and every topic poi
 
 ## REQUIREMENTS
 1. Title slide: Use "{topic}" as the exact title
-2. Content slides: Each must have a title specifically about {topic}
+2. Content slides: Each must have a title AND subtitle specifically about {topic}
 3. Closing slide: Summary and thank you
 4. Include 3-5 topic points per slide, all related to {topic}
+5. IMPORTANT: Every slide MUST have a subtitle that provides context (e.g., "Key Insights", "Understanding the Basics", "Critical Analysis")
 
 ## STORY-DRIVEN CATEGORIZATION (REQUIRED)
 For each slide, you MUST include:
@@ -1058,6 +1059,7 @@ Generate a complete strawman with {slide_count} slides about {topic}.
                 slide_id=str(uuid.uuid4()),
                 slide_number=1,
                 title=topic,
+                subtitle="A Comprehensive Overview",  # v4.1.1: Add subtitle
                 layout="L29",  # v4.0.23: Fixed - hero slides use L29
                 topics=[f"Welcome to this presentation about {topic}", f"Overview of {topic}"],
                 is_hero=True,
@@ -1067,8 +1069,22 @@ Generate a complete strawman with {slide_count} slides about {topic}.
 
         # Add content slides with topic-specific titles
         content_count = slide_count - 2  # Minus title and closing
+        # v4.1.1: Generic subtitles for fallback content slides
+        content_subtitles = [
+            "Key Insights",
+            "Understanding the Fundamentals",
+            "Critical Analysis",
+            "Important Perspectives",
+            "Essential Information",
+            "Core Concepts",
+            "Key Considerations",
+            "In-Depth Look",
+            "Practical Applications",
+            "Expert Analysis"
+        ]
         for i in range(content_count):
             section_idx = i % len(section_titles)
+            subtitle_idx = i % len(content_subtitles)
             # v4.0.23: Select variant based on topic count
             topics = [
                 f"Key point about {topic}",
@@ -1079,6 +1095,7 @@ Generate a complete strawman with {slide_count} slides about {topic}.
                 slide_id=str(uuid.uuid4()),
                 slide_number=i + 2,
                 title=section_titles[section_idx],
+                subtitle=content_subtitles[subtitle_idx],  # v4.1.1: Add subtitle
                 layout="L25",  # v4.0.23: Fixed - content slides use L25
                 variant_id=self._select_fallback_variant(len(topics)),  # v4.0.23: Add variant
                 topics=topics,
@@ -1091,6 +1108,7 @@ Generate a complete strawman with {slide_count} slides about {topic}.
             slide_id=str(uuid.uuid4()),
             slide_number=slide_count,
             title=f"Thank You - {topic}",
+            subtitle="Questions & Discussion",  # v4.1.1: Add subtitle
             layout="L29",  # v4.0.23: Fixed - hero slides use L29
             topics=[f"Summary of {topic}", "Questions and Discussion"],
             is_hero=True,
