@@ -97,6 +97,16 @@ class StrawmanTransformer:
         "L02": "L02",
     }
 
+    # v4.5.11: STRAWMAN logo as HTML for footer logo area
+    # Layout Service accepts URL or HTML for company_logo field
+    STRAWMAN_LOGO_HTML = '''<div style="display: inline-flex; align-items: center; gap: 6px;
+        background: linear-gradient(135deg, #fef3c7, #fde68a); border: 2px solid #f59e0b;
+        border-radius: 8px; padding: 4px 12px;">
+        <span style="font-size: 12px;">📋</span>
+        <span style="font-size: 11px; font-weight: 700; color: #92400e;
+            text-transform: uppercase; letter-spacing: 1px;">STRAWMAN</span>
+    </div>'''
+
     def _map_layout_id(self, layout: str) -> str:
         """
         Map short-form layout ID to Layout Service full-form.
@@ -112,6 +122,36 @@ class StrawmanTransformer:
             Layout Service full-form layout ID
         """
         return self.LAYOUT_MAP.get(layout, layout)
+
+    def _generate_subtitle(self, slide: Dict[str, Any]) -> str:
+        """
+        Generate subtitle from slide context if not provided.
+
+        v4.5.11: Generates meaningful subtitle instead of empty placeholder.
+
+        Args:
+            slide: Slide data with optional subtitle, purpose, topics
+
+        Returns:
+            Subtitle string (from slide data or generated)
+        """
+        subtitle = slide.get('subtitle', '')
+        if subtitle:
+            return subtitle
+
+        # Try to generate from context
+        purpose = slide.get('purpose', '')
+        topics = slide.get('topics', [])
+
+        if purpose and purpose != '-':
+            return purpose  # Use purpose as subtitle
+        elif topics:
+            if len(topics) == 1:
+                return f"Covering: {topics[0]}"
+            else:
+                return f"Covering {len(topics)} key topics"
+        else:
+            return "Strawman Preview"  # Fallback
 
     def transform(self, strawman_dict: Dict[str, Any], topic: str) -> Dict[str, Any]:
         """
@@ -176,9 +216,9 @@ class StrawmanTransformer:
                 # v4.5.7: Added subtitle and company_logo for Layout Service
                 content = {
                     'slide_title': slide.get('title', 'Analytics'),
-                    'subtitle': slide.get('subtitle', ''),
+                    'subtitle': self._generate_subtitle(slide),
                     'rich_content': self._create_analytics_metadata_html(slide, layout),
-                    'company_logo': 'STRAWMAN'
+                    'company_logo': self.STRAWMAN_LOGO_HTML
                 }
 
             elif layout in self.DIAGRAM_LAYOUTS:
@@ -186,9 +226,9 @@ class StrawmanTransformer:
                 # v4.5.7: Added subtitle and company_logo for Layout Service
                 content = {
                     'slide_title': slide.get('title', 'Diagram'),
-                    'subtitle': slide.get('subtitle', ''),
+                    'subtitle': self._generate_subtitle(slide),
                     'rich_content': self._create_diagram_metadata_html(slide, layout),
-                    'company_logo': 'STRAWMAN'
+                    'company_logo': self.STRAWMAN_LOGO_HTML
                 }
 
             elif layout in self.INFOGRAPHIC_LAYOUTS:
@@ -196,9 +236,9 @@ class StrawmanTransformer:
                 # v4.5.7: Added subtitle and company_logo for Layout Service
                 content = {
                     'slide_title': slide.get('title', 'Infographic'),
-                    'subtitle': slide.get('subtitle', ''),
+                    'subtitle': self._generate_subtitle(slide),
                     'rich_content': self._create_infographic_metadata_html(slide, layout),
-                    'company_logo': 'STRAWMAN'
+                    'company_logo': self.STRAWMAN_LOGO_HTML
                 }
 
             elif layout in self.ISERIES_LAYOUTS:
@@ -206,18 +246,18 @@ class StrawmanTransformer:
                 # v4.5.7: Added subtitle and company_logo for Layout Service
                 content = {
                     'slide_title': slide.get('title', 'Visual'),
-                    'subtitle': slide.get('subtitle', ''),
+                    'subtitle': self._generate_subtitle(slide),
                     'rich_content': self._create_iseries_metadata_html(slide, layout),
-                    'company_logo': 'STRAWMAN'
+                    'company_logo': self.STRAWMAN_LOGO_HTML
                 }
 
             elif layout == 'C1':
                 # v4.5.9: C1-text expects 'body' field, not 'rich_content'
                 content = {
                     'slide_title': slide.get('title', 'Slide'),
-                    'subtitle': slide.get('subtitle', ''),
+                    'subtitle': self._generate_subtitle(slide),
                     'body': self._create_content_metadata_html(slide, layout),
-                    'company_logo': 'STRAWMAN'
+                    'company_logo': self.STRAWMAN_LOGO_HTML
                 }
 
             else:
@@ -225,9 +265,9 @@ class StrawmanTransformer:
                 # v4.5.7: Added subtitle and company_logo for Layout Service
                 content = {
                     'slide_title': slide.get('title', 'Slide'),
-                    'subtitle': slide.get('subtitle', ''),
+                    'subtitle': self._generate_subtitle(slide),
                     'rich_content': self._create_content_metadata_html(slide, layout),
-                    'company_logo': 'STRAWMAN'
+                    'company_logo': self.STRAWMAN_LOGO_HTML
                 }
 
             # Build transformed slide with metadata
@@ -454,15 +494,16 @@ class StrawmanTransformer:
             '''
 
         # v4.5.10: Topics as bullet list with heading
+        # v4.5.11: Doubled font sizes for better readability
         topics_section = ''
         if topics:
-            bullet_items = ''.join([f'<li style="margin-bottom: 8px; color: #374151;">{t}</li>' for t in topics])
+            bullet_items = ''.join([f'<li style="margin-bottom: 12px; color: #374151;">{t}</li>' for t in topics])
             topics_section = f'''
-            <div style="margin-bottom: 24px;">
-                <div style="font-size: 20px; font-weight: 700; color: #1f2937; margin-bottom: 12px;">
+            <div style="margin-bottom: 32px;">
+                <div style="font-size: 40px; font-weight: 700; color: #1f2937; margin-bottom: 16px;">
                     Topics to be covered
                 </div>
-                <ul style="list-style: disc; margin-left: 24px; font-size: 16px; line-height: 1.6;">
+                <ul style="list-style: disc; margin-left: 32px; font-size: 32px; line-height: 1.6;">
                     {bullet_items}
                 </ul>
             </div>
