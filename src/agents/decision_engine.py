@@ -13,6 +13,7 @@ Uses:
 
 import os
 import json
+import random
 from typing import Dict, Any, Optional, List
 from pathlib import Path
 from pydantic_ai import Agent
@@ -738,11 +739,38 @@ Selection rules:
 
 Hero slides (L29): variant_id = null (not needed)
 
+## SEMANTIC GROUP RULES (v4.5.3 - Context-Aware Diversity)
+
+Assign `semantic_group` to slides that should use the SAME template/variant.
+Slides in the same semantic_group will share the same layout variant for visual consistency.
+
+WHEN TO ASSIGN semantic_group (same group = same template):
+- Multiple use case slides → semantic_group: "use_cases"
+- Multiple product/feature deep-dives → semantic_group: "product_features"
+- Timeline segments (early life, middle, later) → semantic_group: "timeline"
+- Case study examples → semantic_group: "case_studies"
+- Competitor comparisons → semantic_group: "competitors"
+- Multiple agent explanations → semantic_group: "agents"
+
+WHEN NOT TO ASSIGN semantic_group (null = diverse templates):
+- Opening/introduction slides → null
+- Different concept explanations → null
+- Transition/bridge slides → null
+- Slides covering different topics → null
+
+EXAMPLE for "AI Agents in Supply Chain":
+- Slides 2-4: AI concepts (semantic_group: null - should vary)
+- Slides 5-9: Use Case 1, Use Case 2, ... → semantic_group: "use_cases" (same template)
+- Slides 10-12: Implementation steps (semantic_group: null - should vary)
+
+RULE: Slides WITH semantic_group = same variant. Slides WITHOUT = diverse variants.
+
 ## OUTPUT
 Create a complete Strawman with slide definitions including:
 - slide_id (unique identifier - use UUIDs)
 - slide_number (position starting from 1)
 - title (topic-specific, never generic)
+- subtitle (supporting context that complements the title, e.g., "Key Insights", "Strategic Foundations")
 - layout ("L29" for hero slides, "L25" for content slides)
 - variant_id (required for L25 content slides, null for L29 hero slides)
 - topics (3-5 specific key points related to the slide title)
@@ -750,6 +778,7 @@ Create a complete Strawman with slide definitions including:
 - hero_type (title_slide, section_divider, or closing_slide for hero slides)
 - slide_type_hint (REQUIRED: hero, text, chart, diagram, or infographic)
 - purpose (REQUIRED: what story this slide tells)
+- semantic_group (group ID for slides that should share same template, null otherwise)
 """
 
     async def generate(
@@ -1087,20 +1116,27 @@ Generate a complete strawman with {slide_count} slides about {topic}.
         return custom_slides
 
     def _select_fallback_variant(self, topic_count: int) -> str:
-        """Select default variant based on topic count.
+        """Select variant with randomization for diversity.
 
         v4.0.23: Added for variant selection in fallback strawman.
+        v4.5.2: Added randomization - multiple options per topic count for diversity.
+                When Text Service coordination is unavailable, this provides
+                visual variety by randomly selecting from valid variants.
         """
-        if topic_count <= 2:
-            return 'comparison_2col'
-        elif topic_count == 3:
-            return 'sequential_3col'
-        elif topic_count == 4:
-            return 'grid_2x2_centered'
-        elif topic_count == 5:
-            return 'sequential_5col'
-        else:
-            return 'grid_2x3'
+        # Multiple variant options per topic count for diversity
+        variant_options = {
+            2: ['comparison_2col'],
+            3: ['sequential_3col', 'comparison_3col', 'single_column_3section_c1'],
+            4: ['grid_2x2_centered', 'matrix_2x2', 'grid_2x2_left', 'comparison_4col', 'sequential_4col'],
+            5: ['sequential_5col', 'grid_2x3', 'single_column_5section_c1'],
+            6: ['grid_2x3', 'grid_3x2', 'matrix_2x3'],
+        }
+
+        # Get options for the topic count, fallback to grid_2x3 variants
+        options = variant_options.get(topic_count, ['grid_2x3', 'grid_3x2'])
+
+        # Randomly select from available options
+        return random.choice(options)
 
     def _fallback_strawman(self, topic: str, duration: int, requested_slide_count: Optional[int] = None) -> Strawman:
         """Generate a basic fallback strawman with topic-specific content.
@@ -1290,22 +1326,29 @@ Generate a complete strawman with {slide_count} slides about {topic}.
         For slides with service="text" and layout in VARIANT_LAYOUTS,
         calls Text Service to get the best variant_id.
 
+        v4.5.2: Added fallback with DiversityTracker when coordination is disabled
+                or unavailable. Ensures variant diversity even without Text Service.
+
         Args:
             strawman: Strawman with layout analysis applied
 
         Returns:
             Strawman with variant_id populated for text slides
         """
+        # Import DiversityTracker for variant diversity enforcement
+        from src.utils.diversity_tracker import DiversityTracker
+
         if not self.text_coord_client:
-            logger.debug("Text Service coordination not enabled, skipping variant resolution")
-            return strawman
+            # v4.5.2: Fallback variant resolution with diversity tracking
+            logger.debug("Text Service coordination not enabled, using fallback with diversity tracking")
+            return self._resolve_variants_fallback(strawman)
 
         try:
             # Check Text Service availability
             is_healthy = await self.text_coord_client.health_check()
             if not is_healthy:
-                logger.warning("Text Service not available for variant resolution")
-                return strawman
+                logger.warning("Text Service not available for variant resolution, using fallback")
+                return self._resolve_variants_fallback(strawman)
 
             enhanced_slides = []
             variant_layouts = {"L25", "C1"}  # Layouts that support variants
@@ -1375,19 +1418,260 @@ Generate a complete strawman with {slide_count} slides about {topic}.
 
                 enhanced_slides.append(slide)
 
+            # v4.5.2: Apply DiversityTracker to prevent excessive repetition
+            # v4.5.3: Now respects semantic_group for context-aware diversity
+            diversity_tracker = DiversityTracker()
+            final_slides = []
+
+            for slide in enhanced_slides:
+                if slide.service == "text" and not slide.is_hero and slide.variant_id:
+                    # Check if this variant violates diversity rules
+                    # v4.5.3: Pass semantic_group - slides WITH semantic_group are exempt
+                    should_override, suggestion = diversity_tracker.should_override_for_diversity(
+                        classification=slide.variant_id,
+                        variant_id=slide.variant_id,
+                        semantic_group=slide.semantic_group  # v4.5.3: Context-aware diversity
+                    )
+
+                    if should_override and suggestion:
+                        logger.info(
+                            f"Slide {slide.slide_number}: Diversity override - "
+                            f"{slide.variant_id} → {suggestion}"
+                        )
+                        # Create new slide with suggested variant
+                        slide = StrawmanSlide(
+                            slide_id=slide.slide_id,
+                            slide_number=slide.slide_number,
+                            title=slide.title,
+                            subtitle=slide.subtitle,
+                            layout=slide.layout,
+                            topics=slide.topics,
+                            variant_id=suggestion,
+                            notes=slide.notes,
+                            is_hero=slide.is_hero,
+                            hero_type=slide.hero_type,
+                            content_hints=slide.content_hints,
+                            suggested_service=slide.suggested_service,
+                            service_confidence=slide.service_confidence,
+                            needs_image=slide.needs_image,
+                            suggested_iseries=slide.suggested_iseries,
+                            slide_type_hint=slide.slide_type_hint,
+                            purpose=slide.purpose,
+                            service=slide.service,
+                            generation_instructions=slide.generation_instructions,
+                            semantic_group=slide.semantic_group  # v4.5.3: Preserve semantic_group
+                        )
+
+                    # Track the slide for diversity checking
+                    diversity_tracker.add_slide(
+                        classification=slide.variant_id,
+                        variant_id=slide.variant_id,
+                        semantic_group=slide.semantic_group,  # v4.5.3: Context-aware tracking
+                        slide_number=slide.slide_number
+                    )
+
+                final_slides.append(slide)
+
+            # v4.5.3: Propagate variants within semantic groups
+            # Ensures all slides with same semantic_group use the same variant
+            final_slides = self._propagate_semantic_group_variants(final_slides)
+
             # Update metadata
             metadata = strawman.metadata or {}
             metadata["variants_resolved"] = True
+            metadata["diversity_applied"] = True
+            metadata["semantic_groups_applied"] = True
 
             return Strawman(
                 title=strawman.title,
-                slides=enhanced_slides,
+                slides=final_slides,
                 metadata=metadata
             )
 
         except Exception as e:
             logger.error(f"Variant resolution failed: {e}")
-            return strawman
+            return self._resolve_variants_fallback(strawman)
+
+    def _resolve_variants_fallback(self, strawman: Strawman) -> Strawman:
+        """
+        Fallback variant resolution using randomization and DiversityTracker.
+
+        v4.5.2: Called when Text Service coordination is disabled or unavailable.
+        Uses _select_fallback_variant() for random selection and DiversityTracker
+        to ensure no more than 2 consecutive slides use the same variant.
+
+        Args:
+            strawman: Strawman with layout analysis applied
+
+        Returns:
+            Strawman with variant_id populated for text slides
+        """
+        from src.utils.diversity_tracker import DiversityTracker
+
+        diversity_tracker = DiversityTracker()
+        enhanced_slides = []
+        variant_layouts = {"L25", "C1"}  # Layouts that support variants
+
+        for slide in strawman.slides:
+            # Only resolve variants for text slides without existing variant
+            if (
+                slide.service == "text" and
+                slide.layout in variant_layouts and
+                not slide.is_hero and
+                not slide.variant_id
+            ):
+                # Get topic count for variant selection
+                topic_count = len(slide.topics) if slide.topics else 4
+
+                # Select a random variant based on topic count
+                selected_variant = self._select_fallback_variant(topic_count)
+
+                # Check diversity - don't allow more than 2 consecutive same variants
+                # v4.5.3: Pass semantic_group - slides WITH semantic_group are exempt
+                should_override, suggestion = diversity_tracker.should_override_for_diversity(
+                    classification=selected_variant,
+                    variant_id=selected_variant,
+                    semantic_group=slide.semantic_group  # v4.5.3: Context-aware diversity
+                )
+
+                if should_override and suggestion:
+                    logger.debug(
+                        f"Slide {slide.slide_number}: Diversity override - "
+                        f"{selected_variant} → {suggestion}"
+                    )
+                    selected_variant = suggestion
+
+                # Create new slide with the selected variant
+                slide = StrawmanSlide(
+                    slide_id=slide.slide_id,
+                    slide_number=slide.slide_number,
+                    title=slide.title,
+                    subtitle=slide.subtitle,
+                    layout=slide.layout,
+                    topics=slide.topics,
+                    variant_id=selected_variant,
+                    notes=slide.notes,
+                    is_hero=slide.is_hero,
+                    hero_type=slide.hero_type,
+                    content_hints=slide.content_hints,
+                    suggested_service=slide.suggested_service,
+                    service_confidence=slide.service_confidence,
+                    needs_image=slide.needs_image,
+                    suggested_iseries=slide.suggested_iseries,
+                    slide_type_hint=slide.slide_type_hint,
+                    purpose=slide.purpose,
+                    service=slide.service,
+                    generation_instructions=slide.generation_instructions,
+                    semantic_group=slide.semantic_group  # v4.5.3: Preserve semantic_group
+                )
+
+                logger.debug(
+                    f"Slide {slide.slide_number}: Fallback variant={selected_variant}"
+                )
+
+            # Track all slides for diversity (even hero slides for context)
+            # v4.5.3: Pass semantic_group for context-aware diversity tracking
+            if slide.variant_id:
+                diversity_tracker.add_slide(
+                    classification=slide.variant_id,
+                    variant_id=slide.variant_id,
+                    semantic_group=slide.semantic_group,  # v4.5.3: Context-aware tracking
+                    slide_number=slide.slide_number
+                )
+
+            enhanced_slides.append(slide)
+
+        # v4.5.3: Propagate variants within semantic groups
+        # Ensures all slides with same semantic_group use the same variant
+        enhanced_slides = self._propagate_semantic_group_variants(enhanced_slides)
+
+        # Update metadata
+        metadata = strawman.metadata or {}
+        metadata["variants_resolved"] = True
+        metadata["variant_source"] = "fallback_with_diversity"
+        metadata["semantic_groups_applied"] = True
+
+        return Strawman(
+            title=strawman.title,
+            slides=enhanced_slides,
+            metadata=metadata
+        )
+
+    def _propagate_semantic_group_variants(
+        self, slides: List[StrawmanSlide]
+    ) -> List[StrawmanSlide]:
+        """
+        Ensure all slides in the same semantic_group use the same variant.
+
+        v4.5.3: Context-aware diversity - slides with the same semantic_group
+        (e.g., "use_cases", "timeline", "case_studies") should share the same
+        template/variant for visual consistency.
+
+        This method is called AFTER variant resolution to ensure consistency
+        within semantic groups.
+
+        Args:
+            slides: List of slides with variants resolved
+
+        Returns:
+            List of slides with consistent variants within semantic groups
+        """
+        # Track variant for each semantic group
+        group_variants: Dict[str, str] = {}
+
+        # First pass: collect variant for each group (use first slide's variant)
+        for slide in slides:
+            if slide.semantic_group and slide.variant_id:
+                if slide.semantic_group not in group_variants:
+                    group_variants[slide.semantic_group] = slide.variant_id
+                    logger.debug(
+                        f"Semantic group '{slide.semantic_group}' → variant '{slide.variant_id}'"
+                    )
+
+        # If no groups found, return unchanged
+        if not group_variants:
+            return slides
+
+        # Second pass: propagate variants to all slides in each group
+        propagated_slides = []
+        for slide in slides:
+            if slide.semantic_group and slide.semantic_group in group_variants:
+                target_variant = group_variants[slide.semantic_group]
+
+                # Only update if variant is different
+                if slide.variant_id != target_variant:
+                    logger.info(
+                        f"Slide {slide.slide_number}: Propagating group '{slide.semantic_group}' "
+                        f"variant {slide.variant_id} → {target_variant}"
+                    )
+                    # Create new slide with propagated variant
+                    slide = StrawmanSlide(
+                        slide_id=slide.slide_id,
+                        slide_number=slide.slide_number,
+                        title=slide.title,
+                        subtitle=slide.subtitle,
+                        layout=slide.layout,
+                        topics=slide.topics,
+                        variant_id=target_variant,
+                        notes=slide.notes,
+                        is_hero=slide.is_hero,
+                        hero_type=slide.hero_type,
+                        content_hints=slide.content_hints,
+                        suggested_service=slide.suggested_service,
+                        service_confidence=slide.service_confidence,
+                        needs_image=slide.needs_image,
+                        suggested_iseries=slide.suggested_iseries,
+                        slide_type_hint=slide.slide_type_hint,
+                        purpose=slide.purpose,
+                        service=slide.service,
+                        generation_instructions=slide.generation_instructions,
+                        semantic_group=slide.semantic_group
+                    )
+
+            propagated_slides.append(slide)
+
+        logger.info(f"Semantic group propagation: {len(group_variants)} groups processed")
+        return propagated_slides
 
     async def _enhance_with_layout_service(self, strawman: Strawman) -> Strawman:
         """

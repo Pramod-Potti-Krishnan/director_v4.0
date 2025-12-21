@@ -179,8 +179,9 @@ class Settings(BaseSettings):
 
     # v4.0: Text Service Coordination (Phase 1 - Multi-Service Coordination)
     # Enables intelligent variant selection via Text Service coordination endpoints
+    # v4.5.2: Enabled by default - Text Service v1.2 supports /recommend-variant endpoint
     USE_TEXT_SERVICE_COORDINATION: bool = Field(
-        False,  # Default: disabled (use existing hardcoded variant selection)
+        True,  # Enabled: use Text Service intelligent variant selection
         env="USE_TEXT_SERVICE_COORDINATION",
         description="Enable Text Service /can-handle and /recommend-variant coordination endpoints"
     )

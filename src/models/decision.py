@@ -282,6 +282,12 @@ class StrawmanSlide(BaseModel):
         description="Precise instructions for content generation (for non-variant slides like charts, diagrams)"
     )
 
+    # v4.5.3: Semantic grouping for context-aware variant diversity
+    semantic_group: Optional[str] = Field(
+        default=None,
+        description="Group ID for slides that should use the same template (e.g., 'use_cases', 'timeline', 'case_studies'). Slides in the same group share the same variant."
+    )
+
 
 class Strawman(BaseModel):
     """Complete strawman (presentation outline)."""
