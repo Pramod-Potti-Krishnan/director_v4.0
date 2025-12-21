@@ -423,12 +423,21 @@ class WebSocketHandlerV4:
         Handle PROPOSE_PLAN action - propose presentation structure.
 
         v4.0.8: Added action buttons for plan confirmation (like v3.4 Stage 3).
+        v4.5.10: Fixed summary to use actual topic/audience instead of "Your presentation".
         """
         plan_data = decision.plan_data or {}
 
+        # v4.5.10: Build summary from session context if not in plan_data
+        summary = plan_data.get('summary')
+        if not summary:
+            topic = session.topic or session.initial_request or 'your topic'
+            audience = session.audience or 'general audience'
+            purpose = session.purpose or 'inform'
+            summary = f"A presentation about '{topic}' for {audience}, designed to {purpose}."
+
         message = decision.response_text or f"""Here's my proposed plan for your presentation:
 
-**Summary:** {plan_data.get('summary', 'Your presentation')}
+**Summary:** {summary}
 
 **Proposed Slides:** {plan_data.get('proposed_slide_count', 10)} slides
 

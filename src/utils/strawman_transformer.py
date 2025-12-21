@@ -414,6 +414,8 @@ class StrawmanTransformer:
         Create strawman metadata display HTML for content slides (C1, L25, V1).
 
         v4.5.8: Full-width card grid with topics as hero content.
+        v4.5.10: Topics as bullet list, bigger chips, STRAWMAN watermark,
+                 generation_instructions and notes display.
 
         Args:
             slide: Slide data with all strawman fields
@@ -427,7 +429,8 @@ class StrawmanTransformer:
         purpose = slide.get('purpose') or ''
         topics = slide.get('topics', [])
         semantic_group = slide.get('semantic_group')
-        generation_instructions = slide.get('generation_instructions')
+        generation_instructions = slide.get('generation_instructions', '')
+        notes = slide.get('notes', '')
 
         # Build purpose section (only show if purpose exists)
         purpose_section = ''
@@ -440,50 +443,101 @@ class StrawmanTransformer:
             </div>
             '''
 
-        # Build semantic group chip (only show if exists)
+        # v4.5.10: Build semantic group chip with larger size
         semantic_chip = ''
         if semantic_group:
             semantic_chip = f'''
-            <span style="background: #fef3c7; color: #92400e; padding: 6px 16px;
-                         border-radius: 16px; font-size: 14px; font-weight: 600;">
+            <span style="background: #fef3c7; color: #92400e; padding: 12px 28px;
+                         border-radius: 20px; font-size: 24px; font-weight: 600;">
                 🏷️ {semantic_group}
             </span>
             '''
 
+        # v4.5.10: Topics as bullet list with heading
+        topics_section = ''
+        if topics:
+            bullet_items = ''.join([f'<li style="margin-bottom: 8px; color: #374151;">{t}</li>' for t in topics])
+            topics_section = f'''
+            <div style="margin-bottom: 24px;">
+                <div style="font-size: 20px; font-weight: 700; color: #1f2937; margin-bottom: 12px;">
+                    Topics to be covered
+                </div>
+                <ul style="list-style: disc; margin-left: 24px; font-size: 16px; line-height: 1.6;">
+                    {bullet_items}
+                </ul>
+            </div>
+            '''
+
+        # v4.5.10: Generation instructions section (green)
+        gen_instructions_section = ''
+        if generation_instructions:
+            gen_instructions_section = f'''
+            <div style="margin-bottom: 16px; padding: 12px 16px; background: #f0fdf4;
+                        border-left: 4px solid #22c55e; border-radius: 4px;">
+                <div style="font-size: 12px; font-weight: 600; color: #166534; margin-bottom: 4px;">
+                    Generation Instructions
+                </div>
+                <div style="font-size: 14px; color: #15803d;">{generation_instructions}</div>
+            </div>
+            '''
+
+        # v4.5.10: Notes section (yellow)
+        notes_section = ''
+        if notes:
+            notes_section = f'''
+            <div style="margin-bottom: 16px; padding: 12px 16px; background: #fefce8;
+                        border-left: 4px solid #eab308; border-radius: 4px;">
+                <div style="font-size: 12px; font-weight: 600; color: #854d0e; margin-bottom: 4px;">
+                    Notes
+                </div>
+                <div style="font-size: 14px; color: #a16207;">{notes}</div>
+            </div>
+            '''
+
         return f'''
 <div style="height: 100%; padding: 40px; font-family: system-ui, -apple-system, sans-serif;
-            display: flex; flex-direction: column; gap: 24px;">
+            display: flex; flex-direction: column; gap: 24px; position: relative;">
 
-    <!-- Top Row: Badge + Metadata Chips -->
-    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+    <!-- Top Row: Badge + Metadata Chips (2x bigger) -->
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 20px;">
         {self._create_compact_badge()}
 
-        <!-- Metadata Chips -->
-        <div style="display: flex; gap: 12px; flex-wrap: wrap;">
-            <span style="background: #e0e7ff; color: #3730a3; padding: 6px 16px;
-                         border-radius: 16px; font-size: 14px; font-weight: 600;">
+        <!-- Metadata Chips - v4.5.10: 2x bigger -->
+        <div style="display: flex; gap: 20px; flex-wrap: wrap;">
+            <span style="background: #e0e7ff; color: #3730a3; padding: 12px 28px;
+                         border-radius: 20px; font-size: 24px; font-weight: 600;">
                 🎨 {layout}
             </span>
-            <span style="background: #d1fae5; color: #065f46; padding: 6px 16px;
-                         border-radius: 16px; font-size: 14px; font-weight: 600;">
+            <span style="background: #d1fae5; color: #065f46; padding: 12px 28px;
+                         border-radius: 20px; font-size: 24px; font-weight: 600;">
                 📐 {variant_id}
             </span>
-            <span style="background: #fce7f3; color: #9d174d; padding: 6px 16px;
-                         border-radius: 16px; font-size: 14px; font-weight: 600;">
+            <span style="background: #fce7f3; color: #9d174d; padding: 12px 28px;
+                         border-radius: 20px; font-size: 24px; font-weight: 600;">
                 ⚙️ {service}
             </span>
             {semantic_chip}
         </div>
     </div>
 
-    <!-- Topics Grid - THE HERO OF THE PREVIEW -->
-    <div style="flex: 1; display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-                gap: 20px; align-content: start;">
-        {self._create_topic_cards(topics)}
-    </div>
+    <!-- Topics Section - v4.5.10: Bullet list with heading -->
+    {topics_section}
 
-    <!-- Bottom: Purpose/Instructions (if any) -->
+    <!-- v4.5.10: Generation Instructions (if any) -->
+    {gen_instructions_section}
+
+    <!-- v4.5.10: Notes (if any) -->
+    {notes_section}
+
+    <!-- Bottom: Purpose (if any) -->
     {purpose_section}
+
+    <!-- v4.5.10: STRAWMAN watermark bottom-right -->
+    <div style="position: absolute; bottom: 16px; right: 24px;
+                font-size: 14px; font-weight: 600; color: #9ca3af;
+                letter-spacing: 2px; opacity: 0.7;">
+        STRAWMAN
+    </div>
 </div>
 '''
 
@@ -646,26 +700,27 @@ class StrawmanTransformer:
                 ''')
             data_chips = '\n'.join(chips)
 
+        # v4.5.10: return with bigger chips and STRAWMAN watermark
         return f'''
 <div style="height: 100%; padding: 40px; font-family: system-ui, -apple-system, sans-serif;
-            display: flex; flex-direction: column; gap: 24px;">
+            display: flex; flex-direction: column; gap: 24px; position: relative;">
 
-    <!-- Top: Badge + Service Info -->
-    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+    <!-- Top: Badge + Service Info - v4.5.10: 2x bigger chips -->
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 20px;">
         <div style="display: flex; align-items: center; gap: 16px; flex-wrap: wrap;">
             {self._create_compact_badge()}
-            <span style="background: #dbeafe; color: #1e40af; padding: 6px 16px;
-                         border-radius: 16px; font-size: 14px; font-weight: 600;">
+            <span style="background: #dbeafe; color: #1e40af; padding: 12px 28px;
+                         border-radius: 20px; font-size: 24px; font-weight: 600;">
                 📊 Analytics Service
             </span>
         </div>
-        <div style="display: flex; gap: 12px; flex-wrap: wrap;">
-            <span style="background: #e0e7ff; color: #3730a3; padding: 6px 16px;
-                         border-radius: 16px; font-size: 14px; font-weight: 600;">
+        <div style="display: flex; gap: 20px; flex-wrap: wrap;">
+            <span style="background: #e0e7ff; color: #3730a3; padding: 12px 28px;
+                         border-radius: 20px; font-size: 24px; font-weight: 600;">
                 🎨 {layout}
             </span>
-            <span style="background: #d1fae5; color: #065f46; padding: 6px 16px;
-                         border-radius: 16px; font-size: 14px; font-weight: 600;">
+            <span style="background: #d1fae5; color: #065f46; padding: 12px 28px;
+                         border-radius: 20px; font-size: 24px; font-weight: 600;">
                 📐 {variant_id}
             </span>
         </div>
@@ -690,6 +745,13 @@ class StrawmanTransformer:
     <!-- Data Points -->
     <div style="display: flex; gap: 12px; flex-wrap: wrap;">
         {data_chips}
+    </div>
+
+    <!-- v4.5.10: STRAWMAN watermark bottom-right -->
+    <div style="position: absolute; bottom: 16px; right: 24px;
+                font-size: 14px; font-weight: 600; color: #9ca3af;
+                letter-spacing: 2px; opacity: 0.7;">
+        STRAWMAN
     </div>
 </div>
 '''
@@ -731,26 +793,27 @@ class StrawmanTransformer:
                     ''')
             flow_chips = '\n'.join(chips)
 
+        # v4.5.10: return with bigger chips and STRAWMAN watermark
         return f'''
 <div style="height: 100%; padding: 40px; font-family: system-ui, -apple-system, sans-serif;
-            display: flex; flex-direction: column; gap: 24px;">
+            display: flex; flex-direction: column; gap: 24px; position: relative;">
 
-    <!-- Top: Badge + Service Info -->
-    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+    <!-- Top: Badge + Service Info - v4.5.10: 2x bigger chips -->
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 20px;">
         <div style="display: flex; align-items: center; gap: 16px; flex-wrap: wrap;">
             {self._create_compact_badge()}
-            <span style="background: #ede9fe; color: #6d28d9; padding: 6px 16px;
-                         border-radius: 16px; font-size: 14px; font-weight: 600;">
+            <span style="background: #ede9fe; color: #6d28d9; padding: 12px 28px;
+                         border-radius: 20px; font-size: 24px; font-weight: 600;">
                 🔀 Diagram Service
             </span>
         </div>
-        <div style="display: flex; gap: 12px; flex-wrap: wrap;">
-            <span style="background: #e0e7ff; color: #3730a3; padding: 6px 16px;
-                         border-radius: 16px; font-size: 14px; font-weight: 600;">
+        <div style="display: flex; gap: 20px; flex-wrap: wrap;">
+            <span style="background: #e0e7ff; color: #3730a3; padding: 12px 28px;
+                         border-radius: 20px; font-size: 24px; font-weight: 600;">
                 🎨 {layout}
             </span>
-            <span style="background: #d1fae5; color: #065f46; padding: 6px 16px;
-                         border-radius: 16px; font-size: 14px; font-weight: 600;">
+            <span style="background: #d1fae5; color: #065f46; padding: 12px 28px;
+                         border-radius: 20px; font-size: 24px; font-weight: 600;">
                 📐 {variant_id}
             </span>
         </div>
@@ -775,6 +838,13 @@ class StrawmanTransformer:
     <!-- Flow Steps -->
     <div style="display: flex; gap: 12px; flex-wrap: wrap; align-items: center; justify-content: center;">
         {flow_chips}
+    </div>
+
+    <!-- v4.5.10: STRAWMAN watermark bottom-right -->
+    <div style="position: absolute; bottom: 16px; right: 24px;
+                font-size: 14px; font-weight: 600; color: #9ca3af;
+                letter-spacing: 2px; opacity: 0.7;">
+        STRAWMAN
     </div>
 </div>
 '''
@@ -811,26 +881,27 @@ class StrawmanTransformer:
                 ''')
             element_chips = '\n'.join(chips)
 
+        # v4.5.10: return with bigger chips and STRAWMAN watermark
         return f'''
 <div style="height: 100%; padding: 40px; font-family: system-ui, -apple-system, sans-serif;
-            display: flex; flex-direction: column; gap: 24px;">
+            display: flex; flex-direction: column; gap: 24px; position: relative;">
 
-    <!-- Top: Badge + Service Info -->
-    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+    <!-- Top: Badge + Service Info - v4.5.10: 2x bigger chips -->
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 20px;">
         <div style="display: flex; align-items: center; gap: 16px; flex-wrap: wrap;">
             {self._create_compact_badge()}
-            <span style="background: #fce7f3; color: #9d174d; padding: 6px 16px;
-                         border-radius: 16px; font-size: 14px; font-weight: 600;">
+            <span style="background: #fce7f3; color: #9d174d; padding: 12px 28px;
+                         border-radius: 20px; font-size: 24px; font-weight: 600;">
                 🎨 Illustrator Service
             </span>
         </div>
-        <div style="display: flex; gap: 12px; flex-wrap: wrap;">
-            <span style="background: #e0e7ff; color: #3730a3; padding: 6px 16px;
-                         border-radius: 16px; font-size: 14px; font-weight: 600;">
+        <div style="display: flex; gap: 20px; flex-wrap: wrap;">
+            <span style="background: #e0e7ff; color: #3730a3; padding: 12px 28px;
+                         border-radius: 20px; font-size: 24px; font-weight: 600;">
                 🎨 {layout}
             </span>
-            <span style="background: #d1fae5; color: #065f46; padding: 6px 16px;
-                         border-radius: 16px; font-size: 14px; font-weight: 600;">
+            <span style="background: #d1fae5; color: #065f46; padding: 12px 28px;
+                         border-radius: 20px; font-size: 24px; font-weight: 600;">
                 📐 {variant_id}
             </span>
         </div>
@@ -855,6 +926,13 @@ class StrawmanTransformer:
     <!-- Content Elements -->
     <div style="display: flex; gap: 12px; flex-wrap: wrap;">
         {element_chips}
+    </div>
+
+    <!-- v4.5.10: STRAWMAN watermark bottom-right -->
+    <div style="position: absolute; bottom: 16px; right: 24px;
+                font-size: 14px; font-weight: 600; color: #9ca3af;
+                letter-spacing: 2px; opacity: 0.7;">
+        STRAWMAN
     </div>
 </div>
 '''
@@ -933,20 +1011,21 @@ class StrawmanTransformer:
             </span>
             '''
 
+        # v4.5.10: Update content zone with bigger chips
         content_zone = f'''
         <div style="flex: 1; padding: 32px; display: flex; flex-direction: column; gap: 20px;">
 
-            <!-- Badge Row -->
-            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+            <!-- Badge Row - v4.5.10: bigger chips -->
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
                 <div style="background: linear-gradient(135deg, #fef3c7, #fde68a);
                             border: 2px solid #f59e0b; border-radius: 20px;
-                            padding: 6px 16px; display: inline-flex; align-items: center; gap: 6px;">
-                    <span style="font-size: 14px;">📋</span>
-                    <span style="font-size: 12px; font-weight: 700; color: #92400e;
+                            padding: 10px 20px; display: inline-flex; align-items: center; gap: 8px;">
+                    <span style="font-size: 18px;">📋</span>
+                    <span style="font-size: 16px; font-weight: 700; color: #92400e;
                                  text-transform: uppercase; letter-spacing: 1px;">STRAWMAN</span>
                 </div>
-                <span style="background: #c7d2fe; color: #3730a3; padding: 4px 12px;
-                             border-radius: 12px; font-size: 12px; font-weight: 600;">{layout}</span>
+                <span style="background: #c7d2fe; color: #3730a3; padding: 12px 28px;
+                             border-radius: 20px; font-size: 24px; font-weight: 600;">🎨 {layout}</span>
             </div>
 
             <!-- Topics Grid -->
@@ -954,14 +1033,14 @@ class StrawmanTransformer:
                 {topic_rows}
             </div>
 
-            <!-- Footer Info -->
-            <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-                <span style="background: #d1fae5; color: #065f46; padding: 4px 12px;
-                             border-radius: 12px; font-size: 12px; font-weight: 600;">
+            <!-- Footer Info - v4.5.10: bigger chips -->
+            <div style="display: flex; gap: 16px; flex-wrap: wrap;">
+                <span style="background: #d1fae5; color: #065f46; padding: 12px 28px;
+                             border-radius: 20px; font-size: 24px; font-weight: 600;">
                     📐 {variant_id}
                 </span>
-                <span style="background: #fce7f3; color: #9d174d; padding: 4px 12px;
-                             border-radius: 12px; font-size: 12px; font-weight: 600;">
+                <span style="background: #fce7f3; color: #9d174d; padding: 12px 28px;
+                             border-radius: 20px; font-size: 24px; font-weight: 600;">
                     ⚙️ {service}
                 </span>
                 {semantic_chip}
@@ -969,18 +1048,29 @@ class StrawmanTransformer:
         </div>
         '''
 
-        # Arrange based on image position
+        # v4.5.10: STRAWMAN watermark element
+        strawman_watermark = '''
+        <div style="position: absolute; bottom: 16px; right: 24px;
+                    font-size: 14px; font-weight: 600; color: #9ca3af;
+                    letter-spacing: 2px; opacity: 0.7;">
+            STRAWMAN
+        </div>
+        '''
+
+        # Arrange based on image position - v4.5.10: add position relative and watermark
         if image_left:
             return f'''
-<div style="height: 100%; display: flex; gap: 0; font-family: system-ui, -apple-system, sans-serif;">
+<div style="height: 100%; display: flex; gap: 0; font-family: system-ui, -apple-system, sans-serif; position: relative;">
     {image_zone}
     {content_zone}
+    {strawman_watermark}
 </div>
 '''
         else:
             return f'''
-<div style="height: 100%; display: flex; gap: 0; font-family: system-ui, -apple-system, sans-serif;">
+<div style="height: 100%; display: flex; gap: 0; font-family: system-ui, -apple-system, sans-serif; position: relative;">
     {content_zone}
     {image_zone}
+    {strawman_watermark}
 </div>
 '''
