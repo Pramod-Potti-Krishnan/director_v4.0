@@ -56,13 +56,15 @@ class PlaybookManager:
         "seniors": ["seniors", "professionals"]
     }
 
+    # v4.5.2: Strict purpose matching - each purpose only matches itself
+    # Prevents QBR/sales/training playbooks from being force-fit to unrelated topics
     PURPOSE_COMPATIBILITY = {
-        "investor_pitch": ["investor_pitch", "sales"],
-        "qbr": ["qbr", "informational"],
-        "training": ["training", "informational"],
-        "product_demo": ["product_demo", "sales", "training"],
-        "sales": ["sales", "product_demo", "investor_pitch"],
-        "informational": ["informational", "training", "qbr"]
+        "investor_pitch": ["investor_pitch"],
+        "qbr": ["qbr"],
+        "training": ["training"],
+        "product_demo": ["product_demo"],
+        "sales": ["sales"],
+        "informational": ["informational"]
     }
 
     # Scoring weights
