@@ -54,6 +54,109 @@ Script tags (`<script>`) are stripped during validation. Inline event handlers (
 
 ---
 
+## Logo Field Usage
+
+All content slides support an optional logo in the footer area (typically rows 17-19, cols 30-32).
+
+### Field Names by Layout Type
+
+| Layout Type | Field Name | Accepts | Grid Position |
+|-------------|------------|---------|---------------|
+| L-series (L25, L02, L27) | `company_logo` | URL, HTML, emoji | rows 17-19, cols 30-32 |
+| H1-structured | `logo` | URL, HTML, emoji | rows 16-18, cols 28-31 |
+| H3-closing | `logo` | URL, HTML, emoji | rows 16-18, cols 26-32 |
+| C/V/I/S-series | `company_logo` | URL, HTML, emoji | rows 17-19, cols 30-32 |
+
+### Logo Input Examples
+
+**Image URL:**
+```json
+{
+  "content": {
+    "company_logo": "https://example.com/logo.png"
+  }
+}
+```
+
+**HTML with styling:**
+```json
+{
+  "content": {
+    "company_logo": "<img src='https://example.com/logo.png' style='height: 40px; object-fit: contain;'/>"
+  }
+}
+```
+
+**Emoji:**
+```json
+{
+  "content": {
+    "company_logo": "🚀"
+  }
+}
+```
+
+**Text logo:**
+```json
+{
+  "content": {
+    "company_logo": "<span style='font-size: 24px; font-weight: bold; color: #1e40af;'>ACME</span>"
+  }
+}
+```
+
+### Logo Rendering Notes
+
+- Logo renders inside a centered flex container (both horizontally and vertically)
+- Max dimensions are typically 50% of container to maintain aspect ratio
+- For H-series hero slides, logo appears on dark backgrounds - use light colors/images
+- Logo is optional on all layouts - if omitted, the slot is empty
+
+---
+
+## Footer Field Usage
+
+Most content slides support an optional footer text in the bottom-left area (rows 18-19, cols 2-7).
+
+### Field Names by Layout Type
+
+| Layout Type | Field Name | Accepts | Grid Position |
+|-------------|------------|---------|---------------|
+| L-series (L25, L02) | `presentation_name` | text, HTML | rows 18-19, cols 2-7 |
+| C1-text | `footer_text` | text, HTML | rows 18-19, cols 2-7 |
+| I-series (I1, I3) | `presentation_name` | text, HTML | rows 18-19, cols 12-17 |
+| I-series (I2, I4) | `presentation_name` | text, HTML | rows 18-19, cols 2-7 |
+| C/V/S-series | `presentation_name` | text, HTML | rows 18-19, cols 2-7 |
+
+### Footer Input Examples
+
+**Plain text:**
+```json
+{
+  "content": {
+    "presentation_name": "Q4 2024 Strategy Review"
+  }
+}
+```
+
+**HTML with styling:**
+```json
+{
+  "content": {
+    "footer_text": "<span style='color: #6b7280;'>Confidential</span> | ACME Corp"
+  }
+}
+```
+
+### Footer Rendering Notes
+
+- Footer appears in the bottom-left area of the slide
+- Hero slides (H-series, L29) do NOT have footer areas
+- Footer text is optional on all content layouts
+- I-series layouts with left images have footer shifted right (cols 12-17)
+
+---
+
 ## Table of Contents
 
 1. [Grid System Reference](#1-grid-system-reference)
@@ -196,7 +299,8 @@ Structured title slide with editable title, subtitle, and customizable backgroun
   "content": {
     "slide_title": "Presentation Title",
     "subtitle": "Your tagline here",
-    "author_info": "Author Name <span style='opacity: 0.7'>| December 2024</span>"
+    "author_info": "Author Name <span style='opacity: 0.7'>| December 2024</span>",
+    "logo": "https://example.com/logo-light.png"
   },
   "background_color": "#1e3a5f",
   "background_image": "https://example.com/hero-background.jpg"
@@ -210,7 +314,8 @@ Structured title slide with editable title, subtitle, and customizable backgroun
   "content": {
     "slide_title": "<span style='color: #fbbf24'>Q4 2024</span> Strategy Review",
     "subtitle": "Driving Growth Through <em>Innovation</em>",
-    "author_info": "Executive Team <br><span style='font-size: 0.8em; opacity: 0.7'>December 18, 2024</span>"
+    "author_info": "Executive Team <br><span style='font-size: 0.8em; opacity: 0.7'>December 18, 2024</span>",
+    "logo": "<img src='https://example.com/logo.png' style='height: 50px;'/>"
   },
   "background_color": "#1e3a5f",
   "background_image": "https://example.com/hero-background.jpg"
@@ -224,6 +329,7 @@ Structured title slide with editable title, subtitle, and customizable backgroun
 | `slide_title` | string/HTML | **Yes** | 80 chars | Main presentation title |
 | `subtitle` | string/HTML | No | 120 chars | Tagline or subtitle |
 | `author_info` | string/HTML | No | 100 chars | Author name, date, etc. |
+| `logo` | string (URL/HTML) | No | - | Company logo (use light colors for dark backgrounds) |
 
 **Slide-Level Fields** (outside `content`):
 
@@ -290,7 +396,8 @@ Thank you / closing slide with contact info.
   "content": {
     "slide_title": "Thank You",
     "subtitle": "Questions & Discussion",
-    "contact_info": "email@company.com | www.company.com"
+    "contact_info": "email@company.com | www.company.com",
+    "logo": "https://example.com/logo-light.png"
   },
   "background_color": "#1e3a5f",
   "background_image": "https://example.com/closing-background.jpg"
@@ -304,7 +411,8 @@ Thank you / closing slide with contact info.
   "content": {
     "slide_title": "Thank You <span style='font-size: 0.6em'>🙏</span>",
     "subtitle": "Questions & <span style='color: #fbbf24'>Discussion</span>",
-    "contact_info": "<a href='mailto:team@company.com' style='color: #93c5fd'>team@company.com</a><br><span style='opacity: 0.8'>www.company.com</span>"
+    "contact_info": "<a href='mailto:team@company.com' style='color: #93c5fd'>team@company.com</a><br><span style='opacity: 0.8'>www.company.com</span>",
+    "logo": "<img src='https://example.com/logo.png' style='height: 50px;'/>"
   },
   "background_color": "#1e3a5f",
   "background_image": "https://example.com/closing-background.jpg"
@@ -318,6 +426,7 @@ Thank you / closing slide with contact info.
 | `slide_title` | string/HTML | **Yes** | 80 chars | Closing message |
 | `subtitle` | string/HTML | No | 120 chars | Additional message or CTA |
 | `contact_info` | string/HTML | No | 200 chars | Contact details, website, social |
+| `logo` | string (URL/HTML) | No | - | Company logo (use light colors for dark backgrounds) |
 
 **Slide-Level Fields** (outside `content`):
 
@@ -400,7 +509,7 @@ Standard slide with body text (paragraphs, bullets).
 | `subtitle` | string/HTML | No | 120 chars | Subtitle |
 | `body` | string/HTML | **Yes** | 100KB | Main content (bullets, paragraphs) |
 | `footer_text` | string/HTML | No | 50 chars | Footer text |
-| `company_logo` | string (URL) | No | - | Logo image URL |
+| `company_logo` | string (URL/HTML) | No | - | Logo (URL, HTML, or emoji) |
 
 **Slide-Level Fields** (outside `content`):
 
@@ -486,7 +595,9 @@ Full-height image on left (12 cols), content on right.
     "slide_title": "Our Team",
     "subtitle": "Leadership Profile",
     "image_url": "https://example.com/team-photo.jpg",
-    "body": "<p>John leads our engineering team...</p>\n<ul><li>15+ years experience</li></ul>"
+    "body": "<p>John leads our engineering team...</p>\n<ul><li>15+ years experience</li></ul>",
+    "presentation_name": "Company Overview 2024",
+    "company_logo": "https://example.com/logo.png"
   },
   "background_color": "#f8fafc"
 }
@@ -500,6 +611,8 @@ Full-height image on left (12 cols), content on right.
 | `subtitle` | string/HTML | No | 120 chars | Subtitle |
 | `image_url` | string (URL) | No | - | Image URL (placeholder if empty) |
 | `body` | string/HTML | No | 100KB | Right-side content |
+| `presentation_name` | string/HTML | No | 100 chars | Footer text (cols 12-17 for left-image layouts) |
+| `company_logo` | string (URL/HTML) | No | - | Logo (URL, HTML, or emoji) |
 
 **Slide-Level Fields:**
 
@@ -532,11 +645,15 @@ Full-height image on right (12 cols), content on left.
     "slide_title": "Product Showcase",
     "subtitle": "New Features",
     "image_url": "https://example.com/product.jpg",
-    "body": "<ul><li>Feature highlights...</li></ul>"
+    "body": "<ul><li>Feature highlights...</li></ul>",
+    "presentation_name": "Product Launch 2024",
+    "company_logo": "https://example.com/logo.png"
   },
   "background_color": "#ffffff"
 }
 ```
+
+**Content Fields:** Same as I1 (includes `presentation_name` and `company_logo`). Footer at cols 2-7.
 
 **Slide-Level Fields:** Same as I1 (`background_color` supported, `background_image` not recommended)
 
@@ -562,11 +679,15 @@ Full-height narrow image on left (6 cols), content on right.
     "slide_title": "Case Study",
     "subtitle": "Client Success",
     "image_url": "https://example.com/client-logo.jpg",
-    "body": "<p>Detailed case study content...</p>"
+    "body": "<p>Detailed case study content...</p>",
+    "presentation_name": "Client Success Stories",
+    "company_logo": "https://example.com/logo.png"
   },
   "background_color": "#f9fafb"
 }
 ```
+
+**Content Fields:** Same as I1 (includes `presentation_name` and `company_logo`). Footer at cols 7-12.
 
 **Slide-Level Fields:** Same as I1 (`background_color` supported, `background_image` not recommended)
 
@@ -595,11 +716,15 @@ Full-height narrow image on right (6 cols), content on left.
     "slide_title": "Partner Profile",
     "subtitle": "Strategic Alliance",
     "image_url": "https://example.com/partner-logo.jpg",
-    "body": "<p>Partnership details...</p>"
+    "body": "<p>Partnership details...</p>",
+    "presentation_name": "Partner Ecosystem",
+    "company_logo": "https://example.com/logo.png"
   },
   "background_color": "#ffffff"
 }
 ```
+
+**Content Fields:** Same as I1 (includes `presentation_name` and `company_logo`). Footer at cols 2-7.
 
 **Slide-Level Fields:** Same as I1 (`background_color` supported, `background_image` not recommended)
 
@@ -630,7 +755,9 @@ Image on left, text insights on right.
     "slide_title": "Visual Analysis",
     "subtitle": "Key Observations",
     "image_url": "https://example.com/analysis.jpg",
-    "body": "<ul>\n  <li>Key insight 1</li>\n  <li>Key insight 2</li>\n</ul>"
+    "body": "<ul>\n  <li>Key insight 1</li>\n  <li>Key insight 2</li>\n</ul>",
+    "presentation_name": "Market Research 2024",
+    "company_logo": "https://example.com/logo.png"
   },
   "background_color": "#ffffff",
   "background_image": "https://example.com/subtle-pattern.png"
@@ -645,6 +772,8 @@ Image on left, text insights on right.
 | `subtitle` | string/HTML | No | Subtitle |
 | `image_url` | string (URL) | No | Left-side image |
 | `body` | string/HTML | No | Right-side text insights |
+| `presentation_name` | string/HTML | No | Footer text (max 100 chars) |
+| `company_logo` | string (URL/HTML) | No | Logo (URL, HTML, or emoji) |
 
 **Slide-Level Fields** (outside `content`):
 
@@ -677,7 +806,9 @@ Slide with one chart visualization.
   "content": {
     "slide_title": "Revenue Growth",
     "subtitle": "FY 2024 vs FY 2023",
-    "chart_html": "<div class='chart-container' style='width:100%;height:100%'><canvas id='chart1'>...</canvas></div>"
+    "chart_html": "<div class='chart-container' style='width:100%;height:100%'><canvas id='chart1'>...</canvas></div>",
+    "presentation_name": "Financial Review 2024",
+    "company_logo": "https://example.com/logo.png"
   },
   "background_color": "#ffffff",
   "background_image": "https://example.com/subtle-grid.png"
@@ -691,6 +822,8 @@ Slide with one chart visualization.
 | `slide_title` | string/HTML | **Yes** | Slide title (max 80 chars) |
 | `subtitle` | string/HTML | No | Subtitle (max 120 chars) |
 | `chart_html` | string/HTML | **Yes** | Complete HTML from Analytics Service |
+| `presentation_name` | string/HTML | No | Footer text (max 100 chars) |
+| `company_logo` | string (URL/HTML) | No | Logo (URL, HTML, or emoji) |
 
 **Slide-Level Fields:**
 
@@ -724,7 +857,9 @@ Chart on left, text insights on right.
     "slide_title": "Performance Analysis",
     "subtitle": "Q4 Metrics",
     "chart_html": "<div class='chart-container'>...</div>",
-    "body": "<ul>\n  <li><strong>+25%</strong> revenue growth</li>\n  <li><strong>-10%</strong> cost reduction</li>\n</ul>"
+    "body": "<ul>\n  <li><strong>+25%</strong> revenue growth</li>\n  <li><strong>-10%</strong> cost reduction</li>\n</ul>",
+    "presentation_name": "Quarterly Review",
+    "company_logo": "https://example.com/logo.png"
   },
   "background_color": "#f8fafc"
 }
@@ -738,6 +873,8 @@ Chart on left, text insights on right.
 | `subtitle` | string/HTML | No | Subtitle |
 | `chart_html` | string/HTML | **Yes** | Complete HTML for left chart area |
 | `body` | string/HTML | No | Right-side text insights |
+| `presentation_name` | string/HTML | No | Footer text (max 100 chars) |
+| `company_logo` | string (URL/HTML) | No | Logo (URL, HTML, or emoji) |
 
 **Slide-Level Fields:** Same as C3-chart
 
@@ -766,11 +903,24 @@ Diagram/chart on left, observations/text on right. Backend layout used by Analyt
     "slide_title": "System Architecture",
     "element_1": "Architecture Overview",
     "element_4": "<div class='diagram-container'>...</div>",
-    "element_2": "<ul><li>Component A</li><li>Component B</li></ul>"
+    "element_2": "<ul><li>Component A</li><li>Component B</li></ul>",
+    "presentation_name": "Technical Documentation",
+    "company_logo": "https://example.com/logo.png"
   },
   "background_color": "#ffffff"
 }
 ```
+
+**Content Fields:**
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `slide_title` | string/HTML | **Yes** | Slide title |
+| `element_1` | string/HTML | No | Subtitle |
+| `element_4` | string/HTML | **Yes** | Diagram/chart HTML (left area) |
+| `element_2` | string/HTML | No | Right-side text/observations |
+| `presentation_name` | string/HTML | No | Footer text (max 100 chars) |
+| `company_logo` | string (URL/HTML) | No | Logo (URL, HTML, or emoji) |
 
 **Slide-Level Fields:** Same as C3-chart (`background_color`, `background_image` supported)
 
@@ -800,7 +950,9 @@ Slide with one diagram.
   "content": {
     "slide_title": "Process Flow",
     "subtitle": "Order Fulfillment Pipeline",
-    "diagram_html": "<div class='diagram-container' style='width:100%;height:100%'><svg viewBox='0 0 1800 840'>...</svg></div>"
+    "diagram_html": "<div class='diagram-container' style='width:100%;height:100%'><svg viewBox='0 0 1800 840'>...</svg></div>",
+    "presentation_name": "Operations Overview",
+    "company_logo": "https://example.com/logo.png"
   },
   "background_color": "#ffffff",
   "background_image": "https://example.com/subtle-pattern.png"
@@ -814,6 +966,8 @@ Slide with one diagram.
 | `slide_title` | string/HTML | **Yes** | Slide title (max 80 chars) |
 | `subtitle` | string/HTML | No | Subtitle (max 120 chars) |
 | `diagram_html` | string/HTML | **Yes** | Complete HTML from Diagram Service |
+| `presentation_name` | string/HTML | No | Footer text (max 100 chars) |
+| `company_logo` | string (URL/HTML) | No | Logo (URL, HTML, or emoji) |
 
 **Slide-Level Fields:**
 
@@ -847,7 +1001,9 @@ Diagram on left, text insights on right.
     "slide_title": "System Architecture",
     "subtitle": "High-Level Overview",
     "diagram_html": "<div class='diagram-container'>...</div>",
-    "body": "<ul>\n  <li>Frontend: React SPA</li>\n  <li>Backend: FastAPI</li>\n  <li>Database: PostgreSQL</li>\n</ul>"
+    "body": "<ul>\n  <li>Frontend: React SPA</li>\n  <li>Backend: FastAPI</li>\n  <li>Database: PostgreSQL</li>\n</ul>",
+    "presentation_name": "Technical Overview",
+    "company_logo": "https://example.com/logo.png"
   },
   "background_color": "#f8fafc"
 }
@@ -861,6 +1017,8 @@ Diagram on left, text insights on right.
 | `subtitle` | string/HTML | No | Subtitle |
 | `diagram_html` | string/HTML | **Yes** | Complete HTML for left diagram area |
 | `body` | string/HTML | No | Right-side text insights |
+| `presentation_name` | string/HTML | No | Footer text (max 100 chars) |
+| `company_logo` | string (URL/HTML) | No | Logo (URL, HTML, or emoji) |
 
 **Slide-Level Fields:** Same as C5-diagram
 
@@ -891,7 +1049,9 @@ Slide with one infographic.
   "content": {
     "slide_title": "Company Timeline",
     "subtitle": "Our Journey Since 2015",
-    "infographic_html": "<div class='infographic-container' style='width:100%;height:100%'>...</div>"
+    "infographic_html": "<div class='infographic-container' style='width:100%;height:100%'>...</div>",
+    "presentation_name": "Company History",
+    "company_logo": "https://example.com/logo.png"
   },
   "background_color": "#ffffff",
   "background_image": "https://example.com/subtle-pattern.png"
@@ -905,6 +1065,8 @@ Slide with one infographic.
 | `slide_title` | string/HTML | **Yes** | Slide title (max 80 chars) |
 | `subtitle` | string/HTML | No | Subtitle (max 120 chars) |
 | `infographic_html` | string/HTML | **Yes** | Complete HTML from Illustrator Service |
+| `presentation_name` | string/HTML | No | Footer text (max 100 chars) |
+| `company_logo` | string (URL/HTML) | No | Logo (URL, HTML, or emoji) |
 
 **Slide-Level Fields:**
 
@@ -938,7 +1100,9 @@ Infographic on left, text insights on right.
     "slide_title": "Key Metrics",
     "subtitle": "2024 Performance Summary",
     "infographic_html": "<div class='infographic-container'>...</div>",
-    "body": "<ul>\n  <li><strong>$10M</strong> ARR achieved</li>\n  <li><strong>50K</strong> active users</li>\n</ul>"
+    "body": "<ul>\n  <li><strong>$10M</strong> ARR achieved</li>\n  <li><strong>50K</strong> active users</li>\n</ul>",
+    "presentation_name": "Annual Performance Report",
+    "company_logo": "https://example.com/logo.png"
   },
   "background_color": "#f8fafc"
 }
@@ -952,6 +1116,8 @@ Infographic on left, text insights on right.
 | `subtitle` | string/HTML | No | Subtitle |
 | `infographic_html` | string/HTML | **Yes** | Complete HTML for left infographic area |
 | `body` | string/HTML | No | Right-side text insights |
+| `presentation_name` | string/HTML | No | Footer text (max 100 chars) |
+| `company_logo` | string (URL/HTML) | No | Logo (URL, HTML, or emoji) |
 
 **Slide-Level Fields:** Same as C4-infographic
 
@@ -986,7 +1152,9 @@ Two charts/diagrams/infographics side by side.
     "visual_left_html": "<div class='chart-container'>...</div>",
     "visual_right_html": "<div class='chart-container'>...</div>",
     "caption_left": "Q1 Performance",
-    "caption_right": "Q4 Performance"
+    "caption_right": "Q4 Performance",
+    "presentation_name": "Performance Comparison",
+    "company_logo": "https://example.com/logo.png"
   },
   "background_color": "#ffffff",
   "background_image": "https://example.com/subtle-pattern.png"
@@ -1003,6 +1171,8 @@ Two charts/diagrams/infographics side by side.
 | `visual_right_html` | string/HTML | **Yes** | Right visual (chart/diagram/infographic HTML) |
 | `caption_left` | string/HTML | No | Left caption |
 | `caption_right` | string/HTML | No | Right caption |
+| `presentation_name` | string/HTML | No | Footer text (max 100 chars) |
+| `company_logo` | string (URL/HTML) | No | Logo (URL, HTML, or emoji) |
 
 **Slide-Level Fields:**
 
@@ -1041,7 +1211,9 @@ Two columns for comparing items (before/after, pros/cons).
     "header_left": "Option A",
     "header_right": "Option B",
     "content_left": "<ul>\n  <li>Feature 1</li>\n  <li>Feature 2</li>\n</ul>",
-    "content_right": "<ul>\n  <li>Feature 1</li>\n  <li>Feature 2</li>\n</ul>"
+    "content_right": "<ul>\n  <li>Feature 1</li>\n  <li>Feature 2</li>\n</ul>",
+    "presentation_name": "Solution Analysis",
+    "company_logo": "https://example.com/logo.png"
   },
   "background_color": "#f8fafc"
 }
@@ -1057,6 +1229,8 @@ Two columns for comparing items (before/after, pros/cons).
 | `header_right` | string/HTML | No | Right column header |
 | `content_left` | string/HTML | **Yes** | Left column content |
 | `content_right` | string/HTML | **Yes** | Right column content |
+| `presentation_name` | string/HTML | No | Footer text (max 100 chars) |
+| `company_logo` | string (URL/HTML) | No | Logo (URL, HTML, or emoji) |
 
 **Slide-Level Fields:** Same as S3-two-visuals
 
