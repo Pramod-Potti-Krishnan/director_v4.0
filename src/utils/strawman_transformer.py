@@ -28,8 +28,11 @@ v4.5.12: Proper footer and logo placement per SLIDE_GENERATION_INPUT_SPEC.md.
 - STRAWMAN logo in footer logo area via company_logo field
 - Footer with template/variant/service via presentation_name (L25) or footer_text (C1)
 - Better subtitle generation from purpose + topics
-- Slide metadata section showing purpose, type hint, and notes
-- Removed inline watermark (logo now in proper footer area)
+v4.5.13: Clean four-section structure for strawman content.
+- Purpose: Why this slide exists in the story
+- Topics: What content to cover (bullet points)
+- Generation Instructions: How the service should build it
+- Notes: Additional context or speaker notes
 """
 from typing import Dict, Any, List
 from src.utils.logger import setup_logger
@@ -496,11 +499,11 @@ class StrawmanTransformer:
         """
         Create strawman metadata display HTML for content slides (C1, L25, V1).
 
-        v4.5.8: Full-width card grid with topics as hero content.
-        v4.5.10: Topics as bullet list, bigger chips, STRAWMAN watermark,
-                 generation_instructions and notes display.
-        v4.5.12: Added slide metadata section (purpose, type, notes).
-                 Removed inline watermark (logo now in company_logo field).
+        v4.5.13: Clean four-section structure for strawman content:
+        1. Purpose - Why this slide exists in the story
+        2. Topics - What content to cover (bullet points)
+        3. Generation Instructions - How the service should build it
+        4. Notes - Additional context or speaker notes
 
         Args:
             slide: Slide data with all strawman fields
@@ -513,116 +516,102 @@ class StrawmanTransformer:
         service = slide.get('service') or 'text'
         purpose = slide.get('purpose') or ''
         topics = slide.get('topics', [])
-        semantic_group = slide.get('semantic_group')
         generation_instructions = slide.get('generation_instructions', '')
         notes = slide.get('notes', '')
 
-        # v4.5.10: Build semantic group chip with larger size
-        semantic_chip = ''
-        if semantic_group:
-            semantic_chip = f'''
-            <span style="background: #fef3c7; color: #92400e; padding: 12px 28px;
-                         border-radius: 20px; font-size: 24px; font-weight: 600;">
-                🏷️ {semantic_group}
-            </span>
+        # v4.5.13: Build four consistent sections
+
+        # Section 1: Purpose
+        purpose_section = ''
+        if purpose and purpose != '-':
+            purpose_display = purpose.replace('_', ' ').title()
+            purpose_section = f'''
+            <div style="margin-bottom: 24px;">
+                <div style="font-size: 18px; font-weight: 700; color: #6366f1; margin-bottom: 8px;
+                            text-transform: uppercase; letter-spacing: 1px;">
+                    Purpose
+                </div>
+                <div style="font-size: 20px; color: #1f2937; line-height: 1.5;">
+                    {purpose_display}
+                </div>
+            </div>
             '''
 
-        # v4.5.10: Topics as bullet list with heading
-        # v4.5.11: Doubled font sizes for better readability
+        # Section 2: Topics
         topics_section = ''
         if topics:
-            bullet_items = ''.join([f'<li style="margin-bottom: 12px; color: #374151;">{t}</li>' for t in topics])
+            bullet_items = ''.join([f'<li style="margin-bottom: 8px;">{t}</li>' for t in topics])
             topics_section = f'''
-            <div style="margin-bottom: 32px;">
-                <div style="font-size: 40px; font-weight: 700; color: #1f2937; margin-bottom: 16px;">
-                    Topics to be covered
+            <div style="margin-bottom: 24px;">
+                <div style="font-size: 18px; font-weight: 700; color: #6366f1; margin-bottom: 8px;
+                            text-transform: uppercase; letter-spacing: 1px;">
+                    Topics
                 </div>
-                <ul style="list-style: disc; margin-left: 32px; font-size: 32px; line-height: 1.6;">
+                <ul style="list-style: disc; margin-left: 24px; font-size: 20px; color: #1f2937; line-height: 1.6;">
                     {bullet_items}
                 </ul>
             </div>
             '''
 
-        # v4.5.10: Generation instructions section (green)
+        # Section 3: Generation Instructions
         gen_instructions_section = ''
         if generation_instructions:
             gen_instructions_section = f'''
-            <div style="margin-bottom: 16px; padding: 12px 16px; background: #f0fdf4;
-                        border-left: 4px solid #22c55e; border-radius: 4px;">
-                <div style="font-size: 12px; font-weight: 600; color: #166534; margin-bottom: 4px;">
+            <div style="margin-bottom: 24px;">
+                <div style="font-size: 18px; font-weight: 700; color: #6366f1; margin-bottom: 8px;
+                            text-transform: uppercase; letter-spacing: 1px;">
                     Generation Instructions
                 </div>
-                <div style="font-size: 14px; color: #15803d;">{generation_instructions}</div>
+                <div style="font-size: 20px; color: #1f2937; line-height: 1.5;">
+                    {generation_instructions}
+                </div>
             </div>
             '''
 
-        # v4.5.12: Slide metadata section showing purpose, type hint, notes
-        # (Replaces old purpose_section and notes_section - now consolidated)
-        slide_type_hint = slide.get('slide_type_hint', '')
-        metadata_section = ''
-        metadata_items = []
-
-        # Purpose (story role)
-        if purpose and purpose != '-':
-            purpose_display = purpose.replace('_', ' ').title()
-            metadata_items.append(f"<strong>Purpose:</strong> {purpose_display}")
-
-        # Slide type hint
-        if slide_type_hint:
-            metadata_items.append(f"<strong>Type:</strong> {slide_type_hint}")
-
-        # Notes
+        # Section 4: Notes
+        notes_section = ''
         if notes:
-            metadata_items.append(f"<strong>Notes:</strong> {notes}")
-
-        if metadata_items:
-            items_html = '<br>'.join(metadata_items)
-            metadata_section = f'''
-            <div style="margin-top: 16px; padding: 16px; background: #f1f5f9;
-                        border-radius: 8px; border-left: 4px solid #64748b;">
-                <div style="font-size: 14px; font-weight: 600; color: #475569; margin-bottom: 8px;">
-                    📊 Slide Metadata
+            notes_section = f'''
+            <div style="margin-bottom: 24px;">
+                <div style="font-size: 18px; font-weight: 700; color: #6366f1; margin-bottom: 8px;
+                            text-transform: uppercase; letter-spacing: 1px;">
+                    Notes
                 </div>
-                <div style="font-size: 14px; color: #64748b; line-height: 1.6;">
-                    {items_html}
+                <div style="font-size: 20px; color: #1f2937; line-height: 1.5;">
+                    {notes}
                 </div>
             </div>
             '''
 
         return f'''
 <div style="height: 100%; padding: 40px; font-family: system-ui, -apple-system, sans-serif;
-            display: flex; flex-direction: column; gap: 24px;">
+            display: flex; flex-direction: column; gap: 16px;">
 
-    <!-- Top Row: Badge + Metadata Chips (2x bigger) -->
-    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 20px;">
+    <!-- Top Row: Badge + Metadata Chips -->
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px; margin-bottom: 16px;">
         {self._create_compact_badge()}
 
-        <!-- Metadata Chips - v4.5.10: 2x bigger -->
-        <div style="display: flex; gap: 20px; flex-wrap: wrap;">
-            <span style="background: #e0e7ff; color: #3730a3; padding: 12px 28px;
-                         border-radius: 20px; font-size: 24px; font-weight: 600;">
+        <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+            <span style="background: #e0e7ff; color: #3730a3; padding: 8px 16px;
+                         border-radius: 16px; font-size: 14px; font-weight: 600;">
                 🎨 {layout}
             </span>
-            <span style="background: #d1fae5; color: #065f46; padding: 12px 28px;
-                         border-radius: 20px; font-size: 24px; font-weight: 600;">
+            <span style="background: #d1fae5; color: #065f46; padding: 8px 16px;
+                         border-radius: 16px; font-size: 14px; font-weight: 600;">
                 📐 {variant_id}
             </span>
-            <span style="background: #fce7f3; color: #9d174d; padding: 12px 28px;
-                         border-radius: 20px; font-size: 24px; font-weight: 600;">
+            <span style="background: #fce7f3; color: #9d174d; padding: 8px 16px;
+                         border-radius: 16px; font-size: 14px; font-weight: 600;">
                 ⚙️ {service}
             </span>
-            {semantic_chip}
         </div>
     </div>
 
-    <!-- Topics Section - v4.5.10: Bullet list with heading -->
+    <!-- Four Sections: Purpose, Topics, Generation Instructions, Notes -->
+    {purpose_section}
     {topics_section}
-
-    <!-- v4.5.10: Generation Instructions (if any) -->
     {gen_instructions_section}
-
-    <!-- v4.5.12: Slide Metadata section (purpose, type, notes) -->
-    {metadata_section}
+    {notes_section}
 </div>
 '''
 
