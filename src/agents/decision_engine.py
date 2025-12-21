@@ -668,20 +668,6 @@ IMPORTANT: The slide_type_hint is determined by WHAT STORY you're telling, NOT b
 - A slide about "Revenue Growth" could be "text" (bullet points about growth) OR "chart" (line chart showing growth)
 - YOU decide based on how the story should be visualized
 
-### purpose (REQUIRED)
-What story is this slide telling in the narrative?
-Examples:
-- title_slide, opening
-- problem_statement, challenge
-- solution_overview, our_approach
-- traction, metrics, market_size
-- technical_overview, architecture, implementation
-- features, benefits, value_proposition
-- use_cases, case_studies
-- team, about_us
-- pricing, plans
-- closing_slide, call_to_action, thank_you
-
 ## HERO SLIDE NARRATIVE REQUIREMENTS (CRITICAL)
 
 Hero slides require RICH narratives that describe section content. Generic narratives like "Transition to the next section" will produce poor results.
@@ -833,73 +819,86 @@ EXAMPLE for "AI Agents in Supply Chain":
 
 RULE: Slides WITH semantic_group = same variant. Slides WITHOUT = diverse variants.
 
-## OUTPUT (v4.5.14 - ALL FIELDS REQUIRED)
+## FOUR REQUIRED METADATA FIELDS (v4.5.15 - CRITICAL)
 
-Create a complete Strawman with slide definitions including:
+For EVERY slide, you MUST populate ALL FOUR of these fields. These are the most important fields in the output!
 
-**Required Identification:**
+### 1. PURPOSE (REQUIRED)
+What story role does this slide play in the narrative?
+
+**Examples for content slides:**
+- "problem_statement" - Establishes the challenge being addressed
+- "solution_overview" - Presents the core solution
+- "key_benefits" - Highlights value propositions
+- "technical_deep_dive" - Explains how it works
+- "use_case_example" - Shows real-world application
+- "metrics_and_data" - Presents supporting data
+- "competitive_advantage" - Differentiates from alternatives
+- "implementation_steps" - Shows how to get started
+- "features_overview" - Lists key features
+- "team_introduction" - Introduces key people
+
+**Examples for hero slides:**
+- "title_slide" - Opening/introduction
+- "section_transition" - Divides major sections
+- "closing_slide" - Summary and call-to-action
+
+### 2. TOPICS (REQUIRED)
+3-5 specific bullet points covering what this slide should address.
+These become the actual content points in the generated slide.
+
+### 3. GENERATION INSTRUCTIONS (REQUIRED)
+Specific instructions for HOW the content service should generate this slide.
+
+**Examples for text slides:**
+- "Generate a 3-column comparison table showing Feature vs Benefit vs Impact"
+- "Create bullet points with bold headers followed by supporting text"
+- "Use numbered list format showing the 4-step process"
+- "Build a pros/cons layout with clear visual separation"
+- "Create paragraph format with clear topic sentences"
+
+**Examples for visual slides:**
+- "Line chart showing revenue growth from Q1-Q4, emphasize 40% increase"
+- "Architecture diagram with 3 layers: frontend, backend, database"
+- "Funnel visualization with 4 stages: Awareness → Interest → Decision → Action"
+
+### 4. NOTES (REQUIRED)
+Speaker guidance and delivery hints for the presenter.
+
+**Examples:**
+- "Emphasize the 40% cost reduction - this is the key selling point"
+- "Keep technical but accessible for mixed audience"
+- "This is the emotional high point - use inspiring language"
+- "Pause here for questions before continuing"
+- "Use confident, assertive tone throughout"
+
+## OUTPUT (v4.5.15)
+
+Create a complete Strawman with slide definitions. Each slide MUST include:
+
+**Identification:**
 - slide_id (unique UUID)
 - slide_number (position starting from 1)
 
-**Content Structure:**
+**Content:**
 - title (topic-specific, never generic)
 - subtitle (supporting context: "Key Insights", "Strategic Overview", etc.)
-- topics (3-5 specific bullet points related to the slide)
 
-**Layout & Variant:**
-- layout (see SMART LAYOUT SELECTION above - use C1/L25/I1-I4/etc based on presentation type)
-- variant_id (null for plain text OR a specific variant name - see VARIANT SELECTION above)
+**Layout:**
+- layout (see SMART LAYOUT SELECTION above)
+- variant_id (null for plain text OR specific variant - see VARIANT SELECTION above)
 
 **Classification:**
 - is_hero (true/false)
 - hero_type (title_slide, section_divider, closing_slide - ONLY for hero slides)
 - slide_type_hint (REQUIRED: hero, text, chart, diagram, or infographic)
-- purpose (REQUIRED: what story this slide tells in the narrative)
 - semantic_group (group ID for slides that should share same template, null otherwise)
 
-**Generation Guidance (ALL REQUIRED FOR EVERY SLIDE):**
-- generation_instructions (REQUIRED: specific instructions for content generation)
-- notes (REQUIRED: speaker notes, tone guidance, emphasis points)
-
-## GENERATION INSTRUCTIONS FIELD (CRITICAL - MUST POPULATE)
-
-For EVERY slide, provide specific `generation_instructions` that tell the service HOW to generate content:
-
-**For Text Slides (examples):**
-- "Generate a 3-column comparison highlighting the differences between X, Y, and Z"
-- "Create detailed bullet points explaining the technical implementation process step by step"
-- "Use plain paragraph format with natural flow explaining the core concept"
-- "Build a numbered list of key benefits with supporting descriptions"
-
-**For Chart Slides (examples):**
-- "Line chart showing revenue growth from Q1-Q4 2024, emphasize the 40% YoY increase"
-- "Pie chart breaking down market share, highlight our 25% segment vs competitors"
-- "Bar chart comparing performance metrics across 3 product lines"
-
-**For Diagram Slides (examples):**
-- "Architecture diagram with 3 layers: frontend (React), backend (Node.js), database (PostgreSQL)"
-- "Process flow with 5 sequential steps showing the customer journey from awareness to purchase"
-- "System diagram showing how the 4 microservices communicate"
-
-**For Infographic Slides (examples):**
-- "Funnel visualization with 4 stages: Awareness (1000) → Interest (500) → Decision (200) → Action (50)"
-- "Pyramid showing 3-tier value hierarchy with premium at top"
-- "Circular diagram showing the 5-step feedback loop"
-
-## NOTES FIELD (REQUIRED FOR EVERY SLIDE)
-
-For every slide, include `notes` with guidance for delivery and tone:
-- Tone/style guidance ("Keep it conversational", "Professional and data-driven", "Inspiring and motivational")
-- Key emphasis points ("Stress the cost savings - this is the key selling point")
-- Formatting hints ("Use short punchy bullets", "Include specific numbers and percentages")
-- Speaker context ("This is the key takeaway slide", "Pause here for questions")
-- Audience considerations ("Simplify for non-technical audience", "Can go deeper for experts")
-
-**Examples:**
-- "Use simple language suitable for general audience. Include an engaging question to spark discussion."
-- "Emphasize the 40% cost reduction - this is the primary value proposition. Use confident, assertive tone."
-- "Keep technical but accessible. Reference the problem statement from slide 2 to create continuity."
-- "This is the emotional high point - use inspiring language. End with a clear call to action."
+**FOUR REQUIRED METADATA FIELDS (see detailed section above):**
+- purpose (REQUIRED - pick from examples above)
+- topics (REQUIRED - 3-5 specific points)
+- generation_instructions (REQUIRED - specific HOW instructions)
+- notes (REQUIRED - speaker guidance)
 """
 
     async def generate(
