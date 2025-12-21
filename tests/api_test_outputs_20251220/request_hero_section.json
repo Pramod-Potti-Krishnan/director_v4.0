@@ -1,0 +1,11 @@
+{
+  "slide_number": 5,
+  "slide_type": "section_divider",
+  "narrative": "Financial performance review for the quarter",
+  "topics": ["revenue", "profit", "growth"],
+  "context": {
+    "section_number": "02",
+    "section_title": "Financial Results"
+  },
+  "visual_style": "professional"
+}

@@ -495,6 +495,17 @@ class WebSocketHandlerV4:
             purpose=session.purpose or "inform"
         )
 
+        # v4.5: Build ContentContext at strawman stage (THEME_SYSTEM_DESIGN.md v2.3)
+        from src.models.content_context import build_content_context
+        content_context = build_content_context(
+            audience=session.audience,
+            purpose=session.purpose,
+            duration=session.duration,
+            tone=session.tone
+        )
+        session.content_context = content_context.to_text_service_format()
+        logger.info(f"v4.5: Built ContentContext for session: audience={session.audience}, purpose={session.purpose}")
+
         # Save strawman
         strawman_dict = strawman.dict()
         await self.session_manager.save_strawman(
@@ -1443,6 +1454,13 @@ class WebSocketHandlerV4:
                         "audience": session.audience or "general"
                     }
 
+                    # v4.5: Get theme config and content context for Text Service
+                    from src.models.theme_config import get_theme_config
+                    theme_config = get_theme_config(session.theme_id or settings.DEFAULT_THEME_ID)
+                    theme_dict = theme_config.to_text_service_format()
+                    content_context = session.content_context
+                    styling_mode = settings.THEME_STYLING_MODE
+
                     try:
                         if hero_type == 'title_slide' or not hero_type:
                             # H1-generated: Title slide with AI image
@@ -1454,7 +1472,10 @@ class WebSocketHandlerV4:
                                 presentation_title=presentation_title,
                                 subtitle=slide.get('subtitle'),
                                 visual_style="professional",
-                                context=context
+                                context=context,
+                                theme_config=theme_dict,
+                                content_context=content_context,
+                                styling_mode=styling_mode
                             )
                             layout = 'H1-generated'
                         elif hero_type == 'section_divider':
@@ -1466,7 +1487,10 @@ class WebSocketHandlerV4:
                                 section_number=slide.get('section_number'),
                                 section_title=slide.get('title'),
                                 topics=topics,
-                                visual_style="professional"
+                                visual_style="professional",
+                                theme_config=theme_dict,
+                                content_context=content_context,
+                                styling_mode=styling_mode
                             )
                             layout = 'H2-section'
                         elif hero_type == 'closing_slide':
@@ -1476,7 +1500,10 @@ class WebSocketHandlerV4:
                                 slide_number=idx + 1,
                                 narrative=narrative,
                                 closing_message=slide.get('title', 'Thank You'),
-                                visual_style="professional"
+                                visual_style="professional",
+                                theme_config=theme_dict,
+                                content_context=content_context,
+                                styling_mode=styling_mode
                             )
                             layout = 'H3-closing'
                         else:
@@ -1487,7 +1514,10 @@ class WebSocketHandlerV4:
                                 narrative=narrative,
                                 topics=topics,
                                 presentation_title=presentation_title,
-                                context=context
+                                context=context,
+                                theme_config=theme_dict,
+                                content_context=content_context,
+                                styling_mode=styling_mode
                             )
                             layout = 'H1-generated'
 
@@ -1613,6 +1643,10 @@ class WebSocketHandlerV4:
                         "audience": session.audience or "general"
                     }
 
+                    # v4.5: Get theme config and content context for Text Service
+                    from src.models.theme_config import get_theme_config
+                    theme_config = get_theme_config(session.theme_id or settings.DEFAULT_THEME_ID)
+
                     try:
                         print(f"[SLIDE] Using unified API: /v1.2/slides/C1-text (1 LLM call)")
 
@@ -1624,7 +1658,11 @@ class WebSocketHandlerV4:
                             subtitle=slide.get('subtitle'),
                             topics=topics,
                             content_style="bullets",
-                            context=context
+                            context=context,
+                            # v4.5: Theme system params (ignored by v1.2.2, used by v1.3.0)
+                            theme_config=theme_config.to_text_service_format(),
+                            content_context=session.content_context,
+                            styling_mode=settings.THEME_STYLING_MODE
                         )
 
                         # v4.3: Response includes slide_title, subtitle, body, background_color
@@ -1853,6 +1891,11 @@ class WebSocketHandlerV4:
                 "audience": session.audience or "general"
             }
 
+            # v4.5: Get theme config and content context for Text Service
+            from src.models.theme_config import get_theme_config
+            theme_config = get_theme_config(session.theme_id or settings.DEFAULT_THEME_ID)
+            theme_dict = theme_config.to_text_service_format()
+
             print(f"[ISERIES] Generating {layout_type} for slide {idx+1}: '{title[:40]}...'")
             print(f"[ISERIES]   visual_style={visual_style}, topics={len(topics)}")
 
@@ -1866,7 +1909,11 @@ class WebSocketHandlerV4:
                 visual_style=visual_style,
                 content_style=content_style,
                 context=context,
-                max_bullets=5
+                max_bullets=5,
+                # v4.5: Theme system params
+                theme_config=theme_dict,
+                content_context=session.content_context,
+                styling_mode=settings.THEME_STYLING_MODE
             )
 
             # I-series returns combined HTML

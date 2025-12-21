@@ -1,0 +1,12 @@
+{
+  "slide_number": 15,
+  "slide_type": "closing_slide",
+  "narrative": "Thank you for joining our innovation summit",
+  "topics": ["partnership", "innovation", "future"],
+  "context": {
+    "contact_email": "innovation@techcorp.com",
+    "contact_phone": "+1-555-987-6543",
+    "website_url": "https://techcorp.com/innovation"
+  },
+  "visual_style": "illustrated"
+}

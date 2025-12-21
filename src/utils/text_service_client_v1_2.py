@@ -448,7 +448,11 @@ class TextServiceClientV1_2:
         visual_style: str = "professional",
         content_style: str = "bullets",
         context: Optional[Dict[str, Any]] = None,
-        max_bullets: int = 5
+        max_bullets: int = 5,
+        # v4.5: Theme system params
+        theme_config: Optional[Dict] = None,
+        content_context: Optional[Dict] = None,
+        styling_mode: str = "inline_styles"
     ) -> Dict[str, Any]:
         """
         Generate I-series slide (image + text combined layout).
@@ -458,6 +462,8 @@ class TextServiceClientV1_2:
         - I2: Wide image right (660×1080), content left (1140×840)
         - I3: Narrow image left (360×1080), content right (1500×840)
         - I4: Narrow image right (360×1080), content left (1440×840)
+
+        v4.5: Theme system params added (ignored by v1.2.2, used by v1.3.0).
 
         Args:
             layout_type: Layout ID (I1, I2, I3, I4)
@@ -469,6 +475,9 @@ class TextServiceClientV1_2:
             content_style: Text style (bullets, paragraphs, mixed)
             context: Optional context dict with theme, audience, etc.
             max_bullets: Maximum bullet points (default: 5)
+            theme_config: v4.5 - Full theme config
+            content_context: v4.5 - Audience/purpose/time config
+            styling_mode: v4.5 - "inline_styles" or "css_classes"
 
         Returns:
             Dict with:
@@ -496,6 +505,14 @@ class TextServiceClientV1_2:
             "max_bullets": max_bullets,
             "context": context or {}
         }
+
+        # v4.5: Add theme system params
+        if theme_config:
+            payload["theme_config"] = theme_config
+        if content_context:
+            payload["content_context"] = content_context
+        if styling_mode:
+            payload["styling_mode"] = styling_mode
 
         try:
             print(f"[TEXT-SVC] POST /v1.2/iseries/generate layout={layout_type}, style={visual_style}")
@@ -984,13 +1001,19 @@ class TextServiceClientV1_2:
         subtitle: Optional[str] = None,
         visual_style: str = "professional",
         image_prompt_hint: Optional[str] = None,
-        context: Optional[Dict[str, Any]] = None
+        context: Optional[Dict[str, Any]] = None,
+        # v4.5: Theme system params
+        theme_config: Optional[Dict] = None,
+        content_context: Optional[Dict] = None,
+        styling_mode: str = "inline_styles"
     ) -> Dict[str, Any]:
         """
         Generate H1-generated (title slide with AI background image).
 
         v4.3: Uses unified /v1.2/slides/H1-generated endpoint.
         Returns spec-compliant response with hero_content, slide_title, subtitle.
+
+        v4.5: Theme system params added (ignored by v1.2.2, used by v1.3.0).
 
         Args:
             slide_number: Slide position in presentation
@@ -1001,6 +1024,9 @@ class TextServiceClientV1_2:
             visual_style: Image style ("professional", "illustrated", "kids")
             image_prompt_hint: Optional hint for image generation
             context: Optional context dict
+            theme_config: v4.5 - Full theme config
+            content_context: v4.5 - Audience/purpose/time config
+            styling_mode: v4.5 - "inline_styles" or "css_classes"
 
         Returns:
             Dict with:
@@ -1022,6 +1048,14 @@ class TextServiceClientV1_2:
             "context": context or {}
         }
 
+        # v4.5: Add theme system params
+        if theme_config:
+            payload["theme_config"] = theme_config
+        if content_context:
+            payload["content_context"] = content_context
+        if styling_mode:
+            payload["styling_mode"] = styling_mode
+
         return await self._call_unified_slides("H1-generated", payload, timeout=180)
 
     async def generate_h1_structured(
@@ -1033,13 +1067,19 @@ class TextServiceClientV1_2:
         author_name: Optional[str] = None,
         date_info: Optional[str] = None,
         visual_style: str = "professional",
-        context: Optional[Dict[str, Any]] = None
+        context: Optional[Dict[str, Any]] = None,
+        # v4.5: Theme system params
+        theme_config: Optional[Dict] = None,
+        content_context: Optional[Dict] = None,
+        styling_mode: str = "inline_styles"
     ) -> Dict[str, Any]:
         """
         Generate H1-structured (title slide with gradient background).
 
         v4.3: Uses unified /v1.2/slides/H1-structured endpoint.
         Returns structured fields instead of full HTML.
+
+        v4.5: Theme system params added (ignored by v1.2.2, used by v1.3.0).
 
         Args:
             slide_number: Slide position
@@ -1050,6 +1090,9 @@ class TextServiceClientV1_2:
             date_info: Date or event info
             visual_style: Style preference
             context: Optional context
+            theme_config: v4.5 - Full theme config
+            content_context: v4.5 - Audience/purpose/time config
+            styling_mode: v4.5 - "inline_styles" or "css_classes"
 
         Returns:
             Dict with:
@@ -1070,6 +1113,14 @@ class TextServiceClientV1_2:
             "context": context or {}
         }
 
+        # v4.5: Add theme system params
+        if theme_config:
+            payload["theme_config"] = theme_config
+        if content_context:
+            payload["content_context"] = content_context
+        if styling_mode:
+            payload["styling_mode"] = styling_mode
+
         return await self._call_unified_slides("H1-structured", payload, timeout=60)
 
     async def generate_h2_section(
@@ -1079,12 +1130,18 @@ class TextServiceClientV1_2:
         section_number: Optional[str] = None,
         section_title: Optional[str] = None,
         topics: Optional[list] = None,
-        visual_style: str = "professional"
+        visual_style: str = "professional",
+        # v4.5: Theme system params
+        theme_config: Optional[Dict] = None,
+        content_context: Optional[Dict] = None,
+        styling_mode: str = "inline_styles"
     ) -> Dict[str, Any]:
         """
         Generate H2-section (section divider slide).
 
         v4.3: Uses unified /v1.2/slides/H2-section endpoint.
+
+        v4.5: Theme system params added (ignored by v1.2.2, used by v1.3.0).
 
         Args:
             slide_number: Slide position
@@ -1093,6 +1150,9 @@ class TextServiceClientV1_2:
             section_title: Section title
             topics: Optional topics for section
             visual_style: Style preference
+            theme_config: v4.5 - Full theme config
+            content_context: v4.5 - Audience/purpose/time config
+            styling_mode: v4.5 - "inline_styles" or "css_classes"
 
         Returns:
             Dict with:
@@ -1111,6 +1171,14 @@ class TextServiceClientV1_2:
             "visual_style": visual_style
         }
 
+        # v4.5: Add theme system params
+        if theme_config:
+            payload["theme_config"] = theme_config
+        if content_context:
+            payload["content_context"] = content_context
+        if styling_mode:
+            payload["styling_mode"] = styling_mode
+
         return await self._call_unified_slides("H2-section", payload, timeout=60)
 
     async def generate_h3_closing(
@@ -1121,12 +1189,18 @@ class TextServiceClientV1_2:
         contact_email: Optional[str] = None,
         contact_phone: Optional[str] = None,
         website_url: Optional[str] = None,
-        visual_style: str = "professional"
+        visual_style: str = "professional",
+        # v4.5: Theme system params
+        theme_config: Optional[Dict] = None,
+        content_context: Optional[Dict] = None,
+        styling_mode: str = "inline_styles"
     ) -> Dict[str, Any]:
         """
         Generate H3-closing (closing slide with contact info).
 
         v4.3: Uses unified /v1.2/slides/H3-closing endpoint.
+
+        v4.5: Theme system params added (ignored by v1.2.2, used by v1.3.0).
 
         Args:
             slide_number: Slide position
@@ -1136,6 +1210,9 @@ class TextServiceClientV1_2:
             contact_phone: Contact phone
             website_url: Website URL
             visual_style: Style preference
+            theme_config: v4.5 - Full theme config
+            content_context: v4.5 - Audience/purpose/time config
+            styling_mode: v4.5 - "inline_styles" or "css_classes"
 
         Returns:
             Dict with:
@@ -1156,6 +1233,14 @@ class TextServiceClientV1_2:
             "visual_style": visual_style
         }
 
+        # v4.5: Add theme system params
+        if theme_config:
+            payload["theme_config"] = theme_config
+        if content_context:
+            payload["content_context"] = content_context
+        if styling_mode:
+            payload["styling_mode"] = styling_mode
+
         return await self._call_unified_slides("H3-closing", payload, timeout=60)
 
     async def generate_c1_text(
@@ -1167,7 +1252,13 @@ class TextServiceClientV1_2:
         subtitle: Optional[str] = None,
         topics: Optional[list] = None,
         content_style: str = "bullets",
-        context: Optional[Dict[str, Any]] = None
+        context: Optional[Dict[str, Any]] = None,
+        # v4.5: Theme system params (THEME_SYSTEM_DESIGN.md v2.3)
+        # Ignored by v1.2.2, auto-enabled in v1.3.0
+        theme_config: Optional[Dict] = None,
+        content_context: Optional[Dict] = None,
+        styling_mode: str = "inline_styles",
+        available_space: Optional[Dict] = None
     ) -> Dict[str, Any]:
         """
         Generate C1-text (content slide with COMBINED generation).
@@ -1175,6 +1266,9 @@ class TextServiceClientV1_2:
         v4.3: Uses unified /v1.2/slides/C1-text endpoint.
         KEY IMPROVEMENT: 1 LLM call instead of 3 (title + subtitle + body).
         67% efficiency gain per content slide!
+
+        v4.5: Theme system params added. Text Service v1.2.2 ignores these
+        (Pydantic extra="ignore"). They will auto-work when v1.3.0 deploys.
 
         Args:
             slide_number: Slide position
@@ -1185,6 +1279,10 @@ class TextServiceClientV1_2:
             topics: Key topics/points to cover
             content_style: "bullets", "paragraphs", or "mixed"
             context: Optional context with audience, tone, etc.
+            theme_config: v4.5 - Full theme config (typography + colors)
+            content_context: v4.5 - Audience/purpose/time config
+            styling_mode: v4.5 - "inline_styles" or "css_classes"
+            available_space: v4.5 - Grid dimensions for multi-step generation
 
         Returns:
             Dict with:
@@ -1205,6 +1303,16 @@ class TextServiceClientV1_2:
             "content_style": content_style,
             "context": context or {}
         }
+
+        # v4.5: Add theme system params (ignored until Text Service v1.3.0)
+        if theme_config:
+            payload["theme_config"] = theme_config
+        if content_context:
+            payload["content_context"] = content_context
+        if styling_mode:
+            payload["styling_mode"] = styling_mode
+        if available_space:
+            payload["available_space"] = available_space
 
         return await self._call_unified_slides("C1-text", payload, timeout=60)
 

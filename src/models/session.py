@@ -76,6 +76,16 @@ class SessionV4(BaseModel):
         description="Branding configuration (footer/logo) as dict for Supabase compatibility"
     )
 
+    # v4.5: Theme System (THEME_SYSTEM_DESIGN.md v2.3)
+    theme_id: Optional[str] = Field(
+        default="professional",
+        description="Theme identifier (professional, executive, educational, children)"
+    )
+    content_context: Optional[Dict[str, Any]] = Field(
+        None,
+        description="ContentContext for audience-aware generation (built at strawman stage)"
+    )
+
     # Timestamps
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)

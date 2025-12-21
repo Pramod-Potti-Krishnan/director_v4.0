@@ -225,6 +225,22 @@ class Settings(BaseSettings):
         description="Use Text Service v1.2.2 unified /v1.2/slides/* endpoints for combined generation"
     )
 
+    # v4.5: Theme System (THEME_SYSTEM_DESIGN.md v2.3)
+    # Controls how content is styled by Text Service
+    # - "inline_styles": CSS embedded in HTML elements (default, works everywhere)
+    # - "css_classes": Uses .deckster-t1, .deckster-t4 etc. (requires Layout Service CSS)
+    # Phase 2: Switch to "css_classes" when Text Service v1.3.0 is ready
+    THEME_STYLING_MODE: str = Field(
+        "inline_styles",  # Safe default - works with current Text Service
+        env="THEME_STYLING_MODE",
+        description="Styling mode for Text Service: 'inline_styles' or 'css_classes'"
+    )
+    DEFAULT_THEME_ID: str = Field(
+        "professional",  # Safe business default
+        env="DEFAULT_THEME_ID",
+        description="Default theme ID when not specified: professional, executive, educational, children"
+    )
+
     # v4.1: Playbook System
     # Pre-defined presentation structures indexed by (audience, purpose, duration)
     # Three-tier selection: Full match (90%+), Partial match (60-89%), No match (<60%)

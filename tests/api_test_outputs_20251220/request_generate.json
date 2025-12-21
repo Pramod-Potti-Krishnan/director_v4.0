@@ -1,0 +1,23 @@
+{
+  "variant_id": "comparison_3col",
+  "layout_id": "L25",
+  "slide_spec": {
+    "slide_id": "slide_003",
+    "slide_number": 3,
+    "slide_title": "Feature Comparison",
+    "slide_purpose": "Compare product tiers and their features",
+    "key_message": "Choose the right plan for your needs",
+    "narrative": "Comprehensive comparison of our product tiers",
+    "topics": ["Basic", "Professional", "Enterprise"]
+  },
+  "presentation_spec": {
+    "presentation_id": "pres_12345",
+    "presentation_title": "Product Overview",
+    "presentation_type": "sales",
+    "theme": "professional",
+    "audience": "executives",
+    "tone": "data-driven"
+  },
+  "element_relationships": {},
+  "validate_character_counts": true
+}

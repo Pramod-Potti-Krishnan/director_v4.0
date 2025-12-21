@@ -415,3 +415,168 @@ class LayoutServiceClient:
             return first_char
 
         return "L"  # Default to Legacy series
+
+    # =========================================================================
+    # v4.5: Theme System Integration
+    # =========================================================================
+
+    async def get_themes_sync(self) -> Dict[str, Any]:
+        """
+        Bulk fetch all themes from Layout Service.
+
+        GET /api/themes/sync
+
+        Layout Service hosts the canonical THEME_REGISTRY. Director calls this
+        at startup to cache all theme definitions. This is more efficient than
+        multiple per-theme calls.
+
+        Returns:
+            Dict with:
+                - themes: Dict[theme_id, ThemeConfig]
+                - version: str
+                - last_updated: str (ISO timestamp)
+
+        Example Response:
+            {
+                "themes": {
+                    "professional": {"typography": {...}, "colors": {...}},
+                    "executive": {"typography": {...}, "colors": {...}},
+                    ...
+                },
+                "version": "1.0.0",
+                "last_updated": "2024-12-20T00:00:00Z"
+            }
+        """
+        try:
+            async with httpx.AsyncClient(timeout=self.timeout) as client:
+                response = await client.get(f"{self.base_url}/api/themes/sync")
+                response.raise_for_status()
+
+                data = response.json()
+                theme_count = len(data.get("themes", {}))
+
+                logger.info(
+                    f"Fetched {theme_count} themes from Layout Service",
+                    extra={
+                        "theme_count": theme_count,
+                        "version": data.get("version"),
+                        "last_updated": data.get("last_updated")
+                    }
+                )
+
+                return data
+
+        except httpx.HTTPStatusError as e:
+            if e.response.status_code == 404:
+                logger.warning(
+                    "Layout Service /api/themes/sync not available yet, using embedded registry"
+                )
+                return None
+            raise
+
+        except httpx.HTTPError as e:
+            logger.warning(
+                f"Failed to sync themes from Layout Service: {str(e)}",
+                extra={"url": f"{self.base_url}/api/themes/sync"}
+            )
+            return None
+
+    async def get_theme(self, theme_id: str) -> Optional[Dict[str, Any]]:
+        """
+        Get a specific theme by ID.
+
+        GET /api/themes/{theme_id}
+
+        Args:
+            theme_id: Theme identifier (e.g., "professional", "executive")
+
+        Returns:
+            Theme config dict with typography and colors, or None if not found
+        """
+        try:
+            async with httpx.AsyncClient(timeout=self.timeout) as client:
+                response = await client.get(f"{self.base_url}/api/themes/{theme_id}")
+                response.raise_for_status()
+
+                data = response.json()
+                logger.debug(f"Fetched theme '{theme_id}' from Layout Service")
+                return data
+
+        except httpx.HTTPStatusError as e:
+            if e.response.status_code == 404:
+                logger.warning(f"Theme '{theme_id}' not found in Layout Service")
+                return None
+            raise
+
+        except httpx.HTTPError as e:
+            logger.warning(
+                f"Failed to fetch theme '{theme_id}': {str(e)}",
+                extra={"theme_id": theme_id}
+            )
+            return None
+
+    async def get_available_space(self, layout_id: str) -> Optional[Dict[str, Any]]:
+        """
+        Get available_space for a layout's content area.
+
+        v4.5: Returns content area dimensions in grid units for Text Service
+        multi-step generation.
+
+        Args:
+            layout_id: Layout identifier (e.g., "L25", "C1-text")
+
+        Returns:
+            Dict with:
+                - width: int (grid units)
+                - height: int (grid units)
+                - unit: str ("grids")
+                - pixels: dict (optional, actual pixel dimensions)
+
+        Example:
+            {
+                "width": 30,
+                "height": 14,
+                "unit": "grids",
+                "pixels": {"width": 1800, "height": 720}
+            }
+        """
+        try:
+            layout = await self.get_layout(layout_id)
+
+            # Convert pixel dimensions to grid units
+            # Layout Service uses 60px grid cells
+            GRID_SIZE = 60
+            width_grids = layout.content_zone_width // GRID_SIZE
+            height_grids = layout.content_zone_height // GRID_SIZE
+
+            available_space = {
+                "width": width_grids,
+                "height": height_grids,
+                "unit": "grids",
+                "pixels": {
+                    "width": layout.content_zone_width,
+                    "height": layout.content_zone_height
+                }
+            }
+
+            logger.debug(
+                f"Available space for {layout_id}: {width_grids}x{height_grids} grids",
+                extra={
+                    "layout_id": layout_id,
+                    "available_space": available_space
+                }
+            )
+
+            return available_space
+
+        except ValueError as e:
+            # Layout not found
+            logger.warning(f"Cannot get available_space: {str(e)}")
+            return None
+
+        except Exception as e:
+            logger.warning(
+                f"Failed to get available_space for {layout_id}: {str(e)}",
+                extra={"layout_id": layout_id}
+            )
+            return None

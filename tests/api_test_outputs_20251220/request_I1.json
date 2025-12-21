@@ -1,0 +1,12 @@
+{
+  "slide_number": 4,
+  "narrative": "Our team brings diverse expertise in technology and innovation",
+  "slide_title": "Meet the Team",
+  "subtitle": "Leadership & Innovation",
+  "topics": ["Engineering excellence", "Design innovation", "Operational efficiency"],
+  "max_bullets": 5,
+  "visual_style": "illustrated",
+  "image_prompt_hint": "professional team collaboration",
+  "content_style": "bullets",
+  "context": {"company": "TechCorp"}
+}

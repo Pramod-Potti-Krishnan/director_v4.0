@@ -1,0 +1,16 @@
+{
+  "slide_number": 5,
+  "layout_type": "I2",
+  "title": "Our Team",
+  "narrative": "Leadership team with decades of combined experience",
+  "topics": ["Executive Leadership", "Technical Innovation", "Customer Focus"],
+  "subtitle": "Meet Our Experts",
+  "image_prompt_hint": "professional team meeting",
+  "visual_style": "professional",
+  "content_style": "bullets",
+  "max_bullets": 4,
+  "context": {
+    "theme": "corporate",
+    "audience": "investors"
+  }
+}

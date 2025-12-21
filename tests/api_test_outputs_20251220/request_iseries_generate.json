@@ -1,0 +1,16 @@
+{
+  "slide_number": 4,
+  "layout_type": "I1",
+  "title": "Key Benefits",
+  "narrative": "Our solution provides three core advantages for enterprise customers",
+  "topics": ["Speed and Performance", "Reliability Guarantee", "Cost Optimization"],
+  "subtitle": "Why Choose Us",
+  "image_prompt_hint": "modern technology abstract blue",
+  "visual_style": "illustrated",
+  "content_style": "bullets",
+  "max_bullets": 5,
+  "context": {
+    "theme": "professional",
+    "audience": "business executives"
+  }
+}
