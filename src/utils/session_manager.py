@@ -122,16 +122,9 @@ class SessionManagerV4:
 
         session.updated_at = datetime.utcnow()
 
-        # Update in Supabase
+        # Update in Supabase (v4.5.1: All fields now persisted)
         try:
             updates = {**fields, 'updated_at': session.updated_at.isoformat()}
-            # v4.2.1: Remove branding until column exists in dr_sessions_v4 table
-            updates.pop('branding', None)
-            # v4.5: Remove Smart Context Extraction fields until columns exist
-            updates.pop('requested_slide_count', None)
-            updates.pop('audience_preset', None)
-            updates.pop('purpose_preset', None)
-            updates.pop('time_preset', None)
             await self.supabase.table(self.table_name).update(updates).eq('id', session_id).eq('user_id', user_id).execute()
             logger.info(f"Updated session {session_id}: {list(fields.keys())}")
 
