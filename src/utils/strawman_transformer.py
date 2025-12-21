@@ -18,10 +18,12 @@ Layouts:
 
 v4.0.6: Enhanced title slide handling with dedicated method.
 v4.5.6: Metadata-only strawman preview (no template generation).
-- Displays all AI decisions as formatted text in content zone
-- Clear STRAWMAN indicator on all slides
-- Uses Layout Service templates (C1, I1, H1) for structure only
-- NO LLM calls - just shows decisions made
+v4.5.7: Fixed subtitle/logo fields missing from content dict.
+v4.5.8: Redesigned full-width card-based preview (replaces narrow table).
+- Topics displayed as colorful gradient cards (hero content)
+- Metadata shown as compact chips at top
+- Each slide type has unique visual treatment
+- Uses full content area instead of narrow left-aligned table
 """
 from typing import Dict, Any, List
 from src.utils.logger import setup_logger
@@ -117,37 +119,52 @@ class StrawmanTransformer:
 
             elif layout in self.ANALYTICS_LAYOUTS:
                 # Analytics slide - metadata display
+                # v4.5.7: Added subtitle and company_logo for Layout Service
                 content = {
                     'slide_title': slide.get('title', 'Analytics'),
-                    'rich_content': self._create_analytics_metadata_html(slide, layout)
+                    'subtitle': slide.get('subtitle', ''),
+                    'rich_content': self._create_analytics_metadata_html(slide, layout),
+                    'company_logo': 'STRAWMAN'
                 }
 
             elif layout in self.DIAGRAM_LAYOUTS:
                 # Diagram slide - metadata display
+                # v4.5.7: Added subtitle and company_logo for Layout Service
                 content = {
                     'slide_title': slide.get('title', 'Diagram'),
-                    'rich_content': self._create_diagram_metadata_html(slide, layout)
+                    'subtitle': slide.get('subtitle', ''),
+                    'rich_content': self._create_diagram_metadata_html(slide, layout),
+                    'company_logo': 'STRAWMAN'
                 }
 
             elif layout in self.INFOGRAPHIC_LAYOUTS:
                 # Infographic slide - metadata display
+                # v4.5.7: Added subtitle and company_logo for Layout Service
                 content = {
                     'slide_title': slide.get('title', 'Infographic'),
-                    'rich_content': self._create_infographic_metadata_html(slide, layout)
+                    'subtitle': slide.get('subtitle', ''),
+                    'rich_content': self._create_infographic_metadata_html(slide, layout),
+                    'company_logo': 'STRAWMAN'
                 }
 
             elif layout in self.ISERIES_LAYOUTS:
                 # I-series slide - metadata display with image placeholder
+                # v4.5.7: Added subtitle and company_logo for Layout Service
                 content = {
                     'slide_title': slide.get('title', 'Visual'),
-                    'rich_content': self._create_iseries_metadata_html(slide, layout)
+                    'subtitle': slide.get('subtitle', ''),
+                    'rich_content': self._create_iseries_metadata_html(slide, layout),
+                    'company_logo': 'STRAWMAN'
                 }
 
             else:
                 # Default content slide (L25, C1, V1)
+                # v4.5.7: Added subtitle and company_logo for Layout Service
                 content = {
                     'slide_title': slide.get('title', 'Slide'),
-                    'rich_content': self._create_content_metadata_html(slide, layout)
+                    'subtitle': slide.get('subtitle', ''),
+                    'rich_content': self._create_content_metadata_html(slide, layout),
+                    'company_logo': 'STRAWMAN'
                 }
 
             # Build transformed slide with metadata
@@ -222,11 +239,117 @@ class StrawmanTransformer:
             return '<span style="color: #9ca3af;">None specified</span>'
         return '<br>'.join([f'• {topic}' for topic in topics])
 
+    # ==================== v4.5.8 Helper Methods ====================
+
+    def _get_topic_card_gradient(self, index: int) -> str:
+        """
+        Get gradient color for topic card based on index.
+
+        v4.5.8: Colorful gradients for topic cards.
+
+        Args:
+            index: Topic index (0-based)
+
+        Returns:
+            CSS gradient string
+        """
+        gradients = [
+            "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",  # Purple
+            "linear-gradient(135deg, #f093fb 0%, #f5576c 100%)",  # Pink
+            "linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)",  # Blue
+            "linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)",  # Green
+            "linear-gradient(135deg, #fa709a 0%, #fee140 100%)",  # Orange
+            "linear-gradient(135deg, #a8edea 0%, #fed6e3 100%)",  # Pastel
+        ]
+        return gradients[index % len(gradients)]
+
+    def _create_topic_cards(self, topics: List[str]) -> str:
+        """
+        Create grid of colorful topic cards.
+
+        v4.5.8: Topics as hero content with gradient backgrounds.
+
+        Args:
+            topics: List of topic strings
+
+        Returns:
+            HTML string with topic cards
+        """
+        if not topics:
+            return '''
+            <div style="background: #f8fafc; border-radius: 16px; padding: 24px;
+                        color: #9ca3af; font-style: italic; text-align: center;">
+                No topics specified
+            </div>
+            '''
+
+        cards = []
+        for i, topic in enumerate(topics):
+            gradient = self._get_topic_card_gradient(i)
+            cards.append(f'''
+            <div style="background: {gradient}; border-radius: 16px; padding: 24px;
+                        color: white; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
+                <div style="font-size: 13px; opacity: 0.85; margin-bottom: 8px;">Topic {i+1}</div>
+                <div style="font-size: 17px; font-weight: 600; line-height: 1.4;">{topic}</div>
+            </div>
+            ''')
+        return '\n'.join(cards)
+
+    def _create_metadata_chips(self, layout: str, variant_id: str, service: str) -> str:
+        """
+        Create row of compact metadata chips.
+
+        v4.5.8: Compact badges for layout/variant/service info.
+
+        Args:
+            layout: Layout ID (C1, H1, I1, etc.)
+            variant_id: Variant identifier
+            service: Service name (text, analytics, diagram, etc.)
+
+        Returns:
+            HTML string with metadata chips
+        """
+        return f'''
+        <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+            <span style="background: #e0e7ff; color: #3730a3; padding: 6px 16px;
+                         border-radius: 16px; font-size: 14px; font-weight: 600;">
+                🎨 {layout}
+            </span>
+            <span style="background: #d1fae5; color: #065f46; padding: 6px 16px;
+                         border-radius: 16px; font-size: 14px; font-weight: 600;">
+                📐 {variant_id}
+            </span>
+            <span style="background: #fce7f3; color: #9d174d; padding: 6px 16px;
+                         border-radius: 16px; font-size: 14px; font-weight: 600;">
+                ⚙️ {service}
+            </span>
+        </div>
+        '''
+
+    def _create_compact_badge(self) -> str:
+        """
+        Create compact STRAWMAN badge for v4.5.8.
+
+        Returns:
+            HTML string with compact badge
+        """
+        return '''
+        <div style="background: linear-gradient(135deg, #fef3c7, #fde68a);
+                    border: 2px solid #f59e0b; border-radius: 24px;
+                    padding: 8px 20px; display: inline-flex; align-items: center; gap: 8px;">
+            <span style="font-size: 16px;">📋</span>
+            <span style="font-size: 14px; font-weight: 700; color: #92400e;
+                         text-transform: uppercase; letter-spacing: 1px;">STRAWMAN</span>
+        </div>
+        '''
+
+    # ==================== End v4.5.8 Helper Methods ====================
+
     def _create_content_metadata_html(self, slide: Dict[str, Any], layout: str) -> str:
         """
         Create strawman metadata display HTML for content slides (C1, L25, V1).
 
-        v4.5.6: Shows all AI decisions as formatted text.
+        v4.5.8: Full-width card grid with topics as hero content.
 
         Args:
             slide: Slide data with all strawman fields
@@ -237,30 +360,66 @@ class StrawmanTransformer:
         """
         variant_id = slide.get('variant_id') or 'auto-select'
         service = slide.get('service') or 'text'
-        purpose = slide.get('purpose') or '-'
+        purpose = slide.get('purpose') or ''
         topics = slide.get('topics', [])
         semantic_group = slide.get('semantic_group')
         generation_instructions = slide.get('generation_instructions')
 
-        rows = [
-            ('Layout', f'{layout} (Content slide)'),
-            ('Selected Variant', variant_id),
-            ('Service', service),
-            ('Purpose', purpose),
-        ]
+        # Build purpose section (only show if purpose exists)
+        purpose_section = ''
+        if purpose and purpose != '-':
+            purpose_section = f'''
+            <div style="background: #f8fafc; border-radius: 12px; padding: 16px 24px;
+                        border-left: 4px solid #6366f1;">
+                <span style="font-size: 14px; color: #64748b; font-weight: 600;">Purpose:</span>
+                <span style="font-size: 14px; color: #334155; margin-left: 8px;">{purpose}</span>
+            </div>
+            '''
 
+        # Build semantic group chip (only show if exists)
+        semantic_chip = ''
         if semantic_group:
-            rows.append(('Semantic Group', semantic_group))
-
-        rows.append(('Topics', self._format_topics(topics)))
-
-        if generation_instructions:
-            rows.append(('Generation Notes', generation_instructions))
+            semantic_chip = f'''
+            <span style="background: #fef3c7; color: #92400e; padding: 6px 16px;
+                         border-radius: 16px; font-size: 14px; font-weight: 600;">
+                🏷️ {semantic_group}
+            </span>
+            '''
 
         return f'''
-<div class="strawman-metadata" style="padding: 24px; font-family: system-ui, -apple-system, sans-serif;">
-    {self._create_strawman_badge()}
-    {self._create_metadata_table(rows)}
+<div style="height: 100%; padding: 40px; font-family: system-ui, -apple-system, sans-serif;
+            display: flex; flex-direction: column; gap: 24px;">
+
+    <!-- Top Row: Badge + Metadata Chips -->
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+        {self._create_compact_badge()}
+
+        <!-- Metadata Chips -->
+        <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+            <span style="background: #e0e7ff; color: #3730a3; padding: 6px 16px;
+                         border-radius: 16px; font-size: 14px; font-weight: 600;">
+                🎨 {layout}
+            </span>
+            <span style="background: #d1fae5; color: #065f46; padding: 6px 16px;
+                         border-radius: 16px; font-size: 14px; font-weight: 600;">
+                📐 {variant_id}
+            </span>
+            <span style="background: #fce7f3; color: #9d174d; padding: 6px 16px;
+                         border-radius: 16px; font-size: 14px; font-weight: 600;">
+                ⚙️ {service}
+            </span>
+            {semantic_chip}
+        </div>
+    </div>
+
+    <!-- Topics Grid - THE HERO OF THE PREVIEW -->
+    <div style="flex: 1; display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+                gap: 20px; align-content: start;">
+        {self._create_topic_cards(topics)}
+    </div>
+
+    <!-- Bottom: Purpose/Instructions (if any) -->
+    {purpose_section}
 </div>
 '''
 
@@ -397,7 +556,7 @@ class StrawmanTransformer:
         """
         Create strawman metadata display for analytics/chart slides.
 
-        v4.5.6: Shows chart type and data decisions.
+        v4.5.8: Full-width with large chart placeholder.
 
         Args:
             slide: Slide data
@@ -408,34 +567,66 @@ class StrawmanTransformer:
         """
         variant_id = slide.get('variant_id') or 'auto-select'
         service = slide.get('service') or 'analytics'
-        purpose = slide.get('purpose') or '-'
         topics = slide.get('topics', [])
-        generation_instructions = slide.get('generation_instructions')
 
-        rows = [
-            ('Layout', f'{layout} (Analytics/Chart)'),
-            ('Chart Type', variant_id),
-            ('Service', service),
-            ('Purpose', purpose),
-            ('Data Points', self._format_topics(topics)),
-        ]
-
-        if generation_instructions:
-            rows.append(('Chart Instructions', generation_instructions))
+        # Create data point chips
+        data_chips = ''
+        if topics:
+            chips = []
+            for topic in topics[:6]:  # Max 6 data points shown
+                chips.append(f'''
+                <span style="background: #dbeafe; color: #1e40af; padding: 8px 16px;
+                             border-radius: 12px; font-size: 13px; font-weight: 500;">
+                    📈 {topic}
+                </span>
+                ''')
+            data_chips = '\n'.join(chips)
 
         return f'''
-<div class="strawman-metadata" style="padding: 24px; font-family: system-ui, -apple-system, sans-serif;">
-    {self._create_strawman_badge()}
+<div style="height: 100%; padding: 40px; font-family: system-ui, -apple-system, sans-serif;
+            display: flex; flex-direction: column; gap: 24px;">
 
-    <!-- Chart icon indicator -->
-    <div style="text-align: center; margin-bottom: 20px;">
-        <span style="font-size: 48px;">📊</span>
-        <p style="color: #6b7280; font-size: 14px; margin: 8px 0 0 0;">
-            Chart will be generated by Analytics Service
-        </p>
+    <!-- Top: Badge + Service Info -->
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+        <div style="display: flex; align-items: center; gap: 16px; flex-wrap: wrap;">
+            {self._create_compact_badge()}
+            <span style="background: #dbeafe; color: #1e40af; padding: 6px 16px;
+                         border-radius: 16px; font-size: 14px; font-weight: 600;">
+                📊 Analytics Service
+            </span>
+        </div>
+        <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+            <span style="background: #e0e7ff; color: #3730a3; padding: 6px 16px;
+                         border-radius: 16px; font-size: 14px; font-weight: 600;">
+                🎨 {layout}
+            </span>
+            <span style="background: #d1fae5; color: #065f46; padding: 6px 16px;
+                         border-radius: 16px; font-size: 14px; font-weight: 600;">
+                📐 {variant_id}
+            </span>
+        </div>
     </div>
 
-    {self._create_metadata_table(rows)}
+    <!-- Chart Placeholder - Large Visual -->
+    <div style="flex: 1; background: linear-gradient(135deg, #1e3a5f 0%, #2d5a87 100%);
+                border-radius: 20px; display: flex; flex-direction: column;
+                justify-content: center; align-items: center; gap: 24px;
+                border: 3px dashed rgba(255,255,255,0.3); min-height: 200px;">
+        <span style="font-size: 80px;">📊</span>
+        <div style="text-align: center;">
+            <div style="font-size: 24px; font-weight: 700; color: white; margin-bottom: 8px;">
+                {variant_id} Chart
+            </div>
+            <div style="font-size: 16px; color: rgba(255,255,255,0.7);">
+                Generated by Analytics Service
+            </div>
+        </div>
+    </div>
+
+    <!-- Data Points -->
+    <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+        {data_chips}
+    </div>
 </div>
 '''
 
@@ -443,7 +634,7 @@ class StrawmanTransformer:
         """
         Create strawman metadata display for diagram slides.
 
-        v4.5.6: Shows diagram type and flow decisions.
+        v4.5.8: Full-width with diagram flow placeholder.
 
         Args:
             slide: Slide data
@@ -454,34 +645,73 @@ class StrawmanTransformer:
         """
         variant_id = slide.get('variant_id') or 'auto-select'
         service = slide.get('service') or 'diagram'
-        purpose = slide.get('purpose') or '-'
         topics = slide.get('topics', [])
-        generation_instructions = slide.get('generation_instructions')
 
-        rows = [
-            ('Layout', f'{layout} (Diagram)'),
-            ('Diagram Type', variant_id),
-            ('Service', service),
-            ('Purpose', purpose),
-            ('Flow Steps', self._format_topics(topics)),
-        ]
-
-        if generation_instructions:
-            rows.append(('Diagram Instructions', generation_instructions))
+        # Create flow step chips
+        flow_chips = ''
+        if topics:
+            chips = []
+            for i, topic in enumerate(topics[:5]):  # Max 5 steps shown
+                arrow = ' → ' if i < len(topics) - 1 and i < 4 else ''
+                chips.append(f'''
+                <span style="background: linear-gradient(135deg, #a855f7 0%, #6366f1 100%);
+                             color: white; padding: 10px 18px;
+                             border-radius: 12px; font-size: 13px; font-weight: 600;
+                             box-shadow: 0 2px 8px rgba(139, 92, 246, 0.3);">
+                    {topic}
+                </span>
+                ''')
+                if arrow:
+                    chips.append(f'''
+                    <span style="color: #9ca3af; font-size: 20px; font-weight: bold;">→</span>
+                    ''')
+            flow_chips = '\n'.join(chips)
 
         return f'''
-<div class="strawman-metadata" style="padding: 24px; font-family: system-ui, -apple-system, sans-serif;">
-    {self._create_strawman_badge()}
+<div style="height: 100%; padding: 40px; font-family: system-ui, -apple-system, sans-serif;
+            display: flex; flex-direction: column; gap: 24px;">
 
-    <!-- Diagram icon indicator -->
-    <div style="text-align: center; margin-bottom: 20px;">
-        <span style="font-size: 48px;">🔀</span>
-        <p style="color: #6b7280; font-size: 14px; margin: 8px 0 0 0;">
-            Diagram will be generated by Diagram Service
-        </p>
+    <!-- Top: Badge + Service Info -->
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+        <div style="display: flex; align-items: center; gap: 16px; flex-wrap: wrap;">
+            {self._create_compact_badge()}
+            <span style="background: #ede9fe; color: #6d28d9; padding: 6px 16px;
+                         border-radius: 16px; font-size: 14px; font-weight: 600;">
+                🔀 Diagram Service
+            </span>
+        </div>
+        <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+            <span style="background: #e0e7ff; color: #3730a3; padding: 6px 16px;
+                         border-radius: 16px; font-size: 14px; font-weight: 600;">
+                🎨 {layout}
+            </span>
+            <span style="background: #d1fae5; color: #065f46; padding: 6px 16px;
+                         border-radius: 16px; font-size: 14px; font-weight: 600;">
+                📐 {variant_id}
+            </span>
+        </div>
     </div>
 
-    {self._create_metadata_table(rows)}
+    <!-- Diagram Placeholder - Large Visual -->
+    <div style="flex: 1; background: linear-gradient(135deg, #4c1d95 0%, #6d28d9 100%);
+                border-radius: 20px; display: flex; flex-direction: column;
+                justify-content: center; align-items: center; gap: 24px;
+                border: 3px dashed rgba(255,255,255,0.3); min-height: 200px;">
+        <span style="font-size: 80px;">🔀</span>
+        <div style="text-align: center;">
+            <div style="font-size: 24px; font-weight: 700; color: white; margin-bottom: 8px;">
+                {variant_id} Diagram
+            </div>
+            <div style="font-size: 16px; color: rgba(255,255,255,0.7);">
+                Generated by Diagram Service
+            </div>
+        </div>
+    </div>
+
+    <!-- Flow Steps -->
+    <div style="display: flex; gap: 12px; flex-wrap: wrap; align-items: center; justify-content: center;">
+        {flow_chips}
+    </div>
 </div>
 '''
 
@@ -489,7 +719,7 @@ class StrawmanTransformer:
         """
         Create strawman metadata display for infographic slides.
 
-        v4.5.6: Shows infographic type and visual decisions.
+        v4.5.8: Full-width with visual hierarchy placeholder.
 
         Args:
             slide: Slide data
@@ -500,42 +730,76 @@ class StrawmanTransformer:
         """
         variant_id = slide.get('variant_id') or 'auto-select'
         service = slide.get('service') or 'illustrator'
-        purpose = slide.get('purpose') or '-'
         topics = slide.get('topics', [])
-        generation_instructions = slide.get('generation_instructions')
 
-        rows = [
-            ('Layout', f'{layout} (Infographic)'),
-            ('Visual Type', variant_id),
-            ('Service', service),
-            ('Purpose', purpose),
-            ('Content Elements', self._format_topics(topics)),
-        ]
-
-        if generation_instructions:
-            rows.append(('Visual Instructions', generation_instructions))
+        # Create element chips
+        element_chips = ''
+        if topics:
+            chips = []
+            for topic in topics[:6]:  # Max 6 elements shown
+                chips.append(f'''
+                <span style="background: linear-gradient(135deg, #ec4899 0%, #f43f5e 100%);
+                             color: white; padding: 8px 16px;
+                             border-radius: 12px; font-size: 13px; font-weight: 500;
+                             box-shadow: 0 2px 8px rgba(236, 72, 153, 0.3);">
+                    🎯 {topic}
+                </span>
+                ''')
+            element_chips = '\n'.join(chips)
 
         return f'''
-<div class="strawman-metadata" style="padding: 24px; font-family: system-ui, -apple-system, sans-serif;">
-    {self._create_strawman_badge()}
+<div style="height: 100%; padding: 40px; font-family: system-ui, -apple-system, sans-serif;
+            display: flex; flex-direction: column; gap: 24px;">
 
-    <!-- Infographic icon indicator -->
-    <div style="text-align: center; margin-bottom: 20px;">
-        <span style="font-size: 48px;">🎨</span>
-        <p style="color: #6b7280; font-size: 14px; margin: 8px 0 0 0;">
-            Infographic will be generated by Illustrator Service
-        </p>
+    <!-- Top: Badge + Service Info -->
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+        <div style="display: flex; align-items: center; gap: 16px; flex-wrap: wrap;">
+            {self._create_compact_badge()}
+            <span style="background: #fce7f3; color: #9d174d; padding: 6px 16px;
+                         border-radius: 16px; font-size: 14px; font-weight: 600;">
+                🎨 Illustrator Service
+            </span>
+        </div>
+        <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+            <span style="background: #e0e7ff; color: #3730a3; padding: 6px 16px;
+                         border-radius: 16px; font-size: 14px; font-weight: 600;">
+                🎨 {layout}
+            </span>
+            <span style="background: #d1fae5; color: #065f46; padding: 6px 16px;
+                         border-radius: 16px; font-size: 14px; font-weight: 600;">
+                📐 {variant_id}
+            </span>
+        </div>
     </div>
 
-    {self._create_metadata_table(rows)}
+    <!-- Infographic Placeholder - Large Visual -->
+    <div style="flex: 1; background: linear-gradient(135deg, #be185d 0%, #ec4899 100%);
+                border-radius: 20px; display: flex; flex-direction: column;
+                justify-content: center; align-items: center; gap: 24px;
+                border: 3px dashed rgba(255,255,255,0.3); min-height: 200px;">
+        <span style="font-size: 80px;">🎨</span>
+        <div style="text-align: center;">
+            <div style="font-size: 24px; font-weight: 700; color: white; margin-bottom: 8px;">
+                {variant_id} Infographic
+            </div>
+            <div style="font-size: 16px; color: rgba(255,255,255,0.7);">
+                Generated by Illustrator Service
+            </div>
+        </div>
+    </div>
+
+    <!-- Content Elements -->
+    <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+        {element_chips}
+    </div>
 </div>
 '''
 
     def _create_iseries_metadata_html(self, slide: Dict[str, Any], layout: str) -> str:
         """
-        Create strawman metadata display for I-series slides with image placeholder.
+        Create strawman metadata display for I-series slides with split layout preview.
 
-        v4.5.6: Shows image+text layout with image zone placeholder.
+        v4.5.8: True split layout showing actual image zone proportions.
 
         I-series layouts:
         - I1: Wide image left (660×1080), content right
@@ -552,7 +816,6 @@ class StrawmanTransformer:
         """
         variant_id = slide.get('variant_id') or 'auto-select'
         service = slide.get('service') or 'text'
-        purpose = slide.get('purpose') or '-'
         topics = slide.get('topics', [])
         semantic_group = slide.get('semantic_group')
 
@@ -561,56 +824,99 @@ class StrawmanTransformer:
         wide_image = layout in ['I1', 'I2']
 
         image_dims = '660×1080' if wide_image else '360×1080'
-        position = 'Left' if image_left else 'Right'
-        size = 'Wide' if wide_image else 'Narrow'
+        image_width = '40%' if wide_image else '25%'
 
-        rows = [
-            ('Layout', f'{layout} (Image + Content)'),
-            ('Image Position', f'{position} ({size})'),
-            ('Image Size', image_dims),
-            ('Selected Variant', variant_id),
-            ('Service', service),
-            ('Purpose', purpose),
-        ]
+        # Create topic rows for content zone
+        topic_rows = ''
+        if topics:
+            for i, topic in enumerate(topics[:4]):  # Max 4 topics shown
+                gradient = self._get_topic_card_gradient(i)
+                topic_rows += f'''
+                <div style="background: {gradient}; border-radius: 12px; padding: 16px;
+                            color: white; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                    <div style="font-size: 11px; opacity: 0.85; margin-bottom: 4px;">Topic {i+1}</div>
+                    <div style="font-size: 14px; font-weight: 600; line-height: 1.3;">{topic}</div>
+                </div>
+                '''
+        else:
+            topic_rows = '''
+            <div style="background: #f8fafc; border-radius: 12px; padding: 16px;
+                        color: #9ca3af; font-style: italic; text-align: center;">
+                No topics specified
+            </div>
+            '''
 
+        # Image zone placeholder
+        image_zone = f'''
+        <div style="width: {image_width}; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                    display: flex; flex-direction: column; justify-content: center; align-items: center;
+                    padding: 32px; min-height: 100%;">
+            <span style="font-size: 64px; margin-bottom: 16px;">🖼️</span>
+            <div style="background: rgba(255,255,255,0.2); padding: 12px 24px; border-radius: 12px; text-align: center;">
+                <div style="font-size: 16px; color: white; font-weight: 600;">Image Zone</div>
+                <div style="font-size: 14px; color: rgba(255,255,255,0.8);">{image_dims}</div>
+            </div>
+        </div>
+        '''
+
+        # Content zone
+        semantic_chip = ''
         if semantic_group:
-            rows.append(('Semantic Group', semantic_group))
+            semantic_chip = f'''
+            <span style="background: #fef3c7; color: #92400e; padding: 4px 12px;
+                         border-radius: 12px; font-size: 12px; font-weight: 600;">
+                🏷️ {semantic_group}
+            </span>
+            '''
 
-        rows.append(('Topics', self._format_topics(topics)))
+        content_zone = f'''
+        <div style="flex: 1; padding: 32px; display: flex; flex-direction: column; gap: 20px;">
 
-        # Image placeholder
-        image_placeholder = f'''
-<div style="width: 35%; min-height: 200px; background: linear-gradient(135deg, #e0e7ff, #c7d2fe);
-            border-radius: 12px; display: flex; flex-direction: column; align-items: center;
-            justify-content: center; border: 2px dashed #818cf8;">
-    <span style="font-size: 48px;">🖼️</span>
-    <p style="font-size: 14px; color: #4338ca; margin: 8px 0 0 0; font-weight: 600;">Image Zone</p>
-    <p style="font-size: 12px; color: #6366f1; margin: 4px 0 0 0;">{image_dims}</p>
-</div>
-'''
+            <!-- Badge Row -->
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+                <div style="background: linear-gradient(135deg, #fef3c7, #fde68a);
+                            border: 2px solid #f59e0b; border-radius: 20px;
+                            padding: 6px 16px; display: inline-flex; align-items: center; gap: 6px;">
+                    <span style="font-size: 14px;">📋</span>
+                    <span style="font-size: 12px; font-weight: 700; color: #92400e;
+                                 text-transform: uppercase; letter-spacing: 1px;">STRAWMAN</span>
+                </div>
+                <span style="background: #c7d2fe; color: #3730a3; padding: 4px 12px;
+                             border-radius: 12px; font-size: 12px; font-weight: 600;">{layout}</span>
+            </div>
 
-        # Metadata content
-        metadata_content = f'''
-<div style="width: 60%; padding: 0 20px;">
-    {self._create_strawman_badge()}
-    {self._create_metadata_table(rows)}
-</div>
-'''
+            <!-- Topics Grid -->
+            <div style="flex: 1; display: flex; flex-direction: column; gap: 12px;">
+                {topic_rows}
+            </div>
+
+            <!-- Footer Info -->
+            <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                <span style="background: #d1fae5; color: #065f46; padding: 4px 12px;
+                             border-radius: 12px; font-size: 12px; font-weight: 600;">
+                    📐 {variant_id}
+                </span>
+                <span style="background: #fce7f3; color: #9d174d; padding: 4px 12px;
+                             border-radius: 12px; font-size: 12px; font-weight: 600;">
+                    ⚙️ {service}
+                </span>
+                {semantic_chip}
+            </div>
+        </div>
+        '''
 
         # Arrange based on image position
         if image_left:
             return f'''
-<div style="display: flex; align-items: stretch; gap: 24px; height: 100%; padding: 20px;
-            font-family: system-ui, -apple-system, sans-serif;">
-    {image_placeholder}
-    {metadata_content}
+<div style="height: 100%; display: flex; gap: 0; font-family: system-ui, -apple-system, sans-serif;">
+    {image_zone}
+    {content_zone}
 </div>
 '''
         else:
             return f'''
-<div style="display: flex; align-items: stretch; gap: 24px; height: 100%; padding: 20px;
-            font-family: system-ui, -apple-system, sans-serif;">
-    {metadata_content}
-    {image_placeholder}
+<div style="height: 100%; display: flex; gap: 0; font-family: system-ui, -apple-system, sans-serif;">
+    {content_zone}
+    {image_zone}
 </div>
 '''

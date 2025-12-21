@@ -163,8 +163,9 @@ class Settings(BaseSettings):
 
     # v4.0.25: Layout Series Mode (Story-Driven Multi-Service Coordination)
     # Controls which layout series are available for slide generation
+    # v4.5.7: Changed default from L_ONLY to C_AND_H to use H1/H2/H3/C1 instead of deprecated L29/L25
     LAYOUT_SERIES_MODE: str = Field(
-        "L_ONLY",
+        "C_AND_H",
         env="LAYOUT_SERIES_MODE",
         description="Which layout series to use: L_ONLY, L_AND_C, C_AND_H, ALL"
     )
