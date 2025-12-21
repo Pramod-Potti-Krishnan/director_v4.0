@@ -24,6 +24,12 @@ v4.5.8: Redesigned full-width card-based preview (replaces narrow table).
 - Metadata shown as compact chips at top
 - Each slide type has unique visual treatment
 - Uses full content area instead of narrow left-aligned table
+v4.5.12: Proper footer and logo placement per SLIDE_GENERATION_INPUT_SPEC.md.
+- STRAWMAN logo in footer logo area via company_logo field
+- Footer with template/variant/service via presentation_name (L25) or footer_text (C1)
+- Better subtitle generation from purpose + topics
+- Slide metadata section showing purpose, type hint, and notes
+- Removed inline watermark (logo now in proper footer area)
 """
 from typing import Dict, Any, List
 from src.utils.logger import setup_logger
@@ -125,9 +131,10 @@ class StrawmanTransformer:
 
     def _generate_subtitle(self, slide: Dict[str, Any]) -> str:
         """
-        Generate subtitle from slide context if not provided.
+        Generate single-line summary of slide content.
 
         v4.5.11: Generates meaningful subtitle instead of empty placeholder.
+        v4.5.12: Creates descriptive single-line summary from purpose + topics.
 
         Args:
             slide: Slide data with optional subtitle, purpose, topics
@@ -142,16 +149,40 @@ class StrawmanTransformer:
         # Try to generate from context
         purpose = slide.get('purpose', '')
         topics = slide.get('topics', [])
+        slide_type_hint = slide.get('slide_type_hint', '')
 
+        # v4.5.12: Build descriptive subtitle
         if purpose and purpose != '-':
-            return purpose  # Use purpose as subtitle
+            # Convert purpose to readable format
+            purpose_text = purpose.replace('_', ' ').title()
+            if topics:
+                # Truncate first topic if too long
+                first_topic = topics[0][:60] + '...' if len(topics[0]) > 60 else topics[0]
+                return f"{purpose_text}: {first_topic}"
+            return purpose_text
         elif topics:
             if len(topics) == 1:
-                return f"Covering: {topics[0]}"
-            else:
-                return f"Covering {len(topics)} key topics"
+                return topics[0][:100]
+            return f"Key points: {', '.join(topics[:2])}..."
         else:
-            return "Strawman Preview"  # Fallback
+            return f"Strawman {slide_type_hint or 'content'} slide"
+
+    def _generate_footer(self, slide: Dict[str, Any], layout: str) -> str:
+        """
+        Generate footer with template, variant, and service info.
+
+        v4.5.12: Creates footer showing slide metadata for user review.
+
+        Args:
+            slide: Slide data with variant_id and service
+            layout: Layout ID (C1, L25, etc.)
+
+        Returns:
+            Footer string with template/variant/service info
+        """
+        variant_id = slide.get('variant_id') or 'auto'
+        service = slide.get('service') or 'text'
+        return f"🎨 {layout} | 📐 {variant_id} | ⚙️ {service}"
 
     def transform(self, strawman_dict: Dict[str, Any], topic: str) -> Dict[str, Any]:
         """
@@ -214,59 +245,71 @@ class StrawmanTransformer:
             elif layout in self.ANALYTICS_LAYOUTS:
                 # Analytics slide - metadata display
                 # v4.5.7: Added subtitle and company_logo for Layout Service
+                # v4.5.12: Added presentation_name for footer
                 content = {
                     'slide_title': slide.get('title', 'Analytics'),
                     'subtitle': self._generate_subtitle(slide),
                     'rich_content': self._create_analytics_metadata_html(slide, layout),
+                    'presentation_name': self._generate_footer(slide, layout),
                     'company_logo': self.STRAWMAN_LOGO_HTML
                 }
 
             elif layout in self.DIAGRAM_LAYOUTS:
                 # Diagram slide - metadata display
                 # v4.5.7: Added subtitle and company_logo for Layout Service
+                # v4.5.12: Added presentation_name for footer
                 content = {
                     'slide_title': slide.get('title', 'Diagram'),
                     'subtitle': self._generate_subtitle(slide),
                     'rich_content': self._create_diagram_metadata_html(slide, layout),
+                    'presentation_name': self._generate_footer(slide, layout),
                     'company_logo': self.STRAWMAN_LOGO_HTML
                 }
 
             elif layout in self.INFOGRAPHIC_LAYOUTS:
                 # Infographic slide - metadata display
                 # v4.5.7: Added subtitle and company_logo for Layout Service
+                # v4.5.12: Added presentation_name for footer
                 content = {
                     'slide_title': slide.get('title', 'Infographic'),
                     'subtitle': self._generate_subtitle(slide),
                     'rich_content': self._create_infographic_metadata_html(slide, layout),
+                    'presentation_name': self._generate_footer(slide, layout),
                     'company_logo': self.STRAWMAN_LOGO_HTML
                 }
 
             elif layout in self.ISERIES_LAYOUTS:
                 # I-series slide - metadata display with image placeholder
                 # v4.5.7: Added subtitle and company_logo for Layout Service
+                # v4.5.12: Added presentation_name for footer
                 content = {
                     'slide_title': slide.get('title', 'Visual'),
                     'subtitle': self._generate_subtitle(slide),
                     'rich_content': self._create_iseries_metadata_html(slide, layout),
+                    'presentation_name': self._generate_footer(slide, layout),
                     'company_logo': self.STRAWMAN_LOGO_HTML
                 }
 
             elif layout == 'C1':
                 # v4.5.9: C1-text expects 'body' field, not 'rich_content'
+                # v4.5.12: Added footer_text (C1 uses footer_text, not presentation_name)
                 content = {
                     'slide_title': slide.get('title', 'Slide'),
                     'subtitle': self._generate_subtitle(slide),
                     'body': self._create_content_metadata_html(slide, layout),
+                    'footer_text': self._generate_footer(slide, layout),
                     'company_logo': self.STRAWMAN_LOGO_HTML
                 }
 
             else:
                 # Default content slide (L25, V1) - uses rich_content
                 # v4.5.7: Added subtitle and company_logo for Layout Service
+                # v4.5.12: Added presentation_name for footer
                 content = {
                     'slide_title': slide.get('title', 'Slide'),
                     'subtitle': self._generate_subtitle(slide),
                     'rich_content': self._create_content_metadata_html(slide, layout),
+                    'presentation_name': self._generate_footer(slide, layout),
                     'company_logo': self.STRAWMAN_LOGO_HTML
                 }
 
@@ -456,6 +499,8 @@ class StrawmanTransformer:
         v4.5.8: Full-width card grid with topics as hero content.
         v4.5.10: Topics as bullet list, bigger chips, STRAWMAN watermark,
                  generation_instructions and notes display.
+        v4.5.12: Added slide metadata section (purpose, type, notes).
+                 Removed inline watermark (logo now in company_logo field).
 
         Args:
             slide: Slide data with all strawman fields
@@ -471,17 +516,6 @@ class StrawmanTransformer:
         semantic_group = slide.get('semantic_group')
         generation_instructions = slide.get('generation_instructions', '')
         notes = slide.get('notes', '')
-
-        # Build purpose section (only show if purpose exists)
-        purpose_section = ''
-        if purpose and purpose != '-':
-            purpose_section = f'''
-            <div style="background: #f8fafc; border-radius: 12px; padding: 16px 24px;
-                        border-left: 4px solid #6366f1;">
-                <span style="font-size: 14px; color: #64748b; font-weight: 600;">Purpose:</span>
-                <span style="font-size: 14px; color: #334155; margin-left: 8px;">{purpose}</span>
-            </div>
-            '''
 
         # v4.5.10: Build semantic group chip with larger size
         semantic_chip = ''
@@ -522,22 +556,42 @@ class StrawmanTransformer:
             </div>
             '''
 
-        # v4.5.10: Notes section (yellow)
-        notes_section = ''
+        # v4.5.12: Slide metadata section showing purpose, type hint, notes
+        # (Replaces old purpose_section and notes_section - now consolidated)
+        slide_type_hint = slide.get('slide_type_hint', '')
+        metadata_section = ''
+        metadata_items = []
+
+        # Purpose (story role)
+        if purpose and purpose != '-':
+            purpose_display = purpose.replace('_', ' ').title()
+            metadata_items.append(f"<strong>Purpose:</strong> {purpose_display}")
+
+        # Slide type hint
+        if slide_type_hint:
+            metadata_items.append(f"<strong>Type:</strong> {slide_type_hint}")
+
+        # Notes
         if notes:
-            notes_section = f'''
-            <div style="margin-bottom: 16px; padding: 12px 16px; background: #fefce8;
-                        border-left: 4px solid #eab308; border-radius: 4px;">
-                <div style="font-size: 12px; font-weight: 600; color: #854d0e; margin-bottom: 4px;">
-                    Notes
+            metadata_items.append(f"<strong>Notes:</strong> {notes}")
+
+        if metadata_items:
+            items_html = '<br>'.join(metadata_items)
+            metadata_section = f'''
+            <div style="margin-top: 16px; padding: 16px; background: #f1f5f9;
+                        border-radius: 8px; border-left: 4px solid #64748b;">
+                <div style="font-size: 14px; font-weight: 600; color: #475569; margin-bottom: 8px;">
+                    📊 Slide Metadata
                 </div>
-                <div style="font-size: 14px; color: #a16207;">{notes}</div>
+                <div style="font-size: 14px; color: #64748b; line-height: 1.6;">
+                    {items_html}
+                </div>
             </div>
             '''
 
         return f'''
 <div style="height: 100%; padding: 40px; font-family: system-ui, -apple-system, sans-serif;
-            display: flex; flex-direction: column; gap: 24px; position: relative;">
+            display: flex; flex-direction: column; gap: 24px;">
 
     <!-- Top Row: Badge + Metadata Chips (2x bigger) -->
     <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 20px;">
@@ -567,18 +621,8 @@ class StrawmanTransformer:
     <!-- v4.5.10: Generation Instructions (if any) -->
     {gen_instructions_section}
 
-    <!-- v4.5.10: Notes (if any) -->
-    {notes_section}
-
-    <!-- Bottom: Purpose (if any) -->
-    {purpose_section}
-
-    <!-- v4.5.10: STRAWMAN watermark bottom-right -->
-    <div style="position: absolute; bottom: 16px; right: 24px;
-                font-size: 14px; font-weight: 600; color: #9ca3af;
-                letter-spacing: 2px; opacity: 0.7;">
-        STRAWMAN
-    </div>
+    <!-- v4.5.12: Slide Metadata section (purpose, type, notes) -->
+    {metadata_section}
 </div>
 '''
 
