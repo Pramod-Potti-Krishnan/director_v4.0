@@ -84,14 +84,21 @@ class SlideData(BaseModel):
     slide_number: int = Field(..., description="Slide position in presentation")
     slide_type: str = Field(..., description="Type of slide (title_slide, content_heavy, etc.)")
     title: str = Field(..., description="Slide title")
+    subtitle: Optional[str] = Field(None, description="Slide subtitle or supporting context")
     narrative: str = Field(..., description="The story or key message of this slide")
     key_points: List[str] = Field(..., description="Key points for the slide")
+    # v4.5.4: Strawman metadata for preview display
+    variant_id: Optional[str] = Field(None, description="Content variant ID (e.g., grid_2x2_centered)")
+    service: Optional[str] = Field(None, description="Service to handle: text, analytics, diagram, illustrator")
+    purpose: Optional[str] = Field(None, description="Slide purpose in story: title_slide, features, closing_slide, etc.")
+    semantic_group: Optional[str] = Field(None, description="Group ID for slides sharing same template")
+    # Existing fields
     analytics_needed: Optional[str] = Field(None, description="Description of data/charts needed")
     visuals_needed: Optional[str] = Field(None, description="Description of images/graphics needed")
     diagrams_needed: Optional[str] = Field(None, description="Description of diagrams/flows needed")
     structure_preference: Optional[str] = Field(None, description="Layout preference for the slide")
     container_layout: Optional[Dict[str, Any]] = Field(
-        None, 
+        None,
         description="Optional layout hints including arrangement type and container purposes"
     )
 

@@ -1037,8 +1037,15 @@ class WebSocketHandlerV4:
                 'slide_number': slide.get('slide_number', idx + 1),
                 'slide_type': slide_type,
                 'title': slide_title,
+                'subtitle': slide.get('subtitle'),  # v4.5.4: Include subtitle
                 'narrative': narrative,
                 'key_points': slide.get('topics', []),
+                # v4.5.4: Include strawman metadata for preview display
+                'variant_id': slide.get('variant_id'),
+                'service': slide.get('service'),
+                'purpose': slide.get('purpose'),
+                'semantic_group': slide.get('semantic_group'),
+                # Existing fields
                 'analytics_needed': None,
                 'visuals_needed': None,
                 'diagrams_needed': None,
