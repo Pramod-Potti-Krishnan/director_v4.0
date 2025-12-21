@@ -1,5 +1,5 @@
 """
-Layout Analyzer for Director Agent v4.0.25
+Layout Analyzer for Director Agent v4.0.25 / v4.5.14
 
 Maps slide_type_hint from storyline to exact layout, service, and variant requirements.
 This is the Step 2 of the two-step process: Storyline → Layout Analysis.
@@ -12,8 +12,14 @@ The service-layout mapping is hardcoded knowledge:
 
 * L25 is dual-purpose: Text Service for standard content, Illustrator for infographics
 
+v4.5.14 UPDATE:
+- AI now generates generation_instructions for ALL slides in the system prompt
+- LayoutAnalyzer's generation_instructions are now FALLBACK only
+- decision_engine.py uses: slide.generation_instructions or analysis.generation_instructions
+- This ensures AI-generated instructions take precedence
+
 Author: Director v4.0.25 Story-Driven Coordination
-Date: December 2024
+Updated: v4.5.14 December 2024
 """
 
 from typing import Dict, Any, Optional, List

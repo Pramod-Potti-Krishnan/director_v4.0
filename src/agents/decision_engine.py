@@ -640,11 +640,17 @@ You MUST create slides specifically about the provided topic. Every slide title 
 
 ## GUIDELINES
 - Start with a title slide (hero) using the EXACT TOPIC as the title
-- Include section dividers for major topic changes
 - End with a closing slide (hero)
 - 2-3 minutes per slide is typical
 - Keep slide titles concise and clear
 - Balance content vs. hero slides appropriately
+
+## SECTION DIVIDER RULES (v4.5.14 - CRITICAL)
+Section dividers should be used SPARINGLY based on presentation length:
+- **<10 slides**: NO section dividers (waste of limited space)
+- **10-19 slides**: Max 1-2 section dividers ONLY if there are clear logical breaks
+- **20+ slides**: Include section dividers every 5-7 slides to organize content
+Do NOT include section dividers unless the presentation genuinely benefits from them!
 
 ## STORY-DRIVEN SLIDE CATEGORIZATION (v4.0.25 - CRITICAL)
 
@@ -708,36 +714,98 @@ GOOD Closing Slide:
 - slide_type_hint: "hero"
 - purpose: "closing_slide"
 
-## STRUCTURE RULES
-- 5-10 slides: Simple structure (title, 3-8 content, closing)
-- 10-20 slides: Include section dividers every 4-6 slides
-- 20+ slides: Executive summary after title, multiple sections
+## SMART LAYOUT SELECTION (v4.5.14 - CRITICAL)
 
-## LAYOUT RULES (v4.0.25)
-- Hero slides (title, section_divider, closing): layout = "L29"
-- Content slides: layout = "L25"
+### Presentation Type Detection
+Determine presentation type from context/audience/purpose:
+- **Informational**: educational, teaching, kids, general audience, explaining concepts
+- **Professional**: business, executive, investor, sales, proposals, QBR
+- **Mixed**: Default when unclear
 
-Note: The layout may be updated by the Layout Analyzer after storyline generation.
+### Layout Assignment Rules
 
-## VARIANT SELECTION (v4.0.23 - Required for content slides)
-For each L25 content slide, select variant_id based on content type and topic count:
+**For Informational Presentations:**
+- Use I-series (I1, I2, I3, I4) for 60-70% of content slides (image + text, visual learning)
+- Use C1/L25 for remaining 30-40% (structured text content)
+- Prefer visual learning approach
 
-Available variants:
-- comparison_2col (2 items), comparison_3col (3), comparison_4col (4) - for before/after, pros/cons
-- sequential_3col (3 steps), sequential_4col (4), sequential_5col (5) - for processes, timelines
-- grid_2x2_centered (4 items), grid_2x3 (6), grid_3x2 (6) - for categories, features
-- metrics_3col (3 KPIs), metrics_4col (4) - for numbers, statistics
-- matrix_2x2 (4), matrix_2x3 (6) - for comparisons with 2 dimensions
-- table_2col, table_3col, table_4col, table_5col - for tabular data
+**For Professional Presentations:**
+- Use C-series (C1, C2, C3, C4, C5) for 70% of content slides
+- Use I-series (I1-I4) for 20-30% (strategic visuals where imagery adds value)
+- Keep layouts clean and structured
 
-Selection rules:
-- Before/After, Pros/Cons → comparison_*col
-- Step-by-step processes → sequential_*col
-- KPIs, Statistics, Numbers → metrics_*col
-- Categories, Features, Options → grid_* or matrix_*
-- Match topic count to variant capacity (e.g., 4 topics → grid_2x2_centered)
+**For Mixed/Default:**
+- 60% C-series, 30% I-series, 10% split/visual layouts
+- Balanced approach for general presentations
 
-Hero slides (L29): variant_id = null (not needed)
+**For Visual Content (charts, diagrams, infographics):**
+- PREFER 50/50 split layouts over full-page
+- Left side: visual (chart/diagram/infographic)
+- Right side: key insights or explanation
+- This separates concerns clearly
+- Full-page versions (C2, C3) are acceptable but split is preferred
+
+### Layout Series Reference
+- **Hero**: L29 (standard) or H1/H2/H3 (with images)
+- **Content (text)**: L25, C1 (most common for text)
+- **Image+Text**: I1, I2, I3, I4 (ideal for informational/educational)
+- **Charts**: L02, C2 (or split variants)
+- **Diagrams**: C4 (or split variants)
+- **Infographics**: C3 (or split variants)
+
+## VARIANT SELECTION (v4.5.14 - CRITICAL FOR UNIQUENESS)
+
+### Plain Text Generation (50% of content slides)
+For approximately HALF of your C1/L25 content slides, use:
+- layout = "C1" or "L25"
+- variant_id = null (NO VARIANT)
+- This triggers plain text generation for unique, custom content
+
+**When to use plain text (variant_id = null):**
+- Complex explanations that don't fit predefined structures
+- Narrative content that needs natural flow
+- Unique slide concepts that are specific to this topic
+- When you want maximum flexibility for the Text Service
+- Slides that benefit from custom formatting
+
+### Pre-defined Variants (50% of content slides)
+Use these for structured content that fits clear patterns:
+
+**Comparison variants:**
+- comparison_2col, comparison_3col, comparison_4col (before/after, pros/cons, options)
+
+**Sequential variants:**
+- sequential_3col, sequential_4col, sequential_5col (step-by-step, timelines, processes)
+
+**Grid variants:**
+- grid_2x2_centered, grid_2x2_left, grid_2x2_numbered (4 items)
+- grid_2x3, grid_2x3_left, grid_2x3_numbered (6 items)
+- grid_3x2, grid_3x2_left, grid_3x2_numbered (6 items)
+
+**Metrics variants:**
+- metrics_3col, metrics_4col, metrics_2x2_grid, metrics_3x2_grid (KPIs, statistics)
+
+**Matrix variants:**
+- matrix_2x2, matrix_2x3 (two-dimensional comparisons)
+
+**Table variants:**
+- table_2col, table_3col, table_4col, table_5col (tabular data)
+
+**Single column variants:**
+- single_column_3section, single_column_4section, single_column_5section (vertical flow)
+
+**Asymmetric variants:**
+- asymmetric_8_4_3section, asymmetric_8_4_4section, asymmetric_8_4_5section (large + small)
+
+**Other variants:**
+- hybrid_left_2x2, hybrid_top_2x2 (mixed layouts)
+- impact_quote (quotes, testimonials)
+
+### IMPORTANT: VARIETY IS MANDATORY
+- Each presentation should use 5-8 DIFFERENT variants/styles minimum
+- Do NOT repeat the same 2-3 variants throughout
+- Mix plain text (null variant) with structured variants
+- Hero slides always have variant_id = null
 
 ## SEMANTIC GROUP RULES (v4.5.3 - Context-Aware Diversity)
 
@@ -765,20 +833,73 @@ EXAMPLE for "AI Agents in Supply Chain":
 
 RULE: Slides WITH semantic_group = same variant. Slides WITHOUT = diverse variants.
 
-## OUTPUT
+## OUTPUT (v4.5.14 - ALL FIELDS REQUIRED)
+
 Create a complete Strawman with slide definitions including:
-- slide_id (unique identifier - use UUIDs)
+
+**Required Identification:**
+- slide_id (unique UUID)
 - slide_number (position starting from 1)
+
+**Content Structure:**
 - title (topic-specific, never generic)
-- subtitle (supporting context that complements the title, e.g., "Key Insights", "Strategic Foundations")
-- layout ("L29" for hero slides, "L25" for content slides)
-- variant_id (required for L25 content slides, null for L29 hero slides)
-- topics (3-5 specific key points related to the slide title)
-- is_hero (true for title/section/closing)
-- hero_type (title_slide, section_divider, or closing_slide for hero slides)
+- subtitle (supporting context: "Key Insights", "Strategic Overview", etc.)
+- topics (3-5 specific bullet points related to the slide)
+
+**Layout & Variant:**
+- layout (see SMART LAYOUT SELECTION above - use C1/L25/I1-I4/etc based on presentation type)
+- variant_id (null for plain text OR a specific variant name - see VARIANT SELECTION above)
+
+**Classification:**
+- is_hero (true/false)
+- hero_type (title_slide, section_divider, closing_slide - ONLY for hero slides)
 - slide_type_hint (REQUIRED: hero, text, chart, diagram, or infographic)
-- purpose (REQUIRED: what story this slide tells)
+- purpose (REQUIRED: what story this slide tells in the narrative)
 - semantic_group (group ID for slides that should share same template, null otherwise)
+
+**Generation Guidance (ALL REQUIRED FOR EVERY SLIDE):**
+- generation_instructions (REQUIRED: specific instructions for content generation)
+- notes (REQUIRED: speaker notes, tone guidance, emphasis points)
+
+## GENERATION INSTRUCTIONS FIELD (CRITICAL - MUST POPULATE)
+
+For EVERY slide, provide specific `generation_instructions` that tell the service HOW to generate content:
+
+**For Text Slides (examples):**
+- "Generate a 3-column comparison highlighting the differences between X, Y, and Z"
+- "Create detailed bullet points explaining the technical implementation process step by step"
+- "Use plain paragraph format with natural flow explaining the core concept"
+- "Build a numbered list of key benefits with supporting descriptions"
+
+**For Chart Slides (examples):**
+- "Line chart showing revenue growth from Q1-Q4 2024, emphasize the 40% YoY increase"
+- "Pie chart breaking down market share, highlight our 25% segment vs competitors"
+- "Bar chart comparing performance metrics across 3 product lines"
+
+**For Diagram Slides (examples):**
+- "Architecture diagram with 3 layers: frontend (React), backend (Node.js), database (PostgreSQL)"
+- "Process flow with 5 sequential steps showing the customer journey from awareness to purchase"
+- "System diagram showing how the 4 microservices communicate"
+
+**For Infographic Slides (examples):**
+- "Funnel visualization with 4 stages: Awareness (1000) → Interest (500) → Decision (200) → Action (50)"
+- "Pyramid showing 3-tier value hierarchy with premium at top"
+- "Circular diagram showing the 5-step feedback loop"
+
+## NOTES FIELD (REQUIRED FOR EVERY SLIDE)
+
+For every slide, include `notes` with guidance for delivery and tone:
+- Tone/style guidance ("Keep it conversational", "Professional and data-driven", "Inspiring and motivational")
+- Key emphasis points ("Stress the cost savings - this is the key selling point")
+- Formatting hints ("Use short punchy bullets", "Include specific numbers and percentages")
+- Speaker context ("This is the key takeaway slide", "Pause here for questions")
+- Audience considerations ("Simplify for non-technical audience", "Can go deeper for experts")
+
+**Examples:**
+- "Use simple language suitable for general audience. Include an engaging question to spark discussion."
+- "Emphasize the 40% cost reduction - this is the primary value proposition. Use confident, assertive tone."
+- "Keep technical but accessible. Reference the problem statement from slide 2 to create continuity."
+- "This is the emotional high point - use inspiring language. End with a clear call to action."
 """
 
     async def generate(
@@ -1295,7 +1416,11 @@ Generate a complete strawman with {slide_count} slides about {topic}.
                     slide_type_hint=slide_type_hint,
                     purpose=purpose,
                     service=analysis.service,
-                    generation_instructions=analysis.generation_instructions
+                    # v4.5.14: Preserve AI-generated generation_instructions, fall back to LayoutAnalyzer
+                    generation_instructions=slide.generation_instructions or analysis.generation_instructions,
+                    # v4.5.14: Preserve subtitle and semantic_group
+                    subtitle=slide.subtitle,
+                    semantic_group=getattr(slide, 'semantic_group', None)
                 )
                 enhanced_slides.append(enhanced_slide)
 

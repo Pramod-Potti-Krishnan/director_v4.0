@@ -232,7 +232,7 @@ class StrawmanSlide(BaseModel):
     layout: str = Field(default="L25", description="Layout template ID (L25 content, L29 hero)")
     topics: List[str] = Field(default_factory=list, description="Key topics/points")
     variant_id: Optional[str] = Field(default=None, description="Content variant for generation")
-    notes: Optional[str] = Field(default=None, description="Speaker notes or generation hints")
+    notes: Optional[str] = Field(default=None, description="v4.5.14: Speaker notes, tone guidance, emphasis points (REQUIRED for all slides)")
     is_hero: bool = Field(default=False, description="Whether this is a hero slide")
     hero_type: Optional[str] = Field(default=None, description="title_slide, section_divider, or closing_slide")
 
@@ -269,7 +269,7 @@ class StrawmanSlide(BaseModel):
     )
     purpose: Optional[str] = Field(
         default=None,
-        description="What story this slide tells: title_slide, problem_statement, traction, etc."
+        description="v4.5.14: What story this slide tells in the narrative (REQUIRED for all slides - AI generates)"
     )
 
     # v4.0.25: Routing fields (from Step 2: Layout Analysis)
@@ -279,7 +279,7 @@ class StrawmanSlide(BaseModel):
     )
     generation_instructions: Optional[str] = Field(
         default=None,
-        description="Precise instructions for content generation (for non-variant slides like charts, diagrams)"
+        description="v4.5.14: Specific instructions for content generation (REQUIRED for all slides - AI generates)"
     )
 
     # v4.5.3: Semantic grouping for context-aware variant diversity
