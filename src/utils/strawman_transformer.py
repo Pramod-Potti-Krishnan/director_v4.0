@@ -72,7 +72,8 @@ class StrawmanTransformer:
     # This fixes 422 errors from Layout Service validation
     LAYOUT_MAP = {
         # Hero layouts
-        "H1": "H1-generated",   # AI-generated title (uses hero_content)
+        # v4.5.15: Changed H1 to H1-structured for reliable full-width background
+        "H1": "H1-structured",  # Structured title (slide_title, subtitle, author_info + background_color)
         "H2": "H2-section",     # Section divider
         "H3": "H3-closing",     # Closing slide
 
@@ -236,14 +237,31 @@ class StrawmanTransformer:
             generation_instructions = slide.get('generation_instructions')
 
             # Build slide content based on layout type
+            # v4.5.15: Default background color for hero slides (set at slide level)
+            background_color = None
+
             if is_hero or layout in self.HERO_LAYOUTS:
-                # Hero slide
+                # Hero slide - v4.5.15: Use H1-structured for title slides
                 if hero_type == 'title_slide':
-                    html_content = self._create_title_slide_html(presentation_title, slide)
+                    # H1-structured: use slide_title, subtitle, author_info (not hero_content)
+                    subtitle = slide.get('subtitle', '')
+                    topics = slide.get('topics', [])
+                    notes = slide.get('notes', '')
+
+                    # Use subtitle if set, otherwise first topic or notes
+                    if not subtitle:
+                        subtitle = (topics[0] if topics else notes) or ""
+
+                    content = {
+                        'slide_title': f"📋 {presentation_title}",  # STRAWMAN prefix
+                        'subtitle': subtitle,
+                        'author_info': '📋 STRAWMAN PREVIEW'
+                    }
+                    # Set background at slide level for full coverage
+                    background_color = '#1e3a5f'
                 else:
                     html_content = self._create_hero_html(slide, hero_type)
-
-                content = {'hero_content': html_content}
+                    content = {'hero_content': html_content}
 
             elif layout in self.ANALYTICS_LAYOUTS:
                 # Analytics slide - metadata display
@@ -334,6 +352,10 @@ class StrawmanTransformer:
                     'topics': slide.get('topics', [])
                 }
             }
+
+            # v4.5.15: Add background_color at slide level for H1-structured
+            if background_color:
+                transformed_slide['background_color'] = background_color
 
             transformed_slides.append(transformed_slide)
 
@@ -521,91 +543,73 @@ class StrawmanTransformer:
 
         # v4.5.13: Build four consistent sections
 
-        # Section 1: Purpose
+        # Section 1: Purpose (v4.5.14: font sizes increased 20%)
         purpose_section = ''
         if purpose and purpose != '-':
             purpose_display = purpose.replace('_', ' ').title()
             purpose_section = f'''
             <div style="margin-bottom: 24px;">
-                <div style="font-size: 18px; font-weight: 700; color: #6366f1; margin-bottom: 8px;
+                <div style="font-size: 22px; font-weight: 700; color: #6366f1; margin-bottom: 8px;
                             text-transform: uppercase; letter-spacing: 1px;">
                     Purpose
                 </div>
-                <div style="font-size: 20px; color: #1f2937; line-height: 1.5;">
+                <div style="font-size: 24px; color: #1f2937; line-height: 1.5;">
                     {purpose_display}
                 </div>
             </div>
             '''
 
-        # Section 2: Topics
+        # Section 2: Topics (v4.5.14: font sizes increased 20%)
         topics_section = ''
         if topics:
             bullet_items = ''.join([f'<li style="margin-bottom: 8px;">{t}</li>' for t in topics])
             topics_section = f'''
             <div style="margin-bottom: 24px;">
-                <div style="font-size: 18px; font-weight: 700; color: #6366f1; margin-bottom: 8px;
+                <div style="font-size: 22px; font-weight: 700; color: #6366f1; margin-bottom: 8px;
                             text-transform: uppercase; letter-spacing: 1px;">
                     Topics
                 </div>
-                <ul style="list-style: disc; margin-left: 24px; font-size: 20px; color: #1f2937; line-height: 1.6;">
+                <ul style="list-style: disc; margin-left: 24px; font-size: 24px; color: #1f2937; line-height: 1.6;">
                     {bullet_items}
                 </ul>
             </div>
             '''
 
-        # Section 3: Generation Instructions
+        # Section 3: Generation Instructions (v4.5.14: font sizes increased 20%)
         gen_instructions_section = ''
         if generation_instructions:
             gen_instructions_section = f'''
             <div style="margin-bottom: 24px;">
-                <div style="font-size: 18px; font-weight: 700; color: #6366f1; margin-bottom: 8px;
+                <div style="font-size: 22px; font-weight: 700; color: #6366f1; margin-bottom: 8px;
                             text-transform: uppercase; letter-spacing: 1px;">
                     Generation Instructions
                 </div>
-                <div style="font-size: 20px; color: #1f2937; line-height: 1.5;">
+                <div style="font-size: 24px; color: #1f2937; line-height: 1.5;">
                     {generation_instructions}
                 </div>
             </div>
             '''
 
-        # Section 4: Notes
+        # Section 4: Notes (v4.5.14: font sizes increased 20%)
         notes_section = ''
         if notes:
             notes_section = f'''
             <div style="margin-bottom: 24px;">
-                <div style="font-size: 18px; font-weight: 700; color: #6366f1; margin-bottom: 8px;
+                <div style="font-size: 22px; font-weight: 700; color: #6366f1; margin-bottom: 8px;
                             text-transform: uppercase; letter-spacing: 1px;">
                     Notes
                 </div>
-                <div style="font-size: 20px; color: #1f2937; line-height: 1.5;">
+                <div style="font-size: 24px; color: #1f2937; line-height: 1.5;">
                     {notes}
                 </div>
             </div>
             '''
 
+        # v4.5.14: Removed redundant STRAWMAN badge and metadata chips from content area
+        # (already shown in slide header and footer)
         return f'''
 <div style="height: 100%; padding: 40px; font-family: system-ui, -apple-system, sans-serif;
             display: flex; flex-direction: column; gap: 16px;">
-
-    <!-- Top Row: Badge + Metadata Chips -->
-    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px; margin-bottom: 16px;">
-        {self._create_compact_badge()}
-
-        <div style="display: flex; gap: 12px; flex-wrap: wrap;">
-            <span style="background: #e0e7ff; color: #3730a3; padding: 8px 16px;
-                         border-radius: 16px; font-size: 14px; font-weight: 600;">
-                🎨 {layout}
-            </span>
-            <span style="background: #d1fae5; color: #065f46; padding: 8px 16px;
-                         border-radius: 16px; font-size: 14px; font-weight: 600;">
-                📐 {variant_id}
-            </span>
-            <span style="background: #fce7f3; color: #9d174d; padding: 8px 16px;
-                         border-radius: 16px; font-size: 14px; font-weight: 600;">
-                ⚙️ {service}
-            </span>
-        </div>
-    </div>
 
     <!-- Four Sections: Purpose, Topics, Generation Instructions, Notes -->
     {purpose_section}
