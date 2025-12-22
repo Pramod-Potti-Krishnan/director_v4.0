@@ -254,6 +254,12 @@ class WebSocketHandlerV4:
             payload = data.get('payload', {})
             action = payload.get('action', '')
             user_message = f"[ACTION: {action}] {payload.get('message', '')}"
+
+        elif message_type == 'set_branding':
+            # v4.0: Handle branding configuration (logo, footer)
+            await self._handle_set_branding(websocket, session, data)
+            return
+
         else:
             logger.warning(f"Unknown message type: {message_type}")
             return
@@ -401,6 +407,56 @@ class WebSocketHandlerV4:
         else:
             logger.warning(f"Unknown action type: {action}")
             await self._send_chat(websocket, session, "I'm not sure how to handle that. Can you rephrase?")
+
+    async def _handle_set_branding(self, websocket: WebSocket, session: SessionV4, data: Dict[str, Any]):
+        """
+        Handle set_branding message to configure logo/footer for session.
+
+        v4.0: Enables logo rendering by setting session branding before presentation creation.
+
+        Expected payload:
+        {
+            "type": "set_branding",
+            "payload": {
+                "logo": {
+                    "url": "https://example.com/logo.png",
+                    "position": "top_right",  // optional
+                    "width": 120  // optional
+                }
+            }
+        }
+        """
+        try:
+            from src.models.presentation_config import PresentationBranding, LogoConfig
+
+            payload = data.get('payload', data)
+            logo_config = None
+
+            if 'logo' in payload:
+                logo_data = payload['logo']
+                logo_config = LogoConfig(
+                    url=logo_data.get('url'),
+                    position=logo_data.get('position', 'top_right'),
+                    width=logo_data.get('width', 120)
+                )
+
+            branding = PresentationBranding(logo=logo_config)
+            session.set_branding(branding)
+
+            await websocket.send_json({
+                "type": "branding_set",
+                "success": True,
+                "logo_url": logo_config.url if logo_config else None
+            })
+            logger.info(f"[Branding] Set logo URL: {logo_config.url if logo_config else 'None'}")
+
+        except Exception as e:
+            logger.error(f"[Branding] Error setting branding: {e}")
+            await websocket.send_json({
+                "type": "branding_set",
+                "success": False,
+                "error": str(e)
+            })
 
     async def _handle_respond(self, websocket: WebSocket, session: SessionV4, decision):
         """Handle RESPOND action - send conversational response."""
