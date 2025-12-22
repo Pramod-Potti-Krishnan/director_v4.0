@@ -75,7 +75,7 @@
           "validation_threshold": "strict",
           "expected_structure": "Plain text only"
         },
-        "company_logo": {
+        "logo": {
           "type": "string",
           "max_chars": 10,
           "required": false,
@@ -181,7 +181,7 @@
           "validation_threshold": "strict",
           "expected_structure": "Plain text only"
         },
-        "company_logo": {
+        "logo": {
           "type": "string",
           "max_chars": 10,
           "required": false,

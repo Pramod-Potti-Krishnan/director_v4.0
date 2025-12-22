@@ -25,7 +25,7 @@ v4.5.8: Redesigned full-width card-based preview (replaces narrow table).
 - Each slide type has unique visual treatment
 - Uses full content area instead of narrow left-aligned table
 v4.5.12: Proper footer and logo placement per SLIDE_GENERATION_INPUT_SPEC.md.
-- STRAWMAN logo in footer logo area via company_logo field
+- STRAWMAN logo in footer logo area via logo field
 - Footer with template/variant/service via presentation_name (L25) or footer_text (C1)
 - Better subtitle generation from purpose + topics
 v4.5.13: Clean four-section structure for strawman content.
@@ -107,7 +107,7 @@ class StrawmanTransformer:
     }
 
     # v4.5.11: STRAWMAN logo as HTML for footer logo area
-    # Layout Service accepts URL or HTML for company_logo field
+    # Layout Service accepts URL or HTML for logo field (v7.5.5 standardized)
     STRAWMAN_LOGO_HTML = '''<div style="display: inline-flex; align-items: center; gap: 6px;
         background: linear-gradient(135deg, #fef3c7, #fde68a); border: 2px solid #f59e0b;
         border-radius: 8px; padding: 4px 12px;">
@@ -247,50 +247,50 @@ class StrawmanTransformer:
 
             elif layout in self.ANALYTICS_LAYOUTS:
                 # Analytics slide - metadata display
-                # v4.5.7: Added subtitle and company_logo for Layout Service
+                # v4.5.7: Added subtitle and logo for Layout Service
                 # v4.5.12: Added presentation_name for footer
                 content = {
                     'slide_title': slide.get('title', 'Analytics'),
                     'subtitle': self._generate_subtitle(slide),
                     'rich_content': self._create_analytics_metadata_html(slide, layout),
                     'presentation_name': self._generate_footer(slide, layout),
-                    'company_logo': self.STRAWMAN_LOGO_HTML
+                    'logo': self.STRAWMAN_LOGO_HTML
                 }
 
             elif layout in self.DIAGRAM_LAYOUTS:
                 # Diagram slide - metadata display
-                # v4.5.7: Added subtitle and company_logo for Layout Service
+                # v4.5.7: Added subtitle and logo for Layout Service
                 # v4.5.12: Added presentation_name for footer
                 content = {
                     'slide_title': slide.get('title', 'Diagram'),
                     'subtitle': self._generate_subtitle(slide),
                     'rich_content': self._create_diagram_metadata_html(slide, layout),
                     'presentation_name': self._generate_footer(slide, layout),
-                    'company_logo': self.STRAWMAN_LOGO_HTML
+                    'logo': self.STRAWMAN_LOGO_HTML
                 }
 
             elif layout in self.INFOGRAPHIC_LAYOUTS:
                 # Infographic slide - metadata display
-                # v4.5.7: Added subtitle and company_logo for Layout Service
+                # v4.5.7: Added subtitle and logo for Layout Service
                 # v4.5.12: Added presentation_name for footer
                 content = {
                     'slide_title': slide.get('title', 'Infographic'),
                     'subtitle': self._generate_subtitle(slide),
                     'rich_content': self._create_infographic_metadata_html(slide, layout),
                     'presentation_name': self._generate_footer(slide, layout),
-                    'company_logo': self.STRAWMAN_LOGO_HTML
+                    'logo': self.STRAWMAN_LOGO_HTML
                 }
 
             elif layout in self.ISERIES_LAYOUTS:
                 # I-series slide - metadata display with image placeholder
-                # v4.5.7: Added subtitle and company_logo for Layout Service
+                # v4.5.7: Added subtitle and logo for Layout Service
                 # v4.5.12: Added presentation_name for footer
                 content = {
                     'slide_title': slide.get('title', 'Visual'),
                     'subtitle': self._generate_subtitle(slide),
                     'rich_content': self._create_iseries_metadata_html(slide, layout),
                     'presentation_name': self._generate_footer(slide, layout),
-                    'company_logo': self.STRAWMAN_LOGO_HTML
+                    'logo': self.STRAWMAN_LOGO_HTML
                 }
 
             elif layout == 'C1':
@@ -301,19 +301,19 @@ class StrawmanTransformer:
                     'subtitle': self._generate_subtitle(slide),
                     'body': self._create_content_metadata_html(slide, layout),
                     'footer_text': self._generate_footer(slide, layout),
-                    'company_logo': self.STRAWMAN_LOGO_HTML
+                    'logo': self.STRAWMAN_LOGO_HTML
                 }
 
             else:
                 # Default content slide (L25, V1) - uses rich_content
-                # v4.5.7: Added subtitle and company_logo for Layout Service
+                # v4.5.7: Added subtitle and logo for Layout Service
                 # v4.5.12: Added presentation_name for footer
                 content = {
                     'slide_title': slide.get('title', 'Slide'),
                     'subtitle': self._generate_subtitle(slide),
                     'rich_content': self._create_content_metadata_html(slide, layout),
                     'presentation_name': self._generate_footer(slide, layout),
-                    'company_logo': self.STRAWMAN_LOGO_HTML
+                    'logo': self.STRAWMAN_LOGO_HTML
                 }
 
             # Build transformed slide with metadata

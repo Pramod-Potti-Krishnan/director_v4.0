@@ -286,7 +286,7 @@ class ContentTransformer:
         - subtitle (optional, plain text, layout_builder) ← FROM DIRECTOR (generated_subtitle)
         - rich_content (HTML, text_service) - 1800×720px area ← FROM TEXT SERVICE v1.2
         - presentation_name (footer) ← FROM DIRECTOR (footer_text)
-        - company_logo (footer)
+        - logo (footer)
 
         v3.4-v1.2 Update:
         - Use slide.generated_title for slide_title (Director-generated, max 50 chars)
@@ -325,8 +325,8 @@ class ContentTransformer:
                     result["subtitle"] = subtitle  # Director's generated_subtitle
                 if 'presentation_name' in fields:
                     result["presentation_name"] = footer  # Director's footer_text
-                if 'company_logo' in fields:
-                    result["company_logo"] = ""  # Empty for now
+                if 'logo' in fields:
+                    result["logo"] = ""  # Empty for now
 
                 return result
 
@@ -356,7 +356,7 @@ class ContentTransformer:
                         "element_3": chart_html,               # Analytics provides (chart HTML)
                         "element_2": observations_html,        # Analytics provides (observations HTML)
                         "presentation_name": footer,           # Director provides
-                        "company_logo": ""                     # Optional
+                        "logo": ""                     # Optional
                     }
 
                     return result
@@ -373,8 +373,8 @@ class ContentTransformer:
                     result["subtitle"] = subtitle  # Director's generated_subtitle
                 if 'presentation_name' in fields:
                     result["presentation_name"] = footer  # Director's footer_text
-                if 'company_logo' in fields:
-                    result["company_logo"] = ""
+                if 'logo' in fields:
+                    result["logo"] = ""
 
                 return result
 
@@ -405,8 +405,8 @@ class ContentTransformer:
             result["subtitle"] = subtitle  # Director's generated_subtitle or empty
         if 'presentation_name' in fields:
             result["presentation_name"] = footer  # Director's footer_text or fallback
-        if 'company_logo' in fields:
-            result["company_logo"] = ""  # Empty for now
+        if 'logo' in fields:
+            result["logo"] = ""  # Empty for now
 
         return result
 

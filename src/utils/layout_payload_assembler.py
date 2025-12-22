@@ -286,7 +286,7 @@ class LayoutPayloadAssembler:
         # Add branding if available
         if branding:
             if hasattr(branding, 'logo') and branding.logo.url:
-                result["content"]["company_logo"] = branding.logo.url
+                result["content"]["logo"] = branding.logo.url
             if context.presentation_title:
                 result["content"]["presentation_name"] = context.presentation_title
 
@@ -330,7 +330,7 @@ class LayoutPayloadAssembler:
             if hasattr(branding, 'footer') and branding.footer.text:
                 result["content"]["footer_text"] = branding.footer.text
             if hasattr(branding, 'logo') and branding.logo.url:
-                result["content"]["company_logo"] = branding.logo.url
+                result["content"]["logo"] = branding.logo.url
 
         return result
 
