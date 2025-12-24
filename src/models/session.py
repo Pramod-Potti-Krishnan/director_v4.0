@@ -81,6 +81,11 @@ class SessionV4(BaseModel):
         default="professional",
         description="Theme identifier (professional, executive, educational, children)"
     )
+    # v4.5.8: CSS Variable Theming (Phase 1)
+    theme_mode: Optional[str] = Field(
+        default="light",
+        description="Theme mode: 'light' or 'dark' for CSS variable theming"
+    )
     content_context: Optional[Dict[str, Any]] = Field(
         None,
         description="ContentContext for audience-aware generation (built at strawman stage)"

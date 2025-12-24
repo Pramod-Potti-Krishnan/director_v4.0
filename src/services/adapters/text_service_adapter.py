@@ -8,6 +8,7 @@ Service Type: template_based
 
 Version: 2.0.0
 Created: 2025-11-29
+Updated: 2025-12-23 - v2.1.0: Added CSS variable theming support (Phase 1)
 """
 
 from typing import Dict, Any, Optional
@@ -19,6 +20,7 @@ from src.services.adapters.base_adapter import (
     EndpointResolutionError
 )
 from src.utils.logger import setup_logger
+from config.settings import settings
 
 logger = setup_logger(__name__)
 
@@ -126,6 +128,18 @@ class TextServiceAdapter(BaseServiceAdapter):
             for key, value in context.items():
                 if key not in request:  # Don't override parameters
                     request[key] = value
+
+        # v2.1.0: Add theme_settings when ENABLE_THEME_MODE is true (Phase 1 CSS variable theming)
+        if settings.ENABLE_THEME_MODE:
+            theme_mode = context.get("theme_mode", settings.DEFAULT_THEME_MODE) if context else settings.DEFAULT_THEME_MODE
+            theme_id = context.get("theme_id", settings.DEFAULT_THEME_ID) if context else settings.DEFAULT_THEME_ID
+            request["theme_settings"] = {
+                "theme_id": theme_id,
+                "theme_mode": theme_mode
+            }
+            logger.debug(
+                f"Added theme_settings to request: theme_id={theme_id}, theme_mode={theme_mode}"
+            )
 
         # Validate required fields
         required = self.get_required_fields(variant.variant_id)

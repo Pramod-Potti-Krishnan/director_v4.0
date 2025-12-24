@@ -243,6 +243,20 @@ class Settings(BaseSettings):
         description="Default theme ID when not specified: professional, executive, educational, children"
     )
 
+    # v4.5.8: CSS Variable Theming (Phase 1)
+    # Controls dark/light mode switching via CSS variables
+    # When enabled, Director passes theme_mode to Text Service and Layout Service
+    ENABLE_THEME_MODE: bool = Field(
+        False,  # Default: disabled (use current light-mode behavior)
+        env="ENABLE_THEME_MODE",
+        description="Enable dark/light mode theming via CSS variables"
+    )
+    DEFAULT_THEME_MODE: str = Field(
+        "light",  # Safe default - light mode
+        env="DEFAULT_THEME_MODE",
+        description="Default theme mode: 'light' or 'dark'"
+    )
+
     # v4.1: Playbook System
     # Pre-defined presentation structures indexed by (audience, purpose, duration)
     # Three-tier selection: Full match (90%+), Partial match (60-89%), No match (<60%)
