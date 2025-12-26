@@ -244,15 +244,20 @@ class SessionManagerV4:
         self,
         session_id: str,
         user_id: str,
-        strawman: Dict[str, Any]
+        strawman: Dict[str, Any],
+        quality_tier: Optional[str] = None
     ) -> None:
         """
         Save strawman and update progress flag.
+
+        v4.6: Also derives and saves ImageStyleAgreement for consistent
+        image styling across all slides in the presentation.
 
         Args:
             session_id: Session ID
             user_id: User ID
             strawman: Strawman data
+            quality_tier: Optional image quality tier override from frontend
         """
         session = await self.get_or_create(session_id, user_id)
 
@@ -260,12 +265,41 @@ class SessionManagerV4:
         session.has_strawman = True
         session.updated_at = datetime.utcnow()
 
+        # v4.6: Derive and save ImageStyleAgreement at strawman time
         try:
-            await self.supabase.table(self.table_name).update({
+            from src.utils.image_style_deriver import derive_image_style
+            from src.models.presentation_config import ImageQualityTier
+
+            # Parse quality tier if provided
+            quality_override = None
+            if quality_tier:
+                try:
+                    quality_override = ImageQualityTier(quality_tier.lower())
+                except ValueError:
+                    logger.warning(f"Invalid quality_tier '{quality_tier}', using default")
+
+            image_style = derive_image_style(session, quality_override=quality_override)
+            session.set_image_style_agreement(image_style)
+            logger.info(
+                f"Derived image style for session {session_id}: "
+                f"archetype={image_style.archetype.value}, quality={image_style.quality_tier.value}"
+            )
+        except Exception as e:
+            logger.warning(f"Could not derive image style: {e}")
+            # Continue without image style - will use defaults
+
+        try:
+            update_data = {
                 'strawman': strawman,
                 'has_strawman': True,
                 'updated_at': session.updated_at.isoformat()
-            }).eq('id', session_id).eq('user_id', user_id).execute()
+            }
+            # Include image_style_agreement if derived
+            if session.image_style_agreement:
+                update_data['image_style_agreement'] = session.image_style_agreement
+
+            await self.supabase.table(self.table_name).update(update_data
+            ).eq('id', session_id).eq('user_id', user_id).execute()
             logger.info(f"Saved strawman for session {session_id}")
 
             self._clear_cache(user_id, session_id)

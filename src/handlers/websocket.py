@@ -1585,6 +1585,18 @@ class WebSocketHandlerV4:
                     content_context = session.content_context
                     styling_mode = settings.THEME_STYLING_MODE
 
+                    # v4.6: Get visual_style and image_model from ImageStyleAgreement
+                    image_style_agreement = session.get_image_style_agreement()
+                    if image_style_agreement:
+                        hero_visual_style = image_style_agreement.to_visual_style()
+                        # Hero slides get is_hero=True for quality tier selection
+                        hero_image_model = image_style_agreement.get_model_for_slide(is_hero=True)
+                        context["image_model"] = hero_image_model
+                        print(f"[HERO-STYLE] Using image style: visual={hero_visual_style}, model={hero_image_model}")
+                    else:
+                        hero_visual_style = "professional"
+                        print(f"[HERO-STYLE] No ImageStyleAgreement, defaulting to professional")
+
                     try:
                         if hero_type == 'title_slide' or not hero_type:
                             # H1-generated: Title slide with AI image
@@ -1595,7 +1607,7 @@ class WebSocketHandlerV4:
                                 topics=topics,
                                 presentation_title=presentation_title,
                                 subtitle=slide.get('subtitle'),
-                                visual_style="professional",
+                                visual_style=hero_visual_style,
                                 context=context,
                                 theme_config=theme_dict,
                                 content_context=content_context,
@@ -1611,7 +1623,7 @@ class WebSocketHandlerV4:
                                 section_number=slide.get('section_number'),
                                 section_title=slide.get('title'),
                                 topics=topics,
-                                visual_style="professional",
+                                visual_style=hero_visual_style,
                                 theme_config=theme_dict,
                                 content_context=content_context,
                                 styling_mode=styling_mode
@@ -1624,7 +1636,7 @@ class WebSocketHandlerV4:
                                 slide_number=idx + 1,
                                 narrative=narrative,
                                 closing_message=slide.get('title', 'Thank You'),
-                                visual_style="professional",
+                                visual_style=hero_visual_style,
                                 theme_config=theme_dict,
                                 content_context=content_context,
                                 styling_mode=styling_mode
@@ -1638,6 +1650,7 @@ class WebSocketHandlerV4:
                                 narrative=narrative,
                                 topics=topics,
                                 presentation_title=presentation_title,
+                                visual_style=hero_visual_style,
                                 context=context,
                                 theme_config=theme_dict,
                                 content_context=content_context,
@@ -1677,19 +1690,32 @@ class WebSocketHandlerV4:
                 }
                 endpoint = endpoint_map.get(hero_type, '/v1.2/hero/title-with-image')
 
+                # v4.6: Get visual_style and image_model from ImageStyleAgreement for legacy path
+                legacy_image_style = session.get_image_style_agreement()
+                if legacy_image_style:
+                    legacy_visual_style = legacy_image_style.to_visual_style()
+                    legacy_image_model = legacy_image_style.get_model_for_slide(is_hero=True)
+                else:
+                    legacy_visual_style = "professional"
+                    legacy_image_model = None
+
                 # Build hero request payload
+                hero_context = {
+                    "presentation_title": presentation_title,
+                    "total_slides": total_slides,
+                    "tone": session.tone or "professional",
+                    "audience": session.audience or "general"
+                }
+                if legacy_image_model:
+                    hero_context["image_model"] = legacy_image_model
+
                 hero_payload = {
                     "slide_number": idx + 1,
                     "slide_type": hero_type or "title_slide",
                     "narrative": slide.get('notes') or slide.get('narrative') or '',
                     "topics": slide.get('topics') or [],
-                    "visual_style": "professional",  # v4.0.25: Required for -with-image endpoints
-                    "context": {
-                        "presentation_title": presentation_title,
-                        "total_slides": total_slides,
-                        "tone": session.tone or "professional",
-                        "audience": session.audience or "general"
-                    }
+                    "visual_style": legacy_visual_style,  # v4.6: From ImageStyleAgreement
+                    "context": hero_context
                 }
 
                 try:
@@ -1997,8 +2023,18 @@ class WebSocketHandlerV4:
 
         # Get settings for I-series defaults
         settings = get_settings()
-        visual_style = settings.ISERIES_DEFAULT_VISUAL_STYLE
         content_style = settings.ISERIES_DEFAULT_CONTENT_STYLE
+
+        # v4.6: Get visual_style from ImageStyleAgreement if available
+        image_style_agreement = session.get_image_style_agreement()
+        if image_style_agreement:
+            visual_style = image_style_agreement.to_visual_style()
+            image_model = image_style_agreement.get_model_for_slide(is_hero=False)
+            print(f"[ISERIES] Using ImageStyleAgreement: visual_style={visual_style}, model={image_model}")
+        else:
+            visual_style = settings.ISERIES_DEFAULT_VISUAL_STYLE
+            image_model = None
+            print(f"[ISERIES] No ImageStyleAgreement, using default: visual_style={visual_style}")
 
         try:
             # Build I-series request
@@ -2014,6 +2050,12 @@ class WebSocketHandlerV4:
                 "tone": session.tone or "professional",
                 "audience": session.audience or "general"
             }
+
+            # v4.6: Add image_model to context if available
+            if image_model:
+                context["image_model"] = image_model
+            if image_style_agreement:
+                context["image_style_agreement"] = image_style_agreement.to_context_dict()
 
             # v4.5: Get theme config and content context for Text Service
             from src.models.theme_config import get_theme_config

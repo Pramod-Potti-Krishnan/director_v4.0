@@ -10,6 +10,7 @@ Key differences from v3.4:
 - Progress flags indicate what has been accomplished
 
 v4.2: Added branding field for per-presentation footer/logo configuration.
+v4.6: Added image_style_agreement for presentation-level image style consistency.
 """
 
 from typing import List, Optional, Dict, Any, TYPE_CHECKING
@@ -18,7 +19,7 @@ from pydantic import BaseModel, Field
 
 # Avoid circular import - only import for type checking
 if TYPE_CHECKING:
-    from src.models.presentation_config import PresentationBranding
+    from src.models.presentation_config import PresentationBranding, ImageStyleAgreement
 
 
 class SessionV4(BaseModel):
@@ -89,6 +90,12 @@ class SessionV4(BaseModel):
     content_context: Optional[Dict[str, Any]] = Field(
         None,
         description="ContentContext for audience-aware generation (built at strawman stage)"
+    )
+
+    # v4.6: Presentation-level image style consistency
+    image_style_agreement: Optional[Dict[str, Any]] = Field(
+        None,
+        description="ImageStyleAgreement for consistent image styling across all slides"
     )
 
     # v4.5: Smart Context Extraction
@@ -167,6 +174,7 @@ class SessionV4(BaseModel):
         self.presentation_id = None
         self.presentation_url = None
         self.branding = None  # v4.2: Clear branding for new presentation
+        self.image_style_agreement = None  # v4.6: Clear image style for new presentation
         # Keep conversation history for context
         self.updated_at = datetime.utcnow()
 
@@ -189,6 +197,27 @@ class SessionV4(BaseModel):
         v4.2: Converts to dict for Supabase storage.
         """
         self.branding = branding.dict()
+        self.updated_at = datetime.utcnow()
+
+    def get_image_style_agreement(self) -> Optional["ImageStyleAgreement"]:
+        """
+        Get image style agreement as ImageStyleAgreement model.
+
+        v4.6: Converts dict to ImageStyleAgreement for type safety.
+        """
+        if not self.image_style_agreement:
+            return None
+
+        from src.models.presentation_config import ImageStyleAgreement
+        return ImageStyleAgreement(**self.image_style_agreement)
+
+    def set_image_style_agreement(self, agreement: "ImageStyleAgreement") -> None:
+        """
+        Set image style agreement from ImageStyleAgreement model.
+
+        v4.6: Converts to dict for Supabase storage.
+        """
+        self.image_style_agreement = agreement.dict()
         self.updated_at = datetime.utcnow()
 
     def get_decision_context(self) -> Dict[str, Any]:

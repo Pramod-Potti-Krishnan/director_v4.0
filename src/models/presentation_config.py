@@ -1,17 +1,20 @@
 """
-Presentation Configuration Models - v4.2
+Presentation Configuration Models - v4.6
 =========================================
 
 Models for per-presentation configuration:
 - FooterConfig: Footer text, slide numbers, date display
 - LogoConfig: Logo URL, position, size
 - PresentationBranding: Combined footer + logo configuration
+- ImageStyleAgreement: Presentation-level image style consistency
+- ImageQualityTier: Image generation quality/speed selection
 
 v4.2: Stage 6 - Director only adds footer/logo to generated slides.
-Services handle title/subtitle generation.
+v4.6: Added ImageStyleAgreement and ImageQualityTier for consistent
+      image generation across all slides in a presentation.
 """
 
-from typing import Optional
+from typing import Optional, List
 from pydantic import BaseModel, Field
 from enum import Enum
 
@@ -185,3 +188,128 @@ class ThemeConfig(BaseModel):
     background_color: str = Field("#ffffff", description="Background color (hex)")
     text_color: str = Field("#333333", description="Text color (hex)")
     font_family: str = Field("Inter, sans-serif", description="Font family")
+
+
+# =============================================================================
+# Image Style Agreement (v4.6)
+# =============================================================================
+# Presentation-level image style consistency for I-series and hero slides.
+# Ensures all images in a presentation have consistent visual treatment.
+
+class ImageArchetype(str, Enum):
+    """
+    Image style archetype for consistent visual treatment.
+
+    Derived from audience and purpose at strawman generation time.
+    """
+    PHOTOREALISTIC = "photorealistic"  # Executives, professional
+    ILLUSTRATED = "illustrated"         # Creative, storytelling
+    MINIMALIST = "minimalist"           # Technical, developers
+    VIBRANT = "vibrant"                 # Kids, educational
+
+
+class ImageQualityTier(str, Enum):
+    """
+    Image generation quality/speed tier selection.
+
+    Controls which Imagen model is used for generation:
+    - FAST: imagen-3.0-fast-generate-001 (~5s, $0.02)
+    - STANDARD: imagen-3.0-generate-001 (~11s, $0.04)
+    - HIGH: imagen-3.0-generate-002 (~11s, $0.04, best quality)
+    - SMART: Auto-select based on slide type (hero=high, content=standard)
+    """
+    FAST = "fast"
+    STANDARD = "standard"
+    HIGH = "high"
+    SMART = "smart"
+
+
+class ImageStyleAgreement(BaseModel):
+    """
+    Presentation-level image style agreement.
+
+    v4.6: Ensures consistent image styling across all slides.
+    Derived once at strawman generation from audience/purpose,
+    then applied to all I-series and hero slide generation calls.
+    """
+    archetype: ImageArchetype = Field(
+        default=ImageArchetype.ILLUSTRATED,
+        description="Image style archetype (photorealistic, illustrated, minimalist, vibrant)"
+    )
+    mood: str = Field(
+        default="professional",
+        description="Image mood (professional, aspirational, accessible, playful)"
+    )
+    color_scheme: str = Field(
+        default="neutral",
+        description="Color scheme preference (neutral, warm, cool, vibrant)"
+    )
+    lighting: str = Field(
+        default="professional",
+        description="Lighting style (professional, soft, bright, playful)"
+    )
+    avoid_elements: List[str] = Field(
+        default_factory=list,
+        description="Elements to avoid in images (e.g., ['anime', 'cartoon', 'people'])"
+    )
+    derived_from: str = Field(
+        default="default",
+        description="Source of derivation (e.g., 'audience:executives+purpose:inform')"
+    )
+    quality_tier: ImageQualityTier = Field(
+        default=ImageQualityTier.STANDARD,
+        description="Image quality tier (fast, standard, high, smart)"
+    )
+
+    def to_visual_style(self) -> str:
+        """
+        Map archetype to Text Service visual_style parameter.
+
+        Returns:
+            Visual style string: 'professional', 'illustrated', or 'kids'
+        """
+        mapping = {
+            ImageArchetype.PHOTOREALISTIC: "professional",
+            ImageArchetype.ILLUSTRATED: "illustrated",
+            ImageArchetype.MINIMALIST: "professional",  # Minimalist uses professional base
+            ImageArchetype.VIBRANT: "kids",
+        }
+        return mapping.get(self.archetype, "illustrated")
+
+    def get_model_for_slide(self, is_hero: bool = False) -> str:
+        """
+        Get Imagen model based on quality tier and slide type.
+
+        Args:
+            is_hero: Whether this is a hero/title slide (higher priority)
+
+        Returns:
+            Imagen model identifier string
+        """
+        if self.quality_tier == ImageQualityTier.FAST:
+            return "imagen-3.0-fast-generate-001"
+        elif self.quality_tier == ImageQualityTier.STANDARD:
+            return "imagen-3.0-generate-001"
+        elif self.quality_tier == ImageQualityTier.HIGH:
+            return "imagen-3.0-generate-002"
+        elif self.quality_tier == ImageQualityTier.SMART:
+            # Smart: hero slides get high quality, content slides get standard
+            return "imagen-3.0-generate-002" if is_hero else "imagen-3.0-generate-001"
+        else:
+            return "imagen-3.0-generate-001"  # Default to standard
+
+    def to_context_dict(self) -> dict:
+        """
+        Convert to dict for passing to Text Service context.
+
+        Returns:
+            Dict suitable for inclusion in generation request context
+        """
+        return {
+            "archetype": self.archetype.value,
+            "mood": self.mood,
+            "color_scheme": self.color_scheme,
+            "lighting": self.lighting,
+            "avoid_elements": self.avoid_elements,
+            "quality_tier": self.quality_tier.value
+        }
