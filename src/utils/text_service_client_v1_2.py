@@ -452,7 +452,9 @@ class TextServiceClientV1_2:
         # v4.5: Theme system params
         theme_config: Optional[Dict] = None,
         content_context: Optional[Dict] = None,
-        styling_mode: str = "inline_styles"
+        styling_mode: str = "inline_styles",
+        # v4.7: Global brand variables for simplified prompting
+        global_brand: Optional[Dict] = None
     ) -> Dict[str, Any]:
         """
         Generate I-series slide (image + text combined layout).
@@ -464,6 +466,7 @@ class TextServiceClientV1_2:
         - I4: Narrow image right (360×1080), content left (1440×840)
 
         v4.5: Theme system params added (ignored by v1.2.2, used by v1.3.0).
+        v4.7: global_brand added for simplified image prompting.
 
         Args:
             layout_type: Layout ID (I1, I2, I3, I4)
@@ -478,6 +481,11 @@ class TextServiceClientV1_2:
             theme_config: v4.5 - Full theme config
             content_context: v4.5 - Audience/purpose/time config
             styling_mode: v4.5 - "inline_styles" or "css_classes"
+            global_brand: v4.7 - Global brand variables dict with:
+                - target_demographic: Audience keywords for prompt
+                - visual_style: Style phrase for prompt
+                - color_palette: Color phrase for prompt
+                - lighting_mood: Lighting/mood phrase for prompt
 
         Returns:
             Dict with:
@@ -513,6 +521,10 @@ class TextServiceClientV1_2:
             payload["content_context"] = content_context
         if styling_mode:
             payload["styling_mode"] = styling_mode
+
+        # v4.7: Add global brand variables for simplified prompting
+        if global_brand:
+            payload["global_brand"] = global_brand
 
         try:
             print(f"[TEXT-SVC] POST /v1.2/iseries/generate layout={layout_type}, style={visual_style}")
@@ -566,7 +578,8 @@ class TextServiceClientV1_2:
         topics: list,
         visual_style: str = "professional",
         content_style: str = "bullets",
-        context: Optional[Dict[str, Any]] = None
+        context: Optional[Dict[str, Any]] = None,
+        global_brand: Optional[Dict] = None
     ) -> Dict[str, Any]:
         """
         Generate I1 layout: Wide image left (660×1080), content right (1200×840).
@@ -581,7 +594,8 @@ class TextServiceClientV1_2:
             topics=topics,
             visual_style=visual_style,
             content_style=content_style,
-            context=context
+            context=context,
+            global_brand=global_brand
         )
 
     async def generate_iseries_i2(
@@ -592,7 +606,8 @@ class TextServiceClientV1_2:
         topics: list,
         visual_style: str = "professional",
         content_style: str = "bullets",
-        context: Optional[Dict[str, Any]] = None
+        context: Optional[Dict[str, Any]] = None,
+        global_brand: Optional[Dict] = None
     ) -> Dict[str, Any]:
         """
         Generate I2 layout: Wide image right (660×1080), content left (1140×840).
@@ -607,7 +622,8 @@ class TextServiceClientV1_2:
             topics=topics,
             visual_style=visual_style,
             content_style=content_style,
-            context=context
+            context=context,
+            global_brand=global_brand
         )
 
     async def generate_iseries_i3(
@@ -618,7 +634,8 @@ class TextServiceClientV1_2:
         topics: list,
         visual_style: str = "professional",
         content_style: str = "bullets",
-        context: Optional[Dict[str, Any]] = None
+        context: Optional[Dict[str, Any]] = None,
+        global_brand: Optional[Dict] = None
     ) -> Dict[str, Any]:
         """
         Generate I3 layout: Narrow image left (360×1080), content right (1500×840).
@@ -633,7 +650,8 @@ class TextServiceClientV1_2:
             topics=topics,
             visual_style=visual_style,
             content_style=content_style,
-            context=context
+            context=context,
+            global_brand=global_brand
         )
 
     async def generate_iseries_i4(
@@ -644,7 +662,8 @@ class TextServiceClientV1_2:
         topics: list,
         visual_style: str = "professional",
         content_style: str = "bullets",
-        context: Optional[Dict[str, Any]] = None
+        context: Optional[Dict[str, Any]] = None,
+        global_brand: Optional[Dict] = None
     ) -> Dict[str, Any]:
         """
         Generate I4 layout: Narrow image right (360×1080), content left (1440×840).
@@ -659,7 +678,8 @@ class TextServiceClientV1_2:
             topics=topics,
             visual_style=visual_style,
             content_style=content_style,
-            context=context
+            context=context,
+            global_brand=global_brand
         )
 
     async def get_iseries_layouts(self) -> Dict[str, Any]:

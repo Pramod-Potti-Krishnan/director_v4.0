@@ -135,6 +135,85 @@ PURPOSE_MOOD_ADJUSTMENTS: Dict[str, str] = {
 }
 
 
+# =============================================================================
+# v4.7: Global Brand Variables Mappings (for simplified prompting)
+# =============================================================================
+
+# Audience → Target Demographic Keywords (for prompt aesthetic)
+AUDIENCE_DEMOGRAPHIC_MAP: Dict[str, str] = {
+    "executives": "enterprise executives, corporate leadership",
+    "executive": "enterprise executives, corporate leadership",
+    "professional": "modern professionals, business audience",
+    "business": "business professionals, corporate setting",
+    "technical": "tech professionals, developers",
+    "developers": "software developers, engineering teams",
+    "engineers": "technical engineers, analytical minds",
+    "kids_young": "young children, playful learning",
+    "kids_tween": "tweens, energetic youth",
+    "kids_teen": "teenagers, dynamic youth culture",
+    "children": "young children, imaginative play",
+    "middle_school": "middle schoolers, curious learners",
+    "high_school": "high school students, young adults",
+    "students": "college students, academic learners",
+    "college": "university students, higher education",
+    "academic": "academic researchers, scholarly community",
+    "general": "general audience, broad appeal",
+}
+
+# Audience → Visual Style Descriptor (style phrase for prompt)
+AUDIENCE_STYLE_DESCRIPTOR_MAP: Dict[str, str] = {
+    "executives": "sleek modern photorealistic",
+    "executive": "sleek modern photorealistic",
+    "professional": "polished professional photorealistic",
+    "business": "clean corporate photorealistic",
+    "technical": "clean minimalist technical",
+    "developers": "modern minimalist technical",
+    "engineers": "precise technical minimalist",
+    "kids_young": "bright playful illustrated cartoon",
+    "kids_tween": "vibrant energetic illustrated",
+    "kids_teen": "cool modern illustrated",
+    "children": "warm friendly illustrated cartoon",
+    "middle_school": "colorful engaging illustrated",
+    "high_school": "dynamic contemporary illustrated",
+    "students": "fresh modern illustrated",
+    "college": "contemporary illustrated",
+    "academic": "sophisticated illustrated",
+    "general": "warm approachable illustrated",
+}
+
+# Color Scheme → Color Palette Descriptor (for prompt)
+COLOR_PALETTE_MAP: Dict[str, str] = {
+    "neutral": "cool grays and subtle blues",
+    "warm": "warm earth tones and amber accents",
+    "cool": "cool blues and metallic silvers",
+    "vibrant": "bright vibrant colors and bold accents",
+}
+
+# Mood + Lighting → Lighting/Mood Phrase (for prompt)
+def build_lighting_mood_phrase(mood: str, lighting: str) -> str:
+    """Build lighting/mood phrase for prompt."""
+    lighting_descriptors = {
+        "professional": "professional studio lighting",
+        "soft": "soft natural lighting",
+        "bright": "bright ambient lighting",
+        "playful": "cheerful vibrant lighting",
+        "clean": "clean even lighting",
+    }
+    mood_descriptors = {
+        "professional": "sophisticated atmosphere",
+        "informative": "clear focused atmosphere",
+        "educational": "engaging learning atmosphere",
+        "compelling": "impactful dynamic atmosphere",
+        "aspirational": "inspiring uplifting atmosphere",
+        "engaging": "captivating energetic atmosphere",
+        "playful": "fun cheerful atmosphere",
+        "accessible": "welcoming friendly atmosphere",
+    }
+    light_phrase = lighting_descriptors.get(lighting, "professional lighting")
+    mood_phrase = mood_descriptors.get(mood, "professional atmosphere")
+    return f"{light_phrase}, {mood_phrase}"
+
+
 def derive_image_style(
     session: SessionV4,
     quality_override: Optional[ImageQualityTier] = None
@@ -144,6 +223,12 @@ def derive_image_style(
 
     Called once at strawman generation to establish consistent
     image styling for all slides in the presentation.
+
+    v4.7: Now also derives global brand variables for simplified prompting:
+    - target_demographic: Audience keywords for prompt aesthetic
+    - visual_style_descriptor: Style phrase for prompt
+    - color_palette_descriptor: Color phrase for prompt
+    - lighting_mood_phrase: Lighting/mood phrase for prompt
 
     Args:
         session: SessionV4 with audience/purpose information
@@ -175,20 +260,38 @@ def derive_image_style(
     # Build derivation source string
     derived_from = f"audience:{audience_key}+purpose:{purpose_key}"
 
+    # v4.7: Derive global brand variables for simplified prompting
+    color_scheme = style_params.get("color_scheme", "neutral")
+    lighting = style_params.get("lighting", "professional")
+
+    target_demographic = AUDIENCE_DEMOGRAPHIC_MAP.get(audience_key, "general audience, broad appeal")
+    visual_style_descriptor = AUDIENCE_STYLE_DESCRIPTOR_MAP.get(audience_key, "warm approachable illustrated")
+    color_palette_descriptor = COLOR_PALETTE_MAP.get(color_scheme, "cool grays and subtle blues")
+    lighting_mood_phrase = build_lighting_mood_phrase(mood, lighting)
+
     # Create ImageStyleAgreement
     agreement = ImageStyleAgreement(
         archetype=archetype,
         mood=mood,
-        color_scheme=style_params.get("color_scheme", "neutral"),
-        lighting=style_params.get("lighting", "professional"),
+        color_scheme=color_scheme,
+        lighting=lighting,
         avoid_elements=style_params.get("avoid_elements", []),
         derived_from=derived_from,
-        quality_tier=quality_tier
+        quality_tier=quality_tier,
+        # v4.7: Global brand variables
+        target_demographic=target_demographic,
+        visual_style_descriptor=visual_style_descriptor,
+        color_palette_descriptor=color_palette_descriptor,
+        lighting_mood_phrase=lighting_mood_phrase
     )
 
     logger.info(
         f"Derived image style: archetype={archetype.value}, mood={mood}, "
         f"quality={quality_tier.value}, from={derived_from}"
+    )
+    logger.debug(
+        f"Global brand vars: demographic='{target_demographic}', "
+        f"style='{visual_style_descriptor}', palette='{color_palette_descriptor}'"
     )
 
     return agreement
@@ -204,13 +307,15 @@ def derive_image_style_from_dict(
 
     Useful when session is not available (e.g., API calls).
 
+    v4.7: Now also derives global brand variables for simplified prompting.
+
     Args:
         audience: Audience type string
         purpose: Purpose type string
         quality_tier: Quality tier string ('fast', 'standard', 'high', 'smart')
 
     Returns:
-        ImageStyleAgreement
+        ImageStyleAgreement with global brand variables
     """
     # Normalize inputs
     audience_key = (audience or "general").lower().replace(" ", "_")
@@ -236,14 +341,28 @@ def derive_image_style_from_dict(
     # Build derivation source string
     derived_from = f"audience:{audience_key}+purpose:{purpose_key}"
 
+    # v4.7: Derive global brand variables for simplified prompting
+    color_scheme = style_params.get("color_scheme", "neutral")
+    lighting = style_params.get("lighting", "professional")
+
+    target_demographic = AUDIENCE_DEMOGRAPHIC_MAP.get(audience_key, "general audience, broad appeal")
+    visual_style_descriptor = AUDIENCE_STYLE_DESCRIPTOR_MAP.get(audience_key, "warm approachable illustrated")
+    color_palette_descriptor = COLOR_PALETTE_MAP.get(color_scheme, "cool grays and subtle blues")
+    lighting_mood_phrase = build_lighting_mood_phrase(mood, lighting)
+
     return ImageStyleAgreement(
         archetype=archetype,
         mood=mood,
-        color_scheme=style_params.get("color_scheme", "neutral"),
-        lighting=style_params.get("lighting", "professional"),
+        color_scheme=color_scheme,
+        lighting=lighting,
         avoid_elements=style_params.get("avoid_elements", []),
         derived_from=derived_from,
-        quality_tier=quality
+        quality_tier=quality,
+        # v4.7: Global brand variables
+        target_demographic=target_demographic,
+        visual_style_descriptor=visual_style_descriptor,
+        color_palette_descriptor=color_palette_descriptor,
+        lighting_mood_phrase=lighting_mood_phrase
     )
 
 

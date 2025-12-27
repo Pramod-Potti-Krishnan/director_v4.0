@@ -231,6 +231,12 @@ class ImageStyleAgreement(BaseModel):
     v4.6: Ensures consistent image styling across all slides.
     Derived once at strawman generation from audience/purpose,
     then applied to all I-series and hero slide generation calls.
+
+    v4.7: Added global brand variables for simplified prompting:
+    - target_demographic: Audience descriptors for prompt aesthetic
+    - visual_style_descriptor: Style phrase for prompt building
+    - color_palette_descriptor: Color description for prompt
+    - lighting_mood_phrase: Lighting/mood phrase for prompt
     """
     archetype: ImageArchetype = Field(
         default=ImageArchetype.ILLUSTRATED,
@@ -259,6 +265,24 @@ class ImageStyleAgreement(BaseModel):
     quality_tier: ImageQualityTier = Field(
         default=ImageQualityTier.STANDARD,
         description="Image quality tier (fast, standard, high, smart)"
+    )
+
+    # v4.7: Global Brand Variables for simplified prompting
+    target_demographic: str = Field(
+        default="",
+        description="Audience keywords for prompt (e.g., 'enterprise executives', 'startup founders')"
+    )
+    visual_style_descriptor: str = Field(
+        default="",
+        description="Visual style phrase (e.g., 'sleek modern photorealistic', 'warm illustrated')"
+    )
+    color_palette_descriptor: str = Field(
+        default="",
+        description="Color palette phrase (e.g., 'cool blues and metallic silvers', 'warm earth tones')"
+    )
+    lighting_mood_phrase: str = Field(
+        default="",
+        description="Lighting/mood phrase (e.g., 'professional dramatic lighting', 'soft natural light')"
     )
 
     def to_visual_style(self) -> str:
@@ -312,4 +336,18 @@ class ImageStyleAgreement(BaseModel):
             "lighting": self.lighting,
             "avoid_elements": self.avoid_elements,
             "quality_tier": self.quality_tier.value
+        }
+
+    def to_global_brand(self) -> dict:
+        """
+        v4.7: Convert to global_brand dict for Text Service simplified prompting.
+
+        Returns:
+            Dict with target_demographic, visual_style, color_palette, lighting_mood
+        """
+        return {
+            "target_demographic": self.target_demographic,
+            "visual_style": self.visual_style_descriptor,
+            "color_palette": self.color_palette_descriptor,
+            "lighting_mood": self.lighting_mood_phrase
         }
