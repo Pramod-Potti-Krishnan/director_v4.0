@@ -1774,12 +1774,14 @@ class WebSocketHandlerV4:
                 print(f"[SLIDE] Slide {idx+1}/{total_slides}: type=content")
 
                 # v4.0: Check for I-series (image+text) generation
+                # v4.8: Unified Variant System - detect I-series from variant_id suffix
                 settings = get_settings()
                 if settings.USE_ISERIES_GENERATION:
-                    needs_image = slide.get('needs_image', False)
-                    suggested_iseries = slide.get('suggested_iseries')
-                    if needs_image and suggested_iseries:
-                        print(f"[SLIDE] Slide {idx+1}: I-series detected ({suggested_iseries})")
+                    from src.utils.variant_catalog import is_iseries_variant, get_iseries_layout
+                    variant_id = slide.get('variant_id')
+                    if variant_id and is_iseries_variant(variant_id):
+                        layout_type = get_iseries_layout(variant_id)  # Extract I1/I2/I3/I4
+                        print(f"[SLIDE] Slide {idx+1}: I-series detected from variant_id '{variant_id}' -> {layout_type}")
                         return await self._generate_iseries_slide(idx, slide, session, total_slides)
 
                 # Get settings for configuration checks
@@ -1788,6 +1790,16 @@ class WebSocketHandlerV4:
                 # v4.3: Use unified slides API for combined generation (67% LLM savings!)
                 if settings.USE_UNIFIED_SLIDES_API:
                     strawman_variant = slide.get('variant_id', 'bullets')
+
+                    # v4.6.0: Validate variant is Gold Standard C1 (never use null or non-C1 variants)
+                    from src.utils.variant_catalog import GOLD_STANDARD_C1_VARIANTS
+                    if not strawman_variant or strawman_variant not in GOLD_STANDARD_C1_VARIANTS:
+                        logger.warning(
+                            f"Non-Gold-Standard variant '{strawman_variant}' for slide {idx+1}, "
+                            f"using fallback: grid_2x2_centered_c1"
+                        )
+                        strawman_variant = "grid_2x2_centered_c1"
+
                     topics = slide.get('topics', [])
                     narrative = slide.get('notes') or slide.get('narrative') or ''
 
@@ -1856,8 +1868,19 @@ class WebSocketHandlerV4:
 
                 # v4.0.23: Prefer variant from strawman, fallback to selector
                 # v4.0.24: Pass layout_info for layout-aware fallback selection
+                # v4.6.0: Validate variant is Gold Standard C1
                 strawman_variant = slide.get('variant_id')
                 variant_id = strawman_variant or self._select_variant_for_slide(slide, layout_info)
+
+                # v4.6.0: Ensure variant is Gold Standard C1 (never use null or non-C1 variants)
+                from src.utils.variant_catalog import GOLD_STANDARD_C1_VARIANTS
+                if not variant_id or variant_id not in GOLD_STANDARD_C1_VARIANTS:
+                    logger.warning(
+                        f"Non-Gold-Standard variant '{variant_id}' in legacy path for slide {idx+1}, "
+                        f"using fallback: grid_2x2_centered_c1"
+                    )
+                    variant_id = "grid_2x2_centered_c1"
+
                 variant_source = 'strawman' if strawman_variant else ('layout-aware' if layout_info else 'fallback')
                 topics = slide.get('topics', [])
 
@@ -2012,6 +2035,8 @@ class WebSocketHandlerV4:
 
         v4.0: Called when USE_ISERIES_GENERATION is enabled and slide has
         needs_image=True and suggested_iseries set.
+        v4.8: Unified Variant System - uses variant_id suffix to determine
+        layout_type (I1/I2/I3/I4) and passes content_variant to Text Service.
 
         I-series layouts:
         - I1: Wide image left (660x1080), content right (1200x840)
@@ -2029,9 +2054,38 @@ class WebSocketHandlerV4:
             Dict with slide content and 'idx' for ordering
         """
         import traceback
+        from src.utils.variant_catalog import (
+            get_iseries_layout,
+            get_content_variant_base,
+            is_iseries_variant,
+            GOLD_STANDARD_I_SERIES_VARIANTS
+        )
 
         slide_id = slide.get('slide_id', f'slide_{idx+1}')
-        layout_type = slide.get('suggested_iseries', 'I1')
+
+        # v4.8: Unified Variant System - extract layout_type and content_variant from variant_id
+        variant_id = slide.get('variant_id')
+
+        if variant_id and is_iseries_variant(variant_id):
+            layout_type = get_iseries_layout(variant_id)  # e.g., "I1" from "sequential_3col_i1"
+            content_variant = get_content_variant_base(variant_id)  # e.g., "sequential_3col"
+
+            # Validate against Gold Standard I-series variants
+            if variant_id not in GOLD_STANDARD_I_SERIES_VARIANTS:
+                logger.warning(
+                    f"Non-Gold-Standard I-series variant '{variant_id}' for slide {idx+1}, "
+                    f"using fallback: single_column_3section_i1"
+                )
+                variant_id = "single_column_3section_i1"
+                layout_type = "I1"
+                content_variant = "single_column_3section"
+
+            print(f"[ISERIES] Unified variant: {variant_id} -> layout={layout_type}, content_variant={content_variant}")
+        else:
+            # Fallback: Legacy mode using suggested_iseries (backward compatibility)
+            layout_type = slide.get('suggested_iseries', 'I1')
+            content_variant = None  # Text Service uses default
+            print(f"[ISERIES] Legacy mode: layout_type={layout_type}, no content_variant")
 
         # Get settings for I-series defaults
         settings = get_settings()
@@ -2082,6 +2136,7 @@ class WebSocketHandlerV4:
             print(f"[ISERIES]   visual_style={visual_style}, topics={len(topics)}")
 
             # Call Text Service I-series endpoint
+            # v4.8: Pass content_variant for Gold Standard template selection
             result = await self.text_service_client.generate_iseries(
                 layout_type=layout_type,
                 slide_number=idx + 1,
@@ -2097,7 +2152,9 @@ class WebSocketHandlerV4:
                 content_context=session.content_context,
                 styling_mode=settings.THEME_STYLING_MODE,
                 # v4.7: Global brand for simplified image prompting
-                global_brand=global_brand
+                global_brand=global_brand,
+                # v4.8: Gold Standard content variant (Unified Variant System)
+                content_variant=content_variant
             )
 
             # I-series returns combined HTML
@@ -2165,10 +2222,12 @@ class WebSocketHandlerV4:
             )
 
             # Fallback: generate as regular content slide
-            # Clear the iseries flag so it doesn't loop
+            # v4.8: Clear variant_id to fallback to C1 (unified approach)
+            # Also clear legacy flags for backward compatibility
             slide_copy = slide.copy()
-            slide_copy['needs_image'] = False
-            slide_copy['suggested_iseries'] = None
+            slide_copy['variant_id'] = 'grid_2x2_centered_c1'  # Fallback to C1 variant
+            slide_copy['needs_image'] = False  # Legacy flag (deprecated)
+            slide_copy['suggested_iseries'] = None  # Legacy flag (deprecated)
 
             return await self._generate_single_slide(idx, slide_copy, session, total_slides)
 

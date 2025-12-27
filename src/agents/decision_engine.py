@@ -739,59 +739,49 @@ Determine presentation type from context/audience/purpose:
 - **Diagrams**: C4 (or split variants)
 - **Infographics**: C3 (or split variants)
 
-## VARIANT SELECTION (v4.5.14 - CRITICAL FOR UNIQUENESS)
+## VARIANT SELECTION (v4.6.0 - GOLD STANDARD ENFORCEMENT)
 
-### Plain Text Generation (50% of content slides)
-For approximately HALF of your C1/L25 content slides, use:
-- layout = "C1" or "L25"
-- variant_id = null (NO VARIANT)
-- This triggers plain text generation for unique, custom content
+### GOLD STANDARD VARIANT SELECTION (MANDATORY)
+ALL content slides MUST use a Gold Standard C1 variant. **NEVER use variant_id = null**.
+Choose the variant that best fits your content structure from the 34 approved C1 variants.
 
-**When to use plain text (variant_id = null):**
-- Complex explanations that don't fit predefined structures
-- Narrative content that needs natural flow
-- Unique slide concepts that are specific to this topic
-- When you want maximum flexibility for the Text Service
-- Slides that benefit from custom formatting
-
-### Pre-defined Variants (50% of content slides)
-Use these for structured content that fits clear patterns:
+### C1 Gold Standard Variants (34 total - ALL must end in _c1):
 
 **Comparison variants:**
-- comparison_2col, comparison_3col, comparison_4col (before/after, pros/cons, options)
+- comparison_2col_c1, comparison_3col_c1, comparison_4col_c1 (before/after, pros/cons, options)
 
 **Sequential variants:**
-- sequential_3col, sequential_4col, sequential_5col (step-by-step, timelines, processes)
+- sequential_3col_c1, sequential_4col_c1, sequential_5col_c1 (step-by-step, timelines, processes)
 
 **Grid variants:**
-- grid_2x2_centered, grid_2x2_left, grid_2x2_numbered (4 items)
-- grid_2x3, grid_2x3_left, grid_2x3_numbered (6 items)
-- grid_3x2, grid_3x2_left, grid_3x2_numbered (6 items)
+- grid_2x2_centered_c1, grid_2x2_left_c1, grid_2x2_numbered_c1 (4 items)
+- grid_2x3_c1, grid_2x3_left_c1, grid_2x3_numbered_c1 (6 items)
+- grid_3x2_c1, grid_3x2_left_c1, grid_3x2_numbered_c1 (6 items)
 
 **Metrics variants:**
-- metrics_3col, metrics_4col, metrics_2x2_grid, metrics_3x2_grid (KPIs, statistics)
+- metrics_3col_c1, metrics_4col_c1, metrics_2x2_grid_c1, metrics_3x2_grid_c1 (KPIs, statistics)
 
 **Matrix variants:**
-- matrix_2x2, matrix_2x3 (two-dimensional comparisons)
+- matrix_2x2_c1, matrix_2x3_c1 (two-dimensional comparisons)
 
 **Table variants:**
-- table_2col, table_3col, table_4col, table_5col (tabular data)
+- table_2col_c1, table_3col_c1, table_4col_c1, table_5col_c1 (tabular data)
 
 **Single column variants:**
-- single_column_3section, single_column_4section, single_column_5section (vertical flow)
+- single_column_3section_c1, single_column_4section_c1, single_column_5section_c1 (vertical flow)
 
 **Asymmetric variants:**
-- asymmetric_8_4_3section, asymmetric_8_4_4section, asymmetric_8_4_5section (large + small)
+- asymmetric_8_4_3section_c1, asymmetric_8_4_4section_c1, asymmetric_8_4_5section_c1 (large + small)
 
 **Other variants:**
-- hybrid_left_2x2, hybrid_top_2x2 (mixed layouts)
-- impact_quote (quotes, testimonials)
+- hybrid_left_2x2_c1, hybrid_top_2x2_c1 (mixed layouts)
+- impact_quote_c1 (quotes, testimonials)
 
 ### IMPORTANT: VARIETY IS MANDATORY
-- Each presentation should use 5-8 DIFFERENT variants/styles minimum
+- Each presentation should use 5-8 DIFFERENT Gold Standard variants minimum
 - Do NOT repeat the same 2-3 variants throughout
-- Mix plain text (null variant) with structured variants
-- Hero slides always have variant_id = null
+- ALL content slides must have a valid variant_id (never null)
+- Hero slides (H1/H2/H3) use dedicated endpoints, not variants
 
 ## SEMANTIC GROUP RULES (v4.5.3 - Context-Aware Diversity)
 
@@ -1212,17 +1202,21 @@ Generate a complete strawman with {slide_count} slides about {topic}.
         custom_slides = []
 
         for gap in gaps:
-            # Generate slide for this gap
+            # Generate slide for this gap with Gold Standard C1 variant
+            topics = [
+                f"Key point about {gap.purpose.replace('_', ' ')} of {topic}",
+                f"Important information for {gap.purpose.replace('_', ' ')}",
+                f"Details on {topic}"
+            ]
+            # v4.6.0: Use Gold Standard C1 variant based on topic count (never None)
+            variant_id = self._select_fallback_variant(len(topics))
+
             slide = {
                 "slide_id": str(uuid.uuid4()),
                 "title": f"{gap.purpose.replace('_', ' ').title()}: {topic}",
                 "layout": "L25",
-                "variant_id": None,
-                "topics": [
-                    f"Key point about {gap.purpose.replace('_', ' ')} of {topic}",
-                    f"Important information for {gap.purpose.replace('_', ' ')}",
-                    f"Details on {topic}"
-                ],
+                "variant_id": variant_id,
+                "topics": topics,
                 "is_hero": False,
                 "hero_type": None,
                 "slide_type_hint": "text",
@@ -1232,7 +1226,7 @@ Generate a complete strawman with {slide_count} slides about {topic}.
             }
             custom_slides.append(slide)
 
-        logger.info(f"Generated {len(custom_slides)} gap-filling slides")
+        logger.info(f"Generated {len(custom_slides)} gap-filling slides with Gold Standard variants")
         return custom_slides
 
     def _select_fallback_variant(self, topic_count: int) -> str:
@@ -1242,20 +1236,21 @@ Generate a complete strawman with {slide_count} slides about {topic}.
         v4.5.2: Added randomization - multiple options per topic count for diversity.
                 When Text Service coordination is unavailable, this provides
                 visual variety by randomly selecting from valid variants.
+        v4.6.0: Updated to use Gold Standard C1 variants only (all ending in _c1).
         """
-        # Multiple variant options per topic count for diversity
+        # Gold Standard C1 variant options per topic count for diversity
         variant_options = {
-            2: ['comparison_2col'],
-            3: ['sequential_3col', 'comparison_3col', 'single_column_3section_c1'],
-            4: ['grid_2x2_centered', 'matrix_2x2', 'grid_2x2_left', 'comparison_4col', 'sequential_4col'],
-            5: ['sequential_5col', 'grid_2x3', 'single_column_5section_c1'],
-            6: ['grid_2x3', 'grid_3x2', 'matrix_2x3'],
+            2: ['comparison_2col_c1'],
+            3: ['sequential_3col_c1', 'comparison_3col_c1', 'single_column_3section_c1'],
+            4: ['grid_2x2_centered_c1', 'matrix_2x2_c1', 'grid_2x2_left_c1', 'comparison_4col_c1', 'sequential_4col_c1'],
+            5: ['sequential_5col_c1', 'grid_2x3_c1', 'single_column_5section_c1'],
+            6: ['grid_2x3_c1', 'grid_3x2_c1', 'matrix_2x3_c1'],
         }
 
-        # Get options for the topic count, fallback to grid_2x3 variants
-        options = variant_options.get(topic_count, ['grid_2x3', 'grid_3x2'])
+        # Get options for the topic count, fallback to grid C1 variants
+        options = variant_options.get(topic_count, ['grid_2x3_c1', 'grid_3x2_c1'])
 
-        # Randomly select from available options
+        # Randomly select from available Gold Standard options
         return random.choice(options)
 
     def _fallback_strawman(self, topic: str, duration: int, requested_slide_count: Optional[int] = None) -> Strawman:
@@ -2005,12 +2000,35 @@ Generate a complete strawman with {slide_count} slides about {topic}.
                 service_confidence = hints.service_confidence
 
             # Check for I-series recommendation
+            # v4.8: Unified Variant System - suggested_iseries is now a full Gold Standard
+            # variant_id (e.g., "sequential_3col_i1") instead of just "I1"
             needs_image = hints.needs_image
             suggested_iseries = hints.suggested_iseries
 
-            # If Text Service coordination is enabled, get variant recommendation
+            # Determine variant_id with unified approach
             variant_id = slide.variant_id
-            if self.text_coord_client and suggested_service == "text":
+
+            # v4.8: If I-series recommended, use it as the main variant_id
+            # The websocket handler will detect I-series from the _i1/_i2/_i3/_i4 suffix
+            from src.utils.variant_catalog import is_iseries_variant, GOLD_STANDARD_I_SERIES_VARIANTS
+
+            if suggested_iseries and is_iseries_variant(suggested_iseries):
+                # Validate against Gold Standard I-series variants
+                if suggested_iseries in GOLD_STANDARD_I_SERIES_VARIANTS:
+                    variant_id = suggested_iseries
+                    logger.debug(
+                        f"Slide {slide.slide_number}: Using I-series variant {variant_id}"
+                    )
+                else:
+                    logger.warning(
+                        f"Non-Gold-Standard I-series '{suggested_iseries}', "
+                        f"falling back to single_column_3section_i1"
+                    )
+                    variant_id = "single_column_3section_i1"
+                    suggested_iseries = variant_id
+
+            # If Text Service coordination is enabled and NOT I-series, get variant recommendation
+            elif self.text_coord_client and suggested_service == "text":
                 try:
                     slide_content = {
                         "title": slide.title,

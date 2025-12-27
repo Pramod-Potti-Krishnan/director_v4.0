@@ -454,7 +454,9 @@ class TextServiceClientV1_2:
         content_context: Optional[Dict] = None,
         styling_mode: str = "inline_styles",
         # v4.7: Global brand variables for simplified prompting
-        global_brand: Optional[Dict] = None
+        global_brand: Optional[Dict] = None,
+        # v4.8: Gold Standard content_variant (Unified Variant System)
+        content_variant: Optional[str] = None
     ) -> Dict[str, Any]:
         """
         Generate I-series slide (image + text combined layout).
@@ -467,6 +469,9 @@ class TextServiceClientV1_2:
 
         v4.5: Theme system params added (ignored by v1.2.2, used by v1.3.0).
         v4.7: global_brand added for simplified image prompting.
+        v4.8: content_variant added for Gold Standard I-series variants.
+               The content_variant specifies which text layout template to use
+               (e.g., "sequential_3col", "comparison_2col", "single_column_3section").
 
         Args:
             layout_type: Layout ID (I1, I2, I3, I4)
@@ -486,6 +491,10 @@ class TextServiceClientV1_2:
                 - visual_style: Style phrase for prompt
                 - color_palette: Color phrase for prompt
                 - lighting_mood: Lighting/mood phrase for prompt
+            content_variant: v4.8 - Gold Standard content variant ID.
+                Specifies which text template to use for the content area.
+                Examples: "sequential_3col", "comparison_2col", "single_column_3section"
+                If None, Text Service uses default layout for the layout_type.
 
         Returns:
             Dict with:
@@ -514,6 +523,10 @@ class TextServiceClientV1_2:
             "context": context or {}
         }
 
+        # v4.8: Add Gold Standard content_variant if specified
+        if content_variant:
+            payload["content_variant"] = content_variant
+
         # v4.5: Add theme system params
         if theme_config:
             payload["theme_config"] = theme_config
@@ -527,7 +540,9 @@ class TextServiceClientV1_2:
             payload["global_brand"] = global_brand
 
         try:
-            print(f"[TEXT-SVC] POST /v1.2/iseries/generate layout={layout_type}, style={visual_style}")
+            # v4.8: Include content_variant in log if specified
+            variant_info = f", content_variant={content_variant}" if content_variant else ""
+            print(f"[TEXT-SVC] POST /v1.2/iseries/generate layout={layout_type}, style={visual_style}{variant_info}")
 
             # I-series needs longer timeout for AI image generation
             ISERIES_TIMEOUT = 180  # 3 minutes - image generation takes 60-120s

@@ -91,13 +91,17 @@ class ContentHints(BaseModel):
     )
 
     # I-series recommendations
+    # v4.8: Unified Variant System - suggested_iseries now contains full Gold Standard
+    # variant_id (e.g., "sequential_3col_i1") instead of just layout ID (I1/I2/I3/I4)
     needs_image: bool = Field(
         default=False,
-        description="True if content would benefit from I-series (image+text) layout"
+        description="True if content would benefit from I-series (image+text) layout. "
+                    "v4.8: Use is_iseries_variant(variant_id) for detection."
     )
     suggested_iseries: Optional[str] = Field(
         default=None,
-        description="Suggested I-series layout if needs_image is True (I1, I2, I3, I4)"
+        description="v4.8: Full Gold Standard I-series variant_id (e.g., 'sequential_3col_i1'). "
+                    "Encodes both content template and image position."
     )
 
     # Service routing

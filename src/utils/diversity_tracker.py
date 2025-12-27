@@ -216,19 +216,19 @@ class DiversityTracker:
             Suggested alternative classification (or None if none found)
         """
         # Define alternative classifications for each type
-        # UPDATED 2025-12-01: Using correct Text Service v1.2 classification names
-        # Note: grid_3x3 does not exist in Text Service, use grid_2x2_centered instead
+        # UPDATED 2025-12-27: Using Gold Standard C1 variants only
+        # All variants must end in _c1 suffix
         alternatives = {
-            "single_column": ["grid_2x2_centered", "sequential_3col", "asymmetric_8_4"],
-            "grid_2x2_centered": ["matrix_2x2", "comparison_2col", "sequential_3col"],
-            "matrix_2x2": ["grid_2x2_centered", "comparison_2col", "styled_table"],
-            "comparison_2col": ["matrix_2x2", "styled_table", "grid_2x2_centered"],
-            "sequential_3col": ["grid_2x2_centered", "asymmetric_8_4", "hybrid_1_2x2"],
-            "metrics_grid": ["grid_2x2_centered", "single_column", "styled_table"],
-            "styled_table": ["comparison_2col", "matrix_2x2", "grid_2x2_centered"],
-            "hybrid_1_2x2": ["grid_2x2_centered", "sequential_3col", "asymmetric_8_4"],
-            "asymmetric_8_4": ["single_column", "hybrid_1_2x2", "grid_2x2_centered"],
-            "impact_quote": ["single_column", "asymmetric_8_4"]
+            "single_column": ["grid_2x2_centered_c1", "sequential_3col_c1", "asymmetric_8_4_3section_c1"],
+            "grid_2x2": ["matrix_2x2_c1", "comparison_2col_c1", "sequential_3col_c1"],
+            "matrix": ["grid_2x2_centered_c1", "comparison_2col_c1", "table_3col_c1"],
+            "comparison": ["matrix_2x2_c1", "table_3col_c1", "grid_2x2_centered_c1"],
+            "sequential": ["grid_2x2_centered_c1", "asymmetric_8_4_3section_c1", "hybrid_left_2x2_c1"],
+            "metrics": ["grid_2x2_centered_c1", "single_column_3section_c1", "table_3col_c1"],
+            "table": ["comparison_2col_c1", "matrix_2x2_c1", "grid_2x2_centered_c1"],
+            "hybrid": ["grid_2x2_centered_c1", "sequential_3col_c1", "asymmetric_8_4_3section_c1"],
+            "asymmetric": ["single_column_3section_c1", "hybrid_left_2x2_c1", "grid_2x2_centered_c1"],
+            "impact_quote": ["single_column_3section_c1", "asymmetric_8_4_3section_c1"]
         }
 
         if current not in alternatives:

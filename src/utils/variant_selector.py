@@ -1,15 +1,18 @@
 """
-Variant Selector for Director v3.4
+Variant Selector for Director v4.0
 ====================================
 
-Selects variant_id from Text Service v1.2's 34 platinum variants using
+Selects variant_id from Text Service v1.2's Gold Standard variants using
 randomization for visual variety.
 
 Selection Strategy:
 1. Map Director's 13-type classification → v1.2 slide type
 2. Fetch available variants for that slide type
-3. Randomly select one variant (equal probability)
-4. Return selected variant_id
+3. Filter to Gold Standard variants only (C1 variants ending in _c1)
+4. Randomly select one variant (equal probability)
+5. Return selected variant_id
+
+UPDATED 2025-12-27: Added Gold Standard enforcement - only C1 variants allowed
 
 This introduces variability in presentation visuals while maintaining
 appropriate content structure per slide type.
@@ -17,7 +20,7 @@ appropriate content structure per slide type.
 
 import random
 from typing import Optional, List
-from src.utils.variant_catalog import VariantCatalog
+from src.utils.variant_catalog import VariantCatalog, GOLD_STANDARD_C1_VARIANTS
 from src.utils.slide_type_mapper import SlideTypeMapper
 from src.utils.logger import setup_logger
 
@@ -152,14 +155,27 @@ class VariantSelector:
             )
             return None
 
-        # Step 4: Random selection from valid variants (equal probability)
+        # Step 4: Filter to Gold Standard C1 variants only (v4.6.0)
+        gold_standard_variants = [v for v in valid_variants if v in GOLD_STANDARD_C1_VARIANTS]
+        if gold_standard_variants:
+            valid_variants = gold_standard_variants
+            logger.debug(f"Filtered to {len(gold_standard_variants)} Gold Standard C1 variants")
+        else:
+            # Fallback: if no Gold Standard match, use grid_2x2_centered_c1 as safe default
+            logger.warning(
+                f"No Gold Standard variants found for '{director_classification}', "
+                f"using fallback: grid_2x2_centered_c1"
+            )
+            return "grid_2x2_centered_c1"
+
+        # Step 5: Random selection from valid Gold Standard variants (equal probability)
         selected_variant = random.choice(valid_variants)
 
         logger.info(
-            f"✅ Selected '{selected_variant}' from {len(valid_variants)} valid variants "
+            f"✅ Selected '{selected_variant}' from {len(valid_variants)} Gold Standard variants "
             f"for '{director_classification}' (layout: {layout_id}, slide_type: '{slide_type}')"
         )
-        logger.debug(f"Valid variants after layout filter: {valid_variants}")
+        logger.debug(f"Valid Gold Standard variants: {valid_variants}")
 
         return selected_variant
 

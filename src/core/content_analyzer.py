@@ -106,8 +106,9 @@ class ContentAnalyzer:
         numeric_density = self._calculate_numeric_density(text_corpus)
 
         # Check if slide would benefit from I-series layout
+        # v4.8: Pass pattern_type for Gold Standard variant selection
         needs_image = self._detect_image_need(text_lower, topic_count)
-        suggested_iseries = self._suggest_iseries_layout(needs_image, topic_count)
+        suggested_iseries = self._suggest_iseries_layout(needs_image, topic_count, pattern_type)
 
         hints = ContentHints(
             has_numbers=has_numbers,
@@ -233,10 +234,15 @@ class ContentAnalyzer:
     def _suggest_iseries_layout(
         self,
         needs_image: bool,
-        topic_count: int
+        topic_count: int,
+        pattern_type: Optional[PatternType] = None
     ) -> Optional[str]:
         """
-        Suggest I-series layout if image would enhance content.
+        Suggest I-series Gold Standard variant if image would enhance content.
+
+        v4.8: Unified Variant System - returns full Gold Standard variant_id
+        instead of just I1/I2/I3/I4. The variant_id encodes both the content
+        template and image position.
 
         I-series layouts:
         - I1: Wide image left (660×1080), content right (1200×840) - balanced
@@ -244,20 +250,60 @@ class ContentAnalyzer:
         - I3: Narrow image left (360×1080), content right (1500×840) - text-heavy
         - I4: Narrow image right (360×1080), content left (1440×840) - text-heavy
 
+        Gold Standard I-series variants (26 total):
+        - single_column_3section_i1/i2/i3/i4 (12)
+        - comparison_2col_i1/i2/i3/i4, comparison_3col_i1/i2/i3/i4 (8)
+        - sequential_3col_i1/i2/i3/i4, sequential_4col_i3/i4 (6)
+
         Returns:
-            Layout ID (I1, I2, I3, I4) or None
+            Gold Standard variant_id (e.g., "sequential_3col_i1") or None
         """
         if not needs_image:
             return None
 
-        # More topics = need more content space = narrow image
-        if topic_count >= 5:
-            # Alternate between left and right for variety
-            return "I3"  # Narrow left for more content space
-        elif topic_count >= 3:
-            return "I1"  # Wide left, balanced
+        # Determine content variant base based on pattern and topic count
+        if pattern_type == PatternType.COMPARISON:
+            if topic_count >= 3:
+                content_base = "comparison_3col"
+            else:
+                content_base = "comparison_2col"
+        elif pattern_type == PatternType.FLOW:
+            if topic_count >= 4:
+                # sequential_4col only available for I3/I4 (narrow)
+                content_base = "sequential_4col"
+                # Force narrow layout for 4col
+                if topic_count >= 5:
+                    return "sequential_4col_i3"  # Narrow left
+                else:
+                    return "sequential_4col_i4"  # Narrow right
+            else:
+                content_base = "sequential_3col"
         else:
-            return "I2"  # Wide right for visual focus
+            # Default to single_column (most versatile)
+            if topic_count >= 5:
+                content_base = "single_column_5section"
+            elif topic_count >= 4:
+                content_base = "single_column_4section"
+            else:
+                content_base = "single_column_3section"
+
+        # Determine image position (I1/I2/I3/I4) based on topic count
+        # More topics = need more content space = narrow image (I3/I4)
+        if topic_count >= 5:
+            image_position = "i3"  # Narrow left for more content space
+        elif topic_count >= 3:
+            image_position = "i1"  # Wide left, balanced
+        else:
+            image_position = "i2"  # Wide right for visual focus
+
+        variant_id = f"{content_base}_{image_position}"
+
+        logger.debug(
+            f"I-series suggestion: topic_count={topic_count}, pattern={pattern_type} "
+            f"-> {variant_id}"
+        )
+
+        return variant_id
 
     def suggest_iseries(self, hints: ContentHints) -> Optional[str]:
         """

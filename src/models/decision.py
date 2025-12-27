@@ -252,13 +252,20 @@ class StrawmanSlide(BaseModel):
     )
 
     # v4.0: I-series layout fields (image + text combined)
+    # v4.8 DEPRECATED: These fields are kept for backward compatibility but are no longer
+    # the primary mechanism. Use variant_id suffix detection instead:
+    #   - variant_id ending in _c1 = C1 series (content only)
+    #   - variant_id ending in _i1/_i2/_i3/_i4 = I-series (image+text)
+    # The variant_id now encodes both the template and series type.
     needs_image: bool = Field(
         default=False,
-        description="True if content would benefit from I-series layout"
+        description="DEPRECATED v4.8: True if content would benefit from I-series layout. "
+                    "Use is_iseries_variant(variant_id) instead."
     )
     suggested_iseries: Optional[str] = Field(
         default=None,
-        description="Suggested I-series layout (I1, I2, I3, I4) if needs_image is True"
+        description="v4.8: Full Gold Standard I-series variant_id (e.g., 'sequential_3col_i1'). "
+                    "Legacy: was just layout ID (I1, I2, I3, I4). Now contains full variant."
     )
 
     # v4.0.25: Story-driven multi-service coordination fields

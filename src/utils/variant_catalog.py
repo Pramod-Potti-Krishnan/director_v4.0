@@ -1,22 +1,15 @@
 """
-Variant Catalog Loader for Director v3.4
+Variant Catalog Loader for Director v4.0
 ==========================================
 
-Loads and caches the 34 platinum variants from Text Service v1.2.
+Loads and caches the Gold Standard variants from Text Service v1.2.
 
-The catalog maps slide types to their available variants:
-- matrix: 2 variants (matrix_2x2, matrix_2x3)
-- grid: 9 variants (grid_2x3, grid_3x2, grid_2x2_centered, grid_2x3_left, grid_3x2_left,
-                    grid_2x2_left, grid_2x3_numbered, grid_3x2_numbered, grid_2x2_numbered)
-- comparison: 3 variants (comparison_2col, comparison_3col, comparison_4col)
-- sequential: 3 variants (sequential_3col, sequential_4col, sequential_5col)
-- asymmetric: 3 variants (asymmetric_8_4_3section, asymmetric_8_4_4section, asymmetric_8_4_5section)
-- hybrid: 2 variants (hybrid_top_2x2, hybrid_left_2x2)
-- metrics: 4 variants (metrics_3col, metrics_4col, metrics_3x2_grid, metrics_2x2_grid)
-- impact_quote: 1 variant (impact_quote)
-- table: 4 variants (table_2col, table_3col, table_4col, table_5col)
-- single_column: 3 variants (single_column_3section, single_column_4section, single_column_5section)
+GOLD STANDARD VARIANTS (Tested & Approved):
+- C1 Variants (34 total): All content slide variants ending in _c1
+- I-Series Variants (26 total): Image+text layouts ending in _i1/_i2/_i3/_i4
+- H-Series: Dedicated endpoints for hero slides (H1/H2/H3)
 
+UPDATED 2025-12-27: Added Gold Standard constants and validation methods
 UPDATED 2025-12-01: Corrected variant names to match Text Service v1.2 backend
 """
 
@@ -25,6 +18,219 @@ from typing import Dict, List, Optional, Any
 from src.utils.logger import setup_logger
 
 logger = setup_logger(__name__)
+
+# =============================================================================
+# GOLD STANDARD VARIANTS - Tested & Approved for Production
+# =============================================================================
+
+# C1 Variants (34 total) - All content slides MUST use one of these
+GOLD_STANDARD_C1_VARIANTS = [
+    # Grid (9)
+    "grid_2x2_centered_c1", "grid_2x2_left_c1", "grid_2x2_numbered_c1",
+    "grid_2x3_c1", "grid_2x3_left_c1", "grid_2x3_numbered_c1",
+    "grid_3x2_c1", "grid_3x2_left_c1", "grid_3x2_numbered_c1",
+    # Table + Quote (5)
+    "table_2col_c1", "table_3col_c1", "table_4col_c1", "table_5col_c1", "impact_quote_c1",
+    # Layout (12)
+    "single_column_3section_c1", "single_column_4section_c1", "single_column_5section_c1",
+    "asymmetric_8_4_3section_c1", "asymmetric_8_4_4section_c1", "asymmetric_8_4_5section_c1",
+    "sequential_3col_c1", "sequential_4col_c1", "sequential_5col_c1",
+    "comparison_2col_c1", "comparison_3col_c1", "comparison_4col_c1",
+    # Metrics, Matrix, Hybrid (8)
+    "metrics_2x2_grid_c1", "metrics_3col_c1", "metrics_3x2_grid_c1", "metrics_4col_c1",
+    "matrix_2x2_c1", "matrix_2x3_c1", "hybrid_left_2x2_c1", "hybrid_top_2x2_c1"
+]
+
+# I-Series Variants (26 total) - Image + text layouts
+GOLD_STANDARD_I_SERIES_VARIANTS = [
+    # Single Column (12)
+    "single_column_3section_i1", "single_column_3section_i2", "single_column_3section_i3", "single_column_3section_i4",
+    "single_column_4section_i1", "single_column_4section_i2", "single_column_4section_i3", "single_column_4section_i4",
+    "single_column_5section_i1", "single_column_5section_i2", "single_column_5section_i3", "single_column_5section_i4",
+    # Comparison (8)
+    "comparison_2col_i1", "comparison_2col_i2", "comparison_2col_i3", "comparison_2col_i4",
+    "comparison_3col_i1", "comparison_3col_i2", "comparison_3col_i3", "comparison_3col_i4",
+    # Sequential (6) - Note: 4col only available for I3/I4 (narrow layouts)
+    "sequential_3col_i1", "sequential_3col_i2", "sequential_3col_i3", "sequential_3col_i4",
+    "sequential_4col_i3", "sequential_4col_i4"
+]
+
+# Convenience functions for validation
+def is_gold_standard_c1(variant_id: str) -> bool:
+    """Check if variant is a Gold Standard C1 variant."""
+    return variant_id in GOLD_STANDARD_C1_VARIANTS
+
+def is_gold_standard_iseries(variant_id: str) -> bool:
+    """Check if variant is a Gold Standard I-series variant."""
+    return variant_id in GOLD_STANDARD_I_SERIES_VARIANTS
+
+def is_gold_standard(variant_id: str) -> bool:
+    """Check if variant is any Gold Standard variant (C1 or I-series)."""
+    return is_gold_standard_c1(variant_id) or is_gold_standard_iseries(variant_id)
+
+
+# =============================================================================
+# SERIES TYPE DETECTION - Unified variant_id suffix parsing
+# =============================================================================
+# The variant_id suffix determines which series and endpoint to use:
+#   - _c1 = C1 series → /v1.2/generate
+#   - _i1/_i2/_i3/_i4 = I-series → /v1.2/iseries/{I1|I2|I3|I4}
+#   - _v1 = V-series (future) → (future endpoint)
+#   - _s1 = S-series (future) → (future endpoint)
+
+from typing import Tuple
+
+def get_series_type(variant_id: str) -> Tuple[Optional[str], Optional[str]]:
+    """
+    Extract series type and layout position from variant_id suffix.
+
+    This is the CORE utility for the unified variant system. The variant_id
+    suffix determines which API endpoint and parameters to use.
+
+    Args:
+        variant_id: Full variant identifier (e.g., "grid_2x2_centered_c1", "sequential_3col_i1")
+
+    Returns:
+        Tuple of (series_type, layout_position):
+        - ("C1", None) for C1 content variants
+        - ("I", "1"|"2"|"3"|"4") for I-series image+text variants
+        - ("V", "1") for future V-series
+        - ("S", "1") for future S-series
+        - (None, None) if suffix not recognized
+
+    Examples:
+        >>> get_series_type("grid_2x2_centered_c1")
+        ("C1", None)
+        >>> get_series_type("sequential_3col_i1")
+        ("I", "1")
+        >>> get_series_type("comparison_2col_i4")
+        ("I", "4")
+        >>> get_series_type("unknown_variant")
+        (None, None)
+    """
+    if not variant_id:
+        return (None, None)
+
+    # Check I-series suffixes first (i1, i2, i3, i4)
+    for i in ['1', '2', '3', '4']:
+        if variant_id.endswith(f'_i{i}'):
+            return ('I', i)
+
+    # Check C1 suffix
+    if variant_id.endswith('_c1'):
+        return ('C1', None)
+
+    # Future: V-series, S-series
+    if variant_id.endswith('_v1'):
+        return ('V', '1')
+    if variant_id.endswith('_s1'):
+        return ('S', '1')
+
+    return (None, None)
+
+
+def is_iseries_variant(variant_id: str) -> bool:
+    """
+    Check if variant is an I-series (image+text) variant.
+
+    I-series variants have suffixes _i1, _i2, _i3, or _i4 and require
+    the /v1.2/iseries/{layout_type} endpoint with content_variant parameter.
+
+    Args:
+        variant_id: Full variant identifier
+
+    Returns:
+        True if variant is I-series, False otherwise
+
+    Example:
+        >>> is_iseries_variant("sequential_3col_i1")
+        True
+        >>> is_iseries_variant("grid_2x2_centered_c1")
+        False
+    """
+    series, _ = get_series_type(variant_id)
+    return series == 'I'
+
+
+def is_c1_variant(variant_id: str) -> bool:
+    """
+    Check if variant is a C1 (content-only) variant.
+
+    C1 variants have suffix _c1 and use the /v1.2/generate endpoint.
+
+    Args:
+        variant_id: Full variant identifier
+
+    Returns:
+        True if variant is C1 series, False otherwise
+
+    Example:
+        >>> is_c1_variant("grid_2x2_centered_c1")
+        True
+        >>> is_c1_variant("sequential_3col_i1")
+        False
+    """
+    series, _ = get_series_type(variant_id)
+    return series == 'C1'
+
+
+def get_iseries_layout(variant_id: str) -> Optional[str]:
+    """
+    Get I-series layout type (I1/I2/I3/I4) from variant_id.
+
+    This extracts the layout position needed for the /v1.2/iseries/{layout_type}
+    API endpoint.
+
+    Args:
+        variant_id: Full variant identifier (e.g., "sequential_3col_i1")
+
+    Returns:
+        Layout type string ("I1", "I2", "I3", or "I4") if I-series,
+        None otherwise
+
+    Example:
+        >>> get_iseries_layout("sequential_3col_i1")
+        "I1"
+        >>> get_iseries_layout("comparison_2col_i4")
+        "I4"
+        >>> get_iseries_layout("grid_2x2_centered_c1")
+        None
+    """
+    series, position = get_series_type(variant_id)
+    if series == 'I' and position:
+        return f'I{position}'
+    return None
+
+
+def get_content_variant_base(variant_id: str) -> Optional[str]:
+    """
+    Get the content variant base name (without series suffix) for I-series variants.
+
+    For I-series variants, this returns what would be passed as content_variant
+    to the Text Service. The base determines the template layout.
+
+    Args:
+        variant_id: Full variant identifier (e.g., "sequential_3col_i1")
+
+    Returns:
+        Base variant name without suffix if I-series, the original variant_id otherwise
+
+    Example:
+        >>> get_content_variant_base("sequential_3col_i1")
+        "sequential_3col"
+        >>> get_content_variant_base("single_column_3section_i4")
+        "single_column_3section"
+    """
+    if not variant_id:
+        return None
+
+    # For I-series, strip the _iN suffix to get the base
+    for i in ['1', '2', '3', '4']:
+        if variant_id.endswith(f'_i{i}'):
+            return variant_id[:-3]  # Remove "_i1", "_i2", etc.
+
+    # For C1 variants, the full variant_id is used
+    return variant_id
 
 
 class VariantCatalog:
