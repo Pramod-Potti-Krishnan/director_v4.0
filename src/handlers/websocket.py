@@ -1592,9 +1592,13 @@ class WebSocketHandlerV4:
                         # Hero slides get is_hero=True for quality tier selection
                         hero_image_model = image_style_agreement.get_model_for_slide(is_hero=True)
                         context["image_model"] = hero_image_model
+                        # v4.7: Extract global_brand for simplified image prompting
+                        hero_global_brand = image_style_agreement.to_global_brand()
                         print(f"[HERO-STYLE] Using image style: visual={hero_visual_style}, model={hero_image_model}")
+                        print(f"[HERO-STYLE]   global_brand: {list(hero_global_brand.keys()) if hero_global_brand else 'None'}")
                     else:
                         hero_visual_style = "professional"
+                        hero_global_brand = None
                         print(f"[HERO-STYLE] No ImageStyleAgreement, defaulting to professional")
 
                     try:
@@ -1611,7 +1615,9 @@ class WebSocketHandlerV4:
                                 context=context,
                                 theme_config=theme_dict,
                                 content_context=content_context,
-                                styling_mode=styling_mode
+                                styling_mode=styling_mode,
+                                # v4.7: Global brand for simplified image prompting
+                                global_brand=hero_global_brand
                             )
                             layout = 'H1-generated'
                         elif hero_type == 'section_divider':
@@ -1626,7 +1632,9 @@ class WebSocketHandlerV4:
                                 visual_style=hero_visual_style,
                                 theme_config=theme_dict,
                                 content_context=content_context,
-                                styling_mode=styling_mode
+                                styling_mode=styling_mode,
+                                # v4.7: Global brand for simplified image prompting
+                                global_brand=hero_global_brand
                             )
                             layout = 'H2-section'
                         elif hero_type == 'closing_slide':
@@ -1639,7 +1647,9 @@ class WebSocketHandlerV4:
                                 visual_style=hero_visual_style,
                                 theme_config=theme_dict,
                                 content_context=content_context,
-                                styling_mode=styling_mode
+                                styling_mode=styling_mode,
+                                # v4.7: Global brand for simplified image prompting
+                                global_brand=hero_global_brand
                             )
                             layout = 'H3-closing'
                         else:
@@ -1654,7 +1664,9 @@ class WebSocketHandlerV4:
                                 context=context,
                                 theme_config=theme_dict,
                                 content_context=content_context,
-                                styling_mode=styling_mode
+                                styling_mode=styling_mode,
+                                # v4.7: Global brand for simplified image prompting
+                                global_brand=hero_global_brand
                             )
                             layout = 'H1-generated'
 
@@ -2030,10 +2042,14 @@ class WebSocketHandlerV4:
         if image_style_agreement:
             visual_style = image_style_agreement.to_visual_style()
             image_model = image_style_agreement.get_model_for_slide(is_hero=False)
+            # v4.7: Extract global_brand for simplified image prompting
+            global_brand = image_style_agreement.to_global_brand()
             print(f"[ISERIES] Using ImageStyleAgreement: visual_style={visual_style}, model={image_model}")
+            print(f"[ISERIES]   global_brand: {list(global_brand.keys()) if global_brand else 'None'}")
         else:
             visual_style = settings.ISERIES_DEFAULT_VISUAL_STYLE
             image_model = None
+            global_brand = None
             print(f"[ISERIES] No ImageStyleAgreement, using default: visual_style={visual_style}")
 
         try:
@@ -2079,7 +2095,9 @@ class WebSocketHandlerV4:
                 # v4.5: Theme system params
                 theme_config=theme_dict,
                 content_context=session.content_context,
-                styling_mode=settings.THEME_STYLING_MODE
+                styling_mode=settings.THEME_STYLING_MODE,
+                # v4.7: Global brand for simplified image prompting
+                global_brand=global_brand
             )
 
             # I-series returns combined HTML

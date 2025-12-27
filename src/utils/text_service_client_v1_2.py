@@ -1025,7 +1025,9 @@ class TextServiceClientV1_2:
         # v4.5: Theme system params
         theme_config: Optional[Dict] = None,
         content_context: Optional[Dict] = None,
-        styling_mode: str = "inline_styles"
+        styling_mode: str = "inline_styles",
+        # v4.7: Global brand for simplified image prompting
+        global_brand: Optional[Dict] = None
     ) -> Dict[str, Any]:
         """
         Generate H1-generated (title slide with AI background image).
@@ -1034,6 +1036,7 @@ class TextServiceClientV1_2:
         Returns spec-compliant response with hero_content, slide_title, subtitle.
 
         v4.5: Theme system params added (ignored by v1.2.2, used by v1.3.0).
+        v4.7: Global brand added for simplified image prompting.
 
         Args:
             slide_number: Slide position in presentation
@@ -1047,6 +1050,7 @@ class TextServiceClientV1_2:
             theme_config: v4.5 - Full theme config
             content_context: v4.5 - Audience/purpose/time config
             styling_mode: v4.5 - "inline_styles" or "css_classes"
+            global_brand: v4.7 - Global brand variables for simplified prompting
 
         Returns:
             Dict with:
@@ -1075,6 +1079,9 @@ class TextServiceClientV1_2:
             payload["content_context"] = content_context
         if styling_mode:
             payload["styling_mode"] = styling_mode
+        # v4.7: Add global brand for simplified image prompting
+        if global_brand:
+            payload["global_brand"] = global_brand
 
         return await self._call_unified_slides("H1-generated", payload, timeout=180)
 
@@ -1154,14 +1161,16 @@ class TextServiceClientV1_2:
         # v4.5: Theme system params
         theme_config: Optional[Dict] = None,
         content_context: Optional[Dict] = None,
-        styling_mode: str = "inline_styles"
+        styling_mode: str = "inline_styles",
+        # v4.7: Global brand for simplified image prompting
+        global_brand: Optional[Dict] = None
     ) -> Dict[str, Any]:
         """
         Generate H2-section (section divider slide).
 
         v4.3: Uses unified /v1.2/slides/H2-section endpoint.
-
         v4.5: Theme system params added (ignored by v1.2.2, used by v1.3.0).
+        v4.7: Global brand added for simplified image prompting.
 
         Args:
             slide_number: Slide position
@@ -1173,6 +1182,7 @@ class TextServiceClientV1_2:
             theme_config: v4.5 - Full theme config
             content_context: v4.5 - Audience/purpose/time config
             styling_mode: v4.5 - "inline_styles" or "css_classes"
+            global_brand: v4.7 - Global brand variables for simplified prompting
 
         Returns:
             Dict with:
@@ -1198,6 +1208,9 @@ class TextServiceClientV1_2:
             payload["content_context"] = content_context
         if styling_mode:
             payload["styling_mode"] = styling_mode
+        # v4.7: Add global brand for simplified image prompting
+        if global_brand:
+            payload["global_brand"] = global_brand
 
         return await self._call_unified_slides("H2-section", payload, timeout=60)
 
@@ -1213,14 +1226,16 @@ class TextServiceClientV1_2:
         # v4.5: Theme system params
         theme_config: Optional[Dict] = None,
         content_context: Optional[Dict] = None,
-        styling_mode: str = "inline_styles"
+        styling_mode: str = "inline_styles",
+        # v4.7: Global brand for simplified image prompting
+        global_brand: Optional[Dict] = None
     ) -> Dict[str, Any]:
         """
         Generate H3-closing (closing slide with contact info).
 
         v4.3: Uses unified /v1.2/slides/H3-closing endpoint.
-
         v4.5: Theme system params added (ignored by v1.2.2, used by v1.3.0).
+        v4.7: Global brand added for simplified image prompting.
 
         Args:
             slide_number: Slide position
@@ -1233,6 +1248,7 @@ class TextServiceClientV1_2:
             theme_config: v4.5 - Full theme config
             content_context: v4.5 - Audience/purpose/time config
             styling_mode: v4.5 - "inline_styles" or "css_classes"
+            global_brand: v4.7 - Global brand variables for simplified prompting
 
         Returns:
             Dict with:
@@ -1260,6 +1276,9 @@ class TextServiceClientV1_2:
             payload["content_context"] = content_context
         if styling_mode:
             payload["styling_mode"] = styling_mode
+        # v4.7: Add global brand for simplified image prompting
+        if global_brand:
+            payload["global_brand"] = global_brand
 
         return await self._call_unified_slides("H3-closing", payload, timeout=60)
 
