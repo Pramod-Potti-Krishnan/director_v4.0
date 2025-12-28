@@ -1907,10 +1907,27 @@ class WebSocketHandlerV4:
                 title_preview = slide.get('title', '')[:40]
                 print(f"[CONTENT] variant={variant_id} ({variant_source}), topics={len(topics)}, title='{title_preview}'")
 
-                key_message = ' | '.join(topics[:3]) if topics else slide.get('title', '')
+                # v4.7: Use strawman's rich context fields for better content generation
+                purpose = slide.get('purpose', '')  # Story context from strawman
+                generation_instructions = slide.get('generation_instructions', '')  # Generation guidance
+                notes = slide.get('notes', '')  # Speaker notes
                 slide_title = slide.get('title', 'this topic')
-                notes = slide.get('notes')
-                slide_purpose = notes if notes else f"Present key points about {slide_title}"
+
+                # Build slide_purpose: purpose > notes > fallback
+                if purpose:
+                    slide_purpose = purpose
+                elif notes:
+                    slide_purpose = notes
+                else:
+                    slide_purpose = f"Present key points about {slide_title}"
+
+                # Build key_message: generation_instructions > topics > fallback
+                if generation_instructions:
+                    key_message = generation_instructions
+                elif topics:
+                    key_message = ' | '.join(topics[:3])
+                else:
+                    key_message = slide.get('title', '')
 
                 request = {
                     'variant_id': variant_id,

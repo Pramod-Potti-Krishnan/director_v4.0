@@ -222,7 +222,7 @@ class Settings(BaseSettings):
     # - Structured H-series: H1-structured, H2-section, H3-closing return proper fields
     # - I-series aliases: slide_title, body returned directly (no mapping needed)
     USE_UNIFIED_SLIDES_API: bool = Field(
-        True,  # Enabled by default - use new efficient endpoints
+        False,  # v4.7: DISABLED - C1-text endpoint has errors, use /v1.2/generate instead
         env="USE_UNIFIED_SLIDES_API",
         description="Use Text Service v1.2.2 unified /v1.2/slides/* endpoints for combined generation"
     )
