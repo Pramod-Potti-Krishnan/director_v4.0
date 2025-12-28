@@ -922,6 +922,10 @@ Create a complete Strawman with slide definitions. Each slide MUST include:
         """
         logger.info(f"StrawmanGenerator.generate() called with topic='{topic}', audience='{audience}', duration={duration}, purpose='{purpose}', requested_slide_count={requested_slide_count}")
 
+        # v4.9: Store context for I-series budget tracking
+        self._current_audience = audience
+        self._current_purpose = purpose
+
         # v4.1: Try playbook matching first
         if self.playbook_manager:
             from src.models.playbook import MatchConfidence
@@ -1926,6 +1930,11 @@ Generate a complete strawman with {slide_count} slides about {topic}.
         - Suggested service (text, analytics, diagram, illustrator)
         - I-series recommendations (needs_image, suggested_iseries)
 
+        v4.9: Added audience-aware I-series budget tracking:
+        - Classifies presentation type based on audience/purpose
+        - Tracks I-series allocation with soft enforcement
+        - Uses presentation type to select I1/I2 vs I3/I4
+
         This enables intelligent service routing during content generation.
 
         Args:
@@ -1940,10 +1949,54 @@ Generate a complete strawman with {slide_count} slides about {topic}.
         try:
             logger.info(f"Enhancing strawman with content analysis ({len(strawman.slides)} slides)")
 
+            # v4.9: Get presentation type for I-series budget tracking
+            from src.core.presentation_type_analyzer import (
+                classify_presentation,
+                PresentationType,
+                get_target_range
+            )
+            from src.core.iseries_budget_tracker import ISeriesBudgetTracker
+
+            # Map audience string to preset
+            audience_preset = self._map_audience_to_preset(
+                getattr(self, '_current_audience', 'general')
+            )
+            purpose_preset = self._map_purpose_to_preset(
+                getattr(self, '_current_purpose', 'inform')
+            )
+
+            # Classify presentation type
+            presentation_type = classify_presentation(audience_preset, purpose_preset)
+            target_range = get_target_range(presentation_type)
+
+            logger.info(
+                f"I-series budget: type={presentation_type.value}, "
+                f"target={target_range[0]*100:.0f}-{target_range[1]*100:.0f}%, "
+                f"audience={audience_preset}, purpose={purpose_preset}"
+            )
+
+            # Initialize budget tracker
+            budget_tracker = ISeriesBudgetTracker(
+                total_slides=len(strawman.slides),
+                presentation_type=presentation_type
+            )
+
             enhanced_slides = []
-            for slide in strawman.slides:
-                enhanced_slide = await self._analyze_slide_content(slide)
+            for idx, slide in enumerate(strawman.slides):
+                enhanced_slide = await self._analyze_slide_content(
+                    slide,
+                    presentation_type=presentation_type,
+                    budget_tracker=budget_tracker,
+                    slide_idx=idx
+                )
                 enhanced_slides.append(enhanced_slide)
+
+            # Log final budget status
+            status = budget_tracker.get_budget_status()
+            logger.info(
+                f"I-series allocation: {status['current_count']}/{status['total_slides']} "
+                f"({status['percentage']:.1f}%), target was {status['target_count']}"
+            )
 
             # Update metadata
             metadata = strawman.metadata or {}
@@ -1960,12 +2013,23 @@ Generate a complete strawman with {slide_count} slides about {topic}.
             logger.error(f"Content analysis enhancement failed: {e}")
             return strawman
 
-    async def _analyze_slide_content(self, slide: StrawmanSlide) -> StrawmanSlide:
+    async def _analyze_slide_content(
+        self,
+        slide: StrawmanSlide,
+        presentation_type=None,
+        budget_tracker=None,
+        slide_idx: int = 0
+    ) -> StrawmanSlide:
         """
         Analyze a single slide's content and populate hints.
 
+        v4.9: Added I-series budget tracking with audience-aware selection.
+
         Args:
             slide: Original slide from strawman
+            presentation_type: PresentationType for I-series position preference
+            budget_tracker: ISeriesBudgetTracker for percentage enforcement
+            slide_idx: Current slide index (0-based)
 
         Returns:
             Enhanced slide with content_hints, suggested_service, etc.
@@ -2002,16 +2066,53 @@ Generate a complete strawman with {slide_count} slides about {topic}.
             # Check for I-series recommendation
             # v4.8: Unified Variant System - suggested_iseries is now a full Gold Standard
             # variant_id (e.g., "sequential_3col_i1") instead of just "I1"
+            # v4.9: Budget tracking with presentation-type-aware position selection
             needs_image = hints.needs_image
-            suggested_iseries = hints.suggested_iseries
+            suggested_iseries = None  # Will be set if budget allows
 
             # Determine variant_id with unified approach
             variant_id = slide.variant_id
 
+            # v4.9: Check I-series budget before assigning
+            from src.utils.variant_catalog import is_iseries_variant, GOLD_STANDARD_I_SERIES_VARIANTS
+            from src.models.content_hints import PatternType
+
+            if hints.needs_image and budget_tracker is not None:
+                # Check if content strongly suggests an image (comparison or flow patterns)
+                content_strongly_suggests = hints.pattern_type in [
+                    PatternType.COMPARISON,
+                    PatternType.FLOW
+                ]
+
+                # Check budget
+                if budget_tracker.should_use_iseries(slide_idx, content_strongly_suggests):
+                    # Get I-series variant with presentation-aware position
+                    suggested_iseries = self.content_analyzer._suggest_iseries_layout(
+                        needs_image=True,
+                        topic_count=hints.topic_count,
+                        pattern_type=hints.pattern_type,
+                        presentation_type=presentation_type
+                    )
+
+                    if suggested_iseries:
+                        # Record I-series usage
+                        budget_tracker.record_iseries_used(slide_idx)
+                        logger.debug(
+                            f"Slide {slide.slide_number}: I-series allowed by budget, "
+                            f"variant={suggested_iseries}"
+                        )
+                else:
+                    # Over budget - don't use I-series
+                    needs_image = False
+                    logger.debug(
+                        f"Slide {slide.slide_number}: I-series denied by budget"
+                    )
+            elif hints.needs_image and budget_tracker is None:
+                # No budget tracker - use original logic
+                suggested_iseries = hints.suggested_iseries
+
             # v4.8: If I-series recommended, use it as the main variant_id
             # The websocket handler will detect I-series from the _i1/_i2/_i3/_i4 suffix
-            from src.utils.variant_catalog import is_iseries_variant, GOLD_STANDARD_I_SERIES_VARIANTS
-
             if suggested_iseries and is_iseries_variant(suggested_iseries):
                 # Validate against Gold Standard I-series variants
                 if suggested_iseries in GOLD_STANDARD_I_SERIES_VARIANTS:
@@ -2077,3 +2178,142 @@ Generate a complete strawman with {slide_count} slides about {topic}.
         except Exception as e:
             logger.warning(f"Failed to analyze slide {slide.slide_number}: {e}")
             return slide
+
+    def _map_audience_to_preset(self, audience: str) -> str:
+        """
+        Map audience description to preset.
+
+        v4.9: Used for I-series budget tracking.
+
+        Args:
+            audience: Audience string (e.g., "executives", "kids", "general")
+
+        Returns:
+            Audience preset string
+        """
+        audience_lower = audience.lower() if audience else "general"
+
+        # Map common audience descriptions to presets
+        mappings = {
+            # Kids/Young
+            "kids": "kids_young",
+            "children": "kids_young",
+            "kindergarten": "kids_young",
+            "young children": "kids_young",
+            "kids_young": "kids_young",
+            "kids_older": "kids_older",
+            "older kids": "kids_older",
+
+            # Students
+            "middle school": "middle_school",
+            "middle_school": "middle_school",
+            "tweens": "middle_school",
+            "high school": "high_school",
+            "high_school": "high_school",
+            "teenagers": "high_school",
+            "teens": "high_school",
+            "college": "college",
+            "university": "college",
+            "students": "college",
+
+            # Professional
+            "professional": "professional",
+            "team": "professional",
+            "colleagues": "professional",
+            "internal": "professional",
+            "training": "professional",
+            "workshop": "professional",
+            "new hires": "professional",
+
+            # Executive
+            "executive": "executive",
+            "executives": "executive",
+            "board": "executive",
+            "c-suite": "executive",
+            "leadership": "executive",
+            "investors": "executive",
+            "vcs": "executive",
+
+            # General (default)
+            "general": "general",
+            "public": "general",
+            "everyone": "general",
+        }
+
+        # Check for exact match first
+        if audience_lower in mappings:
+            return mappings[audience_lower]
+
+        # Check for partial match
+        for key, preset in mappings.items():
+            if key in audience_lower:
+                return preset
+
+        # Default to general (which maps to PROFESSIONAL type)
+        return "general"
+
+    def _map_purpose_to_preset(self, purpose: str) -> str:
+        """
+        Map purpose description to preset.
+
+        v4.9: Used for I-series budget tracking.
+
+        Args:
+            purpose: Purpose string (e.g., "inform", "persuade", "educate")
+
+        Returns:
+            Purpose preset string
+        """
+        purpose_lower = purpose.lower() if purpose else "inform"
+
+        # Map common purpose descriptions to presets
+        mappings = {
+            # Persuade
+            "persuade": "persuade",
+            "pitch": "persuade",
+            "sell": "persuade",
+            "convince": "persuade",
+            "proposal": "persuade",
+
+            # Educate
+            "educate": "educate",
+            "teach": "educate",
+            "training": "educate",
+            "explain": "educate",
+            "tutorial": "educate",
+
+            # Inform
+            "inform": "inform",
+            "update": "inform",
+            "status": "inform",
+            "report": "inform",
+            "share": "inform",
+
+            # Inspire
+            "inspire": "inspire",
+            "motivate": "inspire",
+            "rally": "inspire",
+            "vision": "inspire",
+
+            # QBR
+            "qbr": "qbr",
+            "quarterly": "qbr",
+            "review": "qbr",
+
+            # Entertain
+            "entertain": "entertain",
+            "fun": "entertain",
+            "engage": "entertain",
+        }
+
+        # Check for exact match first
+        if purpose_lower in mappings:
+            return mappings[purpose_lower]
+
+        # Check for partial match
+        for key, preset in mappings.items():
+            if key in purpose_lower:
+                return preset
+
+        # Default to inform
+        return "inform"

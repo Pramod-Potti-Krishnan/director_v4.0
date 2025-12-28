@@ -200,8 +200,9 @@ class Settings(BaseSettings):
 
     # v4.0: I-Series Generation (Phase 1 - Text Service Image+Text Layouts)
     # Enables I-series layouts (I1-I4) for combined image + text slides
+    # v4.9: Now audience-aware with budget tracking
     USE_ISERIES_GENERATION: bool = Field(
-        False,  # Default: disabled (use standard content variants)
+        True,  # v4.9: Enabled - audience-aware I-series allocation
         env="USE_ISERIES_GENERATION",
         description="Enable I-series (image+text) slide generation for content slides"
     )

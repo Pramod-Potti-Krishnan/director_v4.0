@@ -7,6 +7,10 @@ v4.0.25: This analyzer no longer handles service routing. Service routing is now
 story-driven via the LayoutAnalyzer. This analyzer only provides hints for
 variant selection (comparison, sequential, topic_count, etc.).
 
+v4.9: Added presentation_type-aware I-series layout suggestions.
+- VISUAL_HEAVY/BALANCED: Prefer I1/I2 (wide images)
+- PROFESSIONAL/TEXT_FOCUSED: Prefer I3/I4 (narrow images)
+
 The analyzer examines:
 - Slide title and topics
 - Content structure (comparison, sequence) for variant selection
@@ -18,7 +22,10 @@ Usage:
 """
 
 import re
-from typing import Optional, List, Set
+from typing import Optional, List, Set, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from src.core.presentation_type_analyzer import PresentationType
 from src.models.content_hints import (
     ContentHints,
     PatternType,
@@ -235,7 +242,8 @@ class ContentAnalyzer:
         self,
         needs_image: bool,
         topic_count: int,
-        pattern_type: Optional[PatternType] = None
+        pattern_type: Optional[PatternType] = None,
+        presentation_type: Optional["PresentationType"] = None
     ) -> Optional[str]:
         """
         Suggest I-series Gold Standard variant if image would enhance content.
@@ -243,6 +251,10 @@ class ContentAnalyzer:
         v4.8: Unified Variant System - returns full Gold Standard variant_id
         instead of just I1/I2/I3/I4. The variant_id encodes both the content
         template and image position.
+
+        v4.9: Presentation type awareness
+        - VISUAL_HEAVY/BALANCED: Prefer I1/I2 (wide images) for engagement
+        - PROFESSIONAL/TEXT_FOCUSED: Prefer I3/I4 (narrow images) for text
 
         I-series layouts:
         - I1: Wide image left (660×1080), content right (1200×840) - balanced
@@ -254,6 +266,12 @@ class ContentAnalyzer:
         - single_column_3section_i1/i2/i3/i4 (12)
         - comparison_2col_i1/i2/i3/i4, comparison_3col_i1/i2/i3/i4 (8)
         - sequential_3col_i1/i2/i3/i4, sequential_4col_i3/i4 (6)
+
+        Args:
+            needs_image: Whether the content needs an image
+            topic_count: Number of topics in the slide
+            pattern_type: Detected content pattern
+            presentation_type: Presentation type for image position preference
 
         Returns:
             Gold Standard variant_id (e.g., "sequential_3col_i1") or None
@@ -287,23 +305,70 @@ class ContentAnalyzer:
             else:
                 content_base = "single_column_3section"
 
-        # Determine image position (I1/I2/I3/I4) based on topic count
-        # More topics = need more content space = narrow image (I3/I4)
-        if topic_count >= 5:
-            image_position = "i3"  # Narrow left for more content space
-        elif topic_count >= 3:
-            image_position = "i1"  # Wide left, balanced
-        else:
-            image_position = "i2"  # Wide right for visual focus
+        # v4.9: Determine image position based on presentation type
+        image_position = self._get_image_position(topic_count, presentation_type)
 
         variant_id = f"{content_base}_{image_position}"
 
         logger.debug(
-            f"I-series suggestion: topic_count={topic_count}, pattern={pattern_type} "
-            f"-> {variant_id}"
+            f"I-series suggestion: topic_count={topic_count}, pattern={pattern_type}, "
+            f"presentation_type={presentation_type} -> {variant_id}"
         )
 
         return variant_id
+
+    def _get_image_position(
+        self,
+        topic_count: int,
+        presentation_type: Optional["PresentationType"] = None
+    ) -> str:
+        """
+        Determine I-series image position based on presentation type and topic count.
+
+        v4.9: Audience-aware image position selection
+        - VISUAL_HEAVY/BALANCED: Prefer I1/I2 (wide images) for engagement
+        - PROFESSIONAL/TEXT_FOCUSED: Prefer I3/I4 (narrow images) for text
+
+        Args:
+            topic_count: Number of topics in the slide
+            presentation_type: Presentation type classification
+
+        Returns:
+            Image position string (i1, i2, i3, or i4)
+        """
+        # Import here to avoid circular imports
+        try:
+            from src.core.presentation_type_analyzer import PresentationType
+        except ImportError:
+            # Fallback to topic-count-based logic
+            if topic_count >= 5:
+                return "i3"
+            elif topic_count >= 3:
+                return "i1"
+            else:
+                return "i2"
+
+        # Default to PROFESSIONAL if not specified
+        if presentation_type is None:
+            presentation_type = PresentationType.PROFESSIONAL
+
+        # Visual-heavy and balanced presentations prefer wide images (I1/I2)
+        if presentation_type in [PresentationType.VISUAL_HEAVY, PresentationType.BALANCED]:
+            # Wide images for engagement
+            # I1 = wide left, I2 = wide right
+            if topic_count >= 3:
+                return "i1"  # Wide left for more topics
+            else:
+                return "i2"  # Wide right for fewer topics (visual focus)
+
+        # Professional and text-focused prefer narrow images (I3/I4)
+        else:
+            # Narrow images for text-heavy content
+            # I3 = narrow left, I4 = narrow right
+            if topic_count >= 4:
+                return "i3"  # Narrow left for more topics
+            else:
+                return "i4"  # Narrow right for fewer topics
 
     def suggest_iseries(self, hints: ContentHints) -> Optional[str]:
         """
