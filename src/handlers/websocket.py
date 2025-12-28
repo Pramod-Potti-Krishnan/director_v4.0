@@ -2003,13 +2003,18 @@ class WebSocketHandlerV4:
                 # v4.0.31: Use print() for Railway visibility
                 print(f"[SLIDE-OK] Slide {idx+1} content generated successfully")
 
+                # v4.7: Use C1-text layout (more content space than L25)
+                content_html = result.content if hasattr(result, 'content') else str(result)
                 return {
                     'idx': idx,
                     'slide_id': slide_id,
-                    'layout': 'L25',
-                    'content': result.content if hasattr(result, 'content') else str(result),
+                    'layout': 'C1-text',  # v4.7: C1-text has 840px content vs L25's 720px
+                    'content': content_html,
+                    'slide_title': slide.get('title', ''),  # For C1-text layout
+                    'subtitle': slide.get('subtitle', ''),  # v4.7: Pass through from strawman
+                    'body': content_html,  # For C1-text content area
                     'is_hero': False,
-                    'title': slide.get('title', '')
+                    'title': slide.get('title', '')  # Keep for backward compat
                 }
 
         except Exception as e:
@@ -2030,13 +2035,17 @@ class WebSocketHandlerV4:
 
             # Fallback: use strawman transformer content
             fallback_html = self.strawman_transformer._create_content_html(slide)
+            # v4.7: Use C1-text layout (more content space than L25)
             return {
                 'idx': idx,
                 'slide_id': slide_id,
-                'layout': 'L25',
+                'layout': 'C1-text',  # v4.7: C1-text has 840px content vs L25's 720px
                 'content': fallback_html,
+                'slide_title': slide.get('title', ''),  # For C1-text layout
+                'subtitle': slide.get('subtitle', ''),  # v4.7: Pass through from strawman
+                'body': fallback_html,  # For C1-text content area
                 'is_hero': False,
-                'title': slide.get('title', ''),
+                'title': slide.get('title', ''),  # Keep for backward compat
                 'fallback': True
             }
 
