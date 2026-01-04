@@ -265,6 +265,11 @@ class WebSocketHandlerV4:
             await self._handle_set_branding(websocket, session, data)
             return
 
+        elif message_type == 'edit_sync':
+            # v4.10: Handle edit sync from frontend (OPERATING_MODEL_BUILDER_V2 Section 3.1.2)
+            await self._handle_edit_sync(websocket, session, data)
+            return
+
         else:
             logger.warning(f"Unknown message type: {message_type}")
             return
@@ -462,6 +467,74 @@ class WebSocketHandlerV4:
                 "success": False,
                 "error": str(e)
             })
+
+    async def _handle_edit_sync(
+        self,
+        websocket: WebSocket,
+        session: SessionV4,
+        data: Dict[str, Any]
+    ):
+        """
+        Handle edit_sync message from frontend.
+
+        v4.10: Implements OPERATING_MODEL_BUILDER_V2 Section 3.1.2 - Edit Synchronization.
+
+        Stores the current state of user's presentation edits in session.
+        This enables Mixed Mode generation (Phase 3) where AI adds slides
+        without replacing user's manual content.
+
+        Fire-and-forget: No acknowledgment sent back (per spec Section 15.1).
+
+        Expected payload:
+        {
+            "type": "edit_sync",
+            "payload": {
+                "slide_count": 5,
+                "slide_summaries": [{"id": "...", "title": "...", "has_content": true}],
+                "has_user_content": true,
+                "last_edit_timestamp": "2026-01-03T10:00:00Z"
+            }
+        }
+        """
+        try:
+            payload = data.get('payload', {})
+
+            # Extract edit sync fields
+            slide_count = payload.get('slide_count', 0)
+            slide_summaries = payload.get('slide_summaries', [])
+            has_user_content = payload.get('has_user_content', False)
+            last_edit_timestamp = payload.get('last_edit_timestamp')
+
+            # Store in session
+            session.edit_sync_state = {
+                'slide_count': slide_count,
+                'slide_summaries': slide_summaries,
+                'has_user_content': has_user_content,
+                'last_edit_timestamp': last_edit_timestamp,
+                'synced_at': datetime.utcnow().isoformat()
+            }
+            session.user_slide_count = slide_count
+            session.user_has_content = has_user_content
+
+            # Persist to database
+            await self.session_manager.update(session)
+
+            # Log for debugging (no response to frontend - fire-and-forget)
+            logger.info(
+                f"[v4.10] edit_sync received: session={session.id}, "
+                f"slides={slide_count}, has_content={has_user_content}"
+            )
+
+            # Check for Mixed Mode trigger: user deleted all slides
+            # Per spec: If user deletes all manual slides, treat as blank state
+            if slide_count == 0 and session.has_blank_presentation:
+                session.user_has_content = False
+                await self.session_manager.update(session)
+                logger.info(f"[v4.10] All slides deleted, resetting to blank state")
+
+        except Exception as e:
+            # Log error but don't fail - fire-and-forget pattern
+            logger.error(f"[v4.10] edit_sync error: {e}")
 
     async def _handle_respond(self, websocket: WebSocket, session: SessionV4, decision):
         """Handle RESPOND action - send conversational response."""

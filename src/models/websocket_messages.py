@@ -43,6 +43,7 @@ class MessageType(str, Enum):
     STATUS_UPDATE = "status_update"
     PRESENTATION_URL = "presentation_url"  # v2.0: For deck-builder URL responses
     SYNC_RESPONSE = "sync_response"  # v3.4.2: For history sync protocol
+    EDIT_SYNC = "edit_sync"  # v4.10: Frontend -> Director slide state sync
 
 
 class ChatPayload(BaseModel):
@@ -167,6 +168,33 @@ class SyncResponsePayload(BaseModel):
     presentation_url: Optional[str] = Field(
         None,
         description="Current presentation URL if available"
+    )
+
+
+class EditSyncPayload(BaseModel):
+    """
+    Payload for edit_sync messages (v4.10 OPERATING_MODEL_BUILDER_V2 Section 3.1.2).
+
+    Sent by frontend to Director when user makes manual edits to the presentation.
+    Director stores this state for Mixed Mode generation context.
+
+    Fire-and-forget: No acknowledgment required (per spec Section 15.1).
+    """
+    slide_count: int = Field(
+        ...,
+        description="Current number of slides in user's presentation"
+    )
+    slide_summaries: List[Dict[str, Any]] = Field(
+        default_factory=list,
+        description="Brief summary of each slide (id, title, has_content)"
+    )
+    has_user_content: bool = Field(
+        ...,
+        description="True if user has added manual content (triggers Mixed Mode)"
+    )
+    last_edit_timestamp: Optional[str] = Field(
+        None,
+        description="ISO timestamp of last user edit"
     )
 
 
