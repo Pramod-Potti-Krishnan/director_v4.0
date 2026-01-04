@@ -178,11 +178,14 @@ class WebSocketHandlerV4:
         print(f"[SESSION]   has_topic={session.has_topic}, has_strawman={session.has_strawman}, has_content={session.has_content}")
         # v4.10.2: Debug log for feature flag
         print(f"[v4.10] ENABLE_BLANK_PRESENTATION={self.settings.ENABLE_BLANK_PRESENTATION}")
+        print(f"[v4.10] Blank presentation check: has_topic={session.has_topic}, flag={self.settings.ENABLE_BLANK_PRESENTATION}")
 
         # v4.10: Immediate blank presentation on new session (OPERATING_MODEL_BUILDER_V2)
         # Order: slide_update (blank) first, then greeting
         if not session.has_topic and self.settings.ENABLE_BLANK_PRESENTATION:
+            print(f"[v4.10] ENTERING blank presentation creation block")
             session = await self._create_and_send_blank_presentation(websocket, session)
+            print(f"[v4.10] EXITED blank presentation creation block")
 
         # Send initial greeting if new session
         if not session.has_topic:
@@ -1161,7 +1164,8 @@ class WebSocketHandlerV4:
             # Get timeout from settings
             timeout_ms = self.settings.BLANK_PRESENTATION_TIMEOUT_MS
 
-            logger.info(f"[v4.10] Creating blank presentation for session {session.id}")
+            print(f"[v4.10] Creating blank presentation for session {session.id}")
+            print(f"[v4.10] DeckBuilder URL: {self.deck_builder_client.api_url}")
 
             # Create blank presentation via DeckBuilder
             result = await self.deck_builder_client.create_blank_presentation(
@@ -1169,15 +1173,17 @@ class WebSocketHandlerV4:
                 max_retries=2
             )
 
+            print(f"[v4.10] DeckBuilder result: {result}")
+
             if not result.get("success"):
                 # Fallback to greeting-only flow
-                logger.warning(f"[v4.10] Blank presentation failed, fallback to greeting-only: {result.get('error')}")
+                print(f"[v4.10] Blank presentation FAILED, fallback to greeting-only: {result.get('error')}")
                 return session
 
             presentation_id = result.get("id", "")
             url = result.get("url", "")
 
-            logger.info(f"[v4.10] Blank presentation created: {presentation_id}")
+            print(f"[v4.10] Blank presentation CREATED: id={presentation_id}, url={url}")
 
             # Update session with blank presentation info
             session.has_blank_presentation = True
@@ -1187,13 +1193,17 @@ class WebSocketHandlerV4:
             await self.session_manager.update(session)
 
             # Send slide_update with is_blank=True
+            print(f"[v4.10] Sending slide_update with is_blank=True")
             await self._send_blank_slide_update(websocket, session, presentation_id, url)
+            print(f"[v4.10] slide_update SENT successfully")
 
             return session
 
         except Exception as e:
             # Fallback to greeting-only flow on any error
-            logger.error(f"[v4.10] Blank presentation error, fallback to greeting-only: {e}")
+            print(f"[v4.10] Blank presentation ERROR: {e}")
+            import traceback
+            traceback.print_exc()
             return session
 
     async def _send_blank_slide_update(
