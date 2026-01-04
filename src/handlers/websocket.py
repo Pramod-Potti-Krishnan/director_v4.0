@@ -176,6 +176,8 @@ class WebSocketHandlerV4:
         session = await self.session_manager.get_or_create(session_id, user_id)
         # v4.0.31: Log session state
         print(f"[SESSION]   has_topic={session.has_topic}, has_strawman={session.has_strawman}, has_content={session.has_content}")
+        # v4.10.2: Debug log for feature flag
+        print(f"[v4.10] ENABLE_BLANK_PRESENTATION={self.settings.ENABLE_BLANK_PRESENTATION}")
 
         # v4.10: Immediate blank presentation on new session (OPERATING_MODEL_BUILDER_V2)
         # Order: slide_update (blank) first, then greeting
