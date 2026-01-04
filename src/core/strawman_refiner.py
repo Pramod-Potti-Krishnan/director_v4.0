@@ -505,3 +505,92 @@ If the user mentions specific slides, focus on those. If they give general feedb
                 summaries.append(f"Removed slide {change.slide_number}")
 
         return "; ".join(summaries)
+
+    def merge_with_manual_edits(
+        self,
+        ai_strawman: Dict[str, Any],
+        edit_sync_state: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """
+        Merge AI-generated strawman with user's manual edits (Mixed Mode).
+
+        v4.10: Implements OPERATING_MODEL_BUILDER_V2 Section 3.1.3 - Mixed Mode Generation.
+
+        Strategy:
+        - Preserve all user's manual slides (from edit_sync_state)
+        - Append AI-generated slides after user slides
+        - Skip duplicate title slide (if AI also generated one)
+        - Maintain consistent slide numbering
+
+        Args:
+            ai_strawman: AI-generated strawman from StrawmanGenerator
+            edit_sync_state: Latest edit_sync state from frontend containing
+                            slide_count, slide_summaries, has_user_content
+
+        Returns:
+            Merged strawman with user slides preserved + AI slides appended
+        """
+        if not edit_sync_state:
+            logger.debug("[Mixed Mode] No edit_sync_state, returning AI strawman as-is")
+            return ai_strawman
+
+        user_slide_count = edit_sync_state.get('slide_count', 0)
+        user_slides = edit_sync_state.get('slide_summaries', [])
+        has_user_content = edit_sync_state.get('has_user_content', False)
+
+        if not has_user_content or user_slide_count == 0:
+            logger.debug("[Mixed Mode] No user content, returning AI strawman as-is")
+            return ai_strawman
+
+        logger.info(f"[Mixed Mode] Merging AI strawman with {user_slide_count} user slides")
+
+        # Create merged strawman
+        merged = deepcopy(ai_strawman)
+        ai_slides = merged.get('slides', [])
+
+        # Check if AI has a title slide - skip it if user already has slides
+        # (user's first slide is likely their title slide)
+        ai_slides_to_add = []
+        for slide in ai_slides:
+            purpose = slide.get('purpose', '')
+            slide_type = slide.get('slide_type_hint', slide.get('slide_type', ''))
+
+            # Skip title slides if user already has content
+            if purpose == 'title_slide' or slide_type == 'title_slide':
+                logger.debug(f"[Mixed Mode] Skipping AI title slide - user has content")
+                continue
+
+            ai_slides_to_add.append(slide)
+
+        # Create placeholder entries for user slides
+        # (Director doesn't have full content, just metadata)
+        preserved_user_slides = []
+        for idx, user_slide_summary in enumerate(user_slides):
+            preserved_slide = {
+                'slide_id': user_slide_summary.get('id', f'user_slide_{idx + 1}'),
+                'slide_number': idx + 1,
+                'title': user_slide_summary.get('title', ''),
+                'topics': [],
+                'notes': '',
+                'purpose': 'user_content',
+                'slide_type_hint': 'user_manual',
+                'layout': user_slide_summary.get('layout', 'H1-structured'),
+                'service': 'preserved',  # Signal to skip generation
+                '_preserved_from_user': True  # Internal marker
+            }
+            preserved_user_slides.append(preserved_slide)
+
+        # Renumber AI slides to continue after user slides
+        for idx, slide in enumerate(ai_slides_to_add):
+            slide['slide_number'] = user_slide_count + idx + 1
+            slide['slide_id'] = f"ai_slide_{slide['slide_number']}"
+
+        # Merge: user slides first, then AI slides
+        merged['slides'] = preserved_user_slides + ai_slides_to_add
+
+        logger.info(
+            f"[Mixed Mode] Merged result: {len(preserved_user_slides)} user slides + "
+            f"{len(ai_slides_to_add)} AI slides = {len(merged['slides'])} total"
+        )
+
+        return merged

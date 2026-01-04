@@ -180,6 +180,20 @@ class DecisionContext(BaseModel):
     has_content: bool = Field(default=False, description="Content has been generated")
     is_complete: bool = Field(default=False, description="Presentation is complete")
 
+    # v4.10: Mixed Mode flags (OPERATING_MODEL_BUILDER_V2 Section 3.1.3)
+    has_blank_presentation: bool = Field(
+        default=False,
+        description="Session started with blank presentation"
+    )
+    user_has_content: bool = Field(
+        default=False,
+        description="User has added manual content (triggers Mixed Mode)"
+    )
+    edit_sync_state: Optional[Dict[str, Any]] = Field(
+        None,
+        description="Latest edit_sync state from frontend (slide_count, summaries, etc.)"
+    )
+
     # Session data
     initial_request: Optional[str] = Field(None, description="Original user request")
     topic: Optional[str] = Field(None, description="Presentation topic")

@@ -1,5 +1,5 @@
-v4.10.1-build-20260103-r2
+v4.10.2-build-20260103-r3
 commit: pending
-features: immediate_blank_presentation, edit_sync, operating_model_v2_phase1_phase2
+features: immediate_blank_presentation, edit_sync, mixed_mode_generation, session_cleanup
 deployed: pending
-prev_version: v4.10.0-build-20260103-r1
+prev_version: v4.10.1-build-20260103-r2

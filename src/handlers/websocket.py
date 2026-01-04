@@ -357,6 +357,11 @@ class WebSocketHandlerV4:
             has_explicit_approval=session.has_explicit_approval,
             has_content=session.has_content,
             is_complete=session.is_complete,
+            # v4.10: Mixed Mode context
+            has_blank_presentation=session.has_blank_presentation,
+            user_has_content=session.user_has_content,
+            edit_sync_state=session.edit_sync_state,
+            # Session data
             initial_request=session.initial_request,
             topic=session.topic,
             audience=session.audience,
@@ -653,6 +658,16 @@ class WebSocketHandlerV4:
 
         # Save strawman
         strawman_dict = strawman.dict()
+
+        # v4.10: Mixed Mode - merge with user's manual edits if present
+        if session.user_has_content and session.edit_sync_state and self.strawman_refiner:
+            logger.info("[Mixed Mode] User has manual content, merging with AI strawman")
+            strawman_dict = self.strawman_refiner.merge_with_manual_edits(
+                ai_strawman=strawman_dict,
+                edit_sync_state=session.edit_sync_state
+            )
+            print(f"[STRAWMAN] Mixed Mode: Merged with {session.edit_sync_state.get('slide_count', 0)} user slides")
+
         await self.session_manager.save_strawman(
             session.id, session.user_id, strawman_dict
         )
