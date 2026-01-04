@@ -1190,7 +1190,19 @@ class WebSocketHandlerV4:
             session.blank_presentation_id = presentation_id
             session.presentation_id = presentation_id
             session.presentation_url = url
-            await self.session_manager.update(session)
+
+            # v4.10.2: Fix - use update_progress() instead of non-existent update()
+            await self.session_manager.update_progress(
+                session.id,
+                session.user_id,
+                {
+                    'has_blank_presentation': True,
+                    'blank_presentation_id': presentation_id,
+                    'presentation_id': presentation_id,
+                    'presentation_url': url
+                }
+            )
+            print(f"[v4.10] Session updated successfully")
 
             # Send slide_update with is_blank=True
             print(f"[v4.10] Sending slide_update with is_blank=True")
