@@ -45,6 +45,12 @@ class SessionV4(BaseModel):
     has_content: bool = Field(default=False, description="Content has been generated")
     is_complete: bool = Field(default=False, description="Presentation is complete")
 
+    # v4.10: Immediate Connection & Blank Presentation (OPERATING_MODEL_BUILDER_V2)
+    has_blank_presentation: bool = Field(
+        default=False,
+        description="Session started with blank presentation on connect"
+    )
+
     # Generic context storage (replaces state-specific fields)
     context: Dict[str, Any] = Field(
         default_factory=dict,
@@ -70,6 +76,24 @@ class SessionV4(BaseModel):
     )
     presentation_id: Optional[str] = Field(None, description="Deck builder presentation ID")
     presentation_url: Optional[str] = Field(None, description="Preview URL")
+
+    # v4.10: Blank Presentation & Edit Sync (OPERATING_MODEL_BUILDER_V2 Sections 3.1.1, 3.1.2)
+    blank_presentation_id: Optional[str] = Field(
+        None,
+        description="ID of blank presentation created on connect (for cleanup tracking)"
+    )
+    edit_sync_state: Optional[Dict[str, Any]] = Field(
+        None,
+        description="Latest edit_sync state from frontend (slide_count, has_user_content, etc.)"
+    )
+    user_slide_count: Optional[int] = Field(
+        None,
+        description="Number of slides currently in user's presentation (from edit_sync)"
+    )
+    user_has_content: bool = Field(
+        default=False,
+        description="Whether user has added manual content (Mixed Mode trigger)"
+    )
 
     # v4.2: Per-presentation branding configuration
     branding: Optional[Dict[str, Any]] = Field(
@@ -157,6 +181,8 @@ class SessionV4(BaseModel):
         self.has_explicit_approval = False
         self.has_content = False
         self.is_complete = False
+        # v4.10: Reset blank presentation flag
+        self.has_blank_presentation = False
         self.updated_at = datetime.utcnow()
 
     def clear_for_new_presentation(self) -> None:
@@ -175,6 +201,11 @@ class SessionV4(BaseModel):
         self.presentation_url = None
         self.branding = None  # v4.2: Clear branding for new presentation
         self.image_style_agreement = None  # v4.6: Clear image style for new presentation
+        # v4.10: Clear blank presentation & edit sync fields
+        self.blank_presentation_id = None
+        self.edit_sync_state = None
+        self.user_slide_count = None
+        self.user_has_content = False
         # Keep conversation history for context
         self.updated_at = datetime.utcnow()
 

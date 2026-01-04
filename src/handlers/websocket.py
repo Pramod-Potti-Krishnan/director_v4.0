@@ -177,6 +177,11 @@ class WebSocketHandlerV4:
         # v4.0.31: Log session state
         print(f"[SESSION]   has_topic={session.has_topic}, has_strawman={session.has_strawman}, has_content={session.has_content}")
 
+        # v4.10: Immediate blank presentation on new session (OPERATING_MODEL_BUILDER_V2)
+        # Order: slide_update (blank) first, then greeting
+        if not session.has_topic and self.settings.ENABLE_BLANK_PRESENTATION:
+            session = await self._create_and_send_blank_presentation(websocket, session)
+
         # Send initial greeting if new session
         if not session.has_topic:
             await self._send_greeting(websocket, session)
@@ -1037,6 +1042,121 @@ class WebSocketHandlerV4:
             await self.session_manager.update_progress(
                 session.id, session.user_id, updates
             )
+
+    async def _create_and_send_blank_presentation(
+        self,
+        websocket: WebSocket,
+        session: SessionV4
+    ) -> SessionV4:
+        """
+        Create a blank presentation and send slide_update with is_blank=True.
+
+        v4.10: Implements OPERATING_MODEL_BUILDER_V2 Section 3.1.1 - Immediate Blank Presentation.
+
+        This is called BEFORE the greeting to give users immediate visual feedback.
+        Message order: slide_update (blank) first, then greeting.
+
+        Error handling (per spec):
+        - Retry once on failure
+        - On all failures, fallback to greeting-only flow (return session unchanged)
+
+        Args:
+            websocket: WebSocket connection
+            session: Current session
+
+        Returns:
+            Updated session (with has_blank_presentation=True if successful)
+        """
+        try:
+            # Get timeout from settings
+            timeout_ms = self.settings.BLANK_PRESENTATION_TIMEOUT_MS
+
+            logger.info(f"[v4.10] Creating blank presentation for session {session.id}")
+
+            # Create blank presentation via DeckBuilder
+            result = await self.deck_builder_client.create_blank_presentation(
+                timeout_ms=timeout_ms,
+                max_retries=2
+            )
+
+            if not result.get("success"):
+                # Fallback to greeting-only flow
+                logger.warning(f"[v4.10] Blank presentation failed, fallback to greeting-only: {result.get('error')}")
+                return session
+
+            presentation_id = result.get("id", "")
+            url = result.get("url", "")
+
+            logger.info(f"[v4.10] Blank presentation created: {presentation_id}")
+
+            # Update session with blank presentation info
+            session.has_blank_presentation = True
+            session.blank_presentation_id = presentation_id
+            session.presentation_id = presentation_id
+            session.presentation_url = url
+            await self.session_manager.update(session)
+
+            # Send slide_update with is_blank=True
+            await self._send_blank_slide_update(websocket, session, presentation_id, url)
+
+            return session
+
+        except Exception as e:
+            # Fallback to greeting-only flow on any error
+            logger.error(f"[v4.10] Blank presentation error, fallback to greeting-only: {e}")
+            return session
+
+    async def _send_blank_slide_update(
+        self,
+        websocket: WebSocket,
+        session: SessionV4,
+        presentation_id: str,
+        url: str
+    ):
+        """
+        Send slide_update message for blank presentation.
+
+        v4.10: Creates a minimal slide_update with is_blank=True flag.
+        Frontend should display tools-first UI when receiving this.
+        """
+        # Create minimal metadata for blank presentation
+        metadata = {
+            "main_title": "Untitled Presentation",
+            "overall_theme": "",
+            "design_suggestions": "",
+            "target_audience": "",
+            "presentation_duration": 0,
+            "preview_url": url,
+            "preview_presentation_id": presentation_id
+        }
+
+        # Create minimal blank slide data
+        slides = [
+            {
+                "slide_id": "blank_slide_1",
+                "slide_number": 1,
+                "slide_type": "title_slide",
+                "title": "",
+                "subtitle": "",
+                "narrative": "",
+                "key_points": [],
+                "variant_id": "H1-structured",
+                "service": "text",
+                "purpose": "title_slide"
+            }
+        ]
+
+        # Create and send slide_update with is_blank=True
+        slide_msg = create_slide_update(
+            session_id=session.id,
+            operation="full_update",
+            metadata=metadata,
+            slides=slides,
+            is_blank=True  # v4.10: Signal blank presentation
+        )
+
+        await websocket.send_json(slide_msg.model_dump(mode='json'))
+        logger.info(f"[v4.10] Sent blank slide_update for session {session.id}")
 
     async def _send_greeting(self, websocket: WebSocket, session: SessionV4):
         """Send initial greeting message."""

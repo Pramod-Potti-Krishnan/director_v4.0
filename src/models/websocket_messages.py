@@ -109,6 +109,11 @@ class SlideUpdatePayload(BaseModel):
     metadata: SlideMetadata = Field(..., description="Presentation metadata")
     slides: List[SlideData] = Field(..., description="List of slides to update")
     affected_slides: Optional[List[str]] = Field(None, description="IDs of affected slides for partial updates")
+    # v4.10: Immediate Connection & Blank Presentation (OPERATING_MODEL_BUILDER_V2 Section 15.1)
+    is_blank: bool = Field(
+        False,
+        description="True if blank presentation awaiting user input. Frontend should show tools-first UI."
+    )
 
 
 class StatusLevel(str, Enum):
@@ -415,9 +420,16 @@ def create_slide_update(
     slides: List[Dict[str, Any]],
     message_id: Optional[str] = None,
     affected_slides: Optional[List[str]] = None,
-    role: Literal["user", "assistant"] = "assistant"
+    role: Literal["user", "assistant"] = "assistant",
+    is_blank: bool = False
 ) -> SlideUpdate:
-    """Helper function to create a slide update"""
+    """
+    Helper function to create a slide update.
+
+    Args:
+        is_blank: v4.10 - True if this is a blank presentation awaiting user input.
+                  Frontend should show tools-first UI when is_blank=True.
+    """
     import uuid
     msg = SlideUpdate(
         message_id=message_id or f"msg_{uuid.uuid4().hex[:8]}",
@@ -426,7 +438,8 @@ def create_slide_update(
             operation=operation,
             metadata=SlideMetadata(**metadata),
             slides=[SlideData(**slide) for slide in slides],
-            affected_slides=affected_slides
+            affected_slides=affected_slides,
+            is_blank=is_blank
         )
     )
     msg.role = role

@@ -326,6 +326,29 @@ class Settings(BaseSettings):
         description="Generate title/subtitle in parallel with content (when possible)"
     )
 
+    # v4.10: Immediate Connection & Blank Presentation (OPERATING_MODEL_BUILDER_V2)
+    # Enables instant blank presentation on WebSocket connect for improved UX
+    # Spec: Section 15.1 - slide_update with is_blank=true, then greeting
+    ENABLE_BLANK_PRESENTATION: bool = Field(
+        False,  # Default: disabled for safe rollback
+        env="ENABLE_BLANK_PRESENTATION",
+        description="Enable immediate blank presentation on WebSocket connect"
+    )
+    BLANK_PRESENTATION_TIMEOUT_MS: int = Field(
+        500,  # 500ms target latency per spec
+        ge=100,
+        le=5000,
+        env="BLANK_PRESENTATION_TIMEOUT_MS",
+        description="Timeout in ms for blank presentation creation (target: <500ms)"
+    )
+    SESSION_CLEANUP_HOURS: int = Field(
+        24,  # 24h cleanup for orphaned blank sessions
+        ge=1,
+        le=168,  # Max 1 week
+        env="SESSION_CLEANUP_HOURS",
+        description="Hours before orphaned blank presentation sessions are cleaned up"
+    )
+
     class Config:
         env_file = ".env"
         env_file_encoding = "utf-8"

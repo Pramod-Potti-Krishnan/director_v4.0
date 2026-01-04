@@ -1,4 +1,5 @@
-v4.0.31-build-20251215-r2
-commit: 8ca846a
-features: comprehensive_pipeline_logging
-deployed: 2025-12-15
+v4.10.0-build-20260103-r1
+commit: pending
+features: immediate_blank_presentation, operating_model_v2_phase1
+deployed: pending
+prev_version: v4.0.31-build-20251215-r2

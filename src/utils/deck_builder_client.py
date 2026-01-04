@@ -106,6 +106,116 @@ class DeckBuilderClient:
         logger.error(f"Failed to create presentation after {max_retries} attempts")
         raise last_exception
 
+    async def create_blank_presentation(
+        self,
+        timeout_ms: int = 500,
+        max_retries: int = 2
+    ) -> Dict[str, Any]:
+        """
+        Create a blank presentation for immediate WebSocket connection.
+
+        v4.10: Implements OPERATING_MODEL_BUILDER_V2 Section 3.1.1 - Immediate Blank Presentation.
+        Creates a single title slide (H1-structured) as a blank canvas for user editing.
+        Optimized for <500ms latency target.
+
+        Args:
+            timeout_ms: Timeout in milliseconds (default 500ms per spec)
+            max_retries: Maximum retry attempts (default 2, per spec)
+
+        Returns:
+            {
+                "success": bool,
+                "id": str (presentation ID),
+                "url": str (preview URL),
+                "is_blank": True
+            }
+
+        Error handling per spec:
+        - Retry once on failure
+        - Return success=False on all failures (fallback to greeting-only)
+        """
+        import asyncio
+
+        endpoint = f"{self.api_url}/api/presentations"
+        timeout_seconds = timeout_ms / 1000.0
+
+        # Minimal blank presentation: single H1-structured title slide
+        blank_presentation = {
+            "title": "Untitled Presentation",
+            "slides": [
+                {
+                    "layout": "H1-structured",
+                    "content": {
+                        "slide_title": "",
+                        "slide_subtitle": "",
+                        "hero_content": ""
+                    },
+                    "metadata": {
+                        "is_blank": True,
+                        "variant_id": "H1-structured",
+                        "service": "text"
+                    }
+                }
+            ]
+        }
+
+        logger.info(f"Creating blank presentation (timeout: {timeout_ms}ms, max_retries: {max_retries})")
+
+        last_exception = None
+        for attempt in range(1, max_retries + 1):
+            try:
+                async with httpx.AsyncClient(timeout=timeout_seconds) as client:
+                    response = await client.post(
+                        endpoint,
+                        json=blank_presentation
+                    )
+                    response.raise_for_status()
+
+                    result = response.json()
+                    presentation_id = result.get("id", "")
+                    url = result.get("url", "")
+
+                    logger.info(f"Blank presentation created successfully: {presentation_id}")
+
+                    return {
+                        "success": True,
+                        "id": presentation_id,
+                        "url": self.get_full_url(url) if url else "",
+                        "is_blank": True
+                    }
+
+            except httpx.TimeoutException as e:
+                last_exception = e
+                logger.warning(f"Blank presentation attempt {attempt}/{max_retries}: timeout after {timeout_ms}ms")
+                if attempt < max_retries:
+                    await asyncio.sleep(0.1)  # Brief delay before retry
+
+            except httpx.HTTPStatusError as e:
+                last_exception = e
+                logger.error(f"Blank presentation HTTP error: {e.response.status_code}")
+                # Don't retry on 4xx errors
+                if 400 <= e.response.status_code < 500:
+                    break
+                if attempt < max_retries:
+                    await asyncio.sleep(0.1)
+
+            except httpx.RequestError as e:
+                last_exception = e
+                logger.error(f"Blank presentation connection error: {str(e)}")
+                if attempt < max_retries:
+                    await asyncio.sleep(0.1)
+
+        # All retries exhausted - return failure (spec: fallback to greeting-only)
+        logger.warning(f"Blank presentation creation failed after {max_retries} attempts, "
+                      f"fallback to greeting-only flow")
+        return {
+            "success": False,
+            "id": "",
+            "url": "",
+            "is_blank": True,
+            "error": str(last_exception) if last_exception else "Unknown error"
+        }
+
     async def get_presentation(self, presentation_id: str) -> Optional[Dict[str, Any]]:
         """
         Get presentation data by ID.
