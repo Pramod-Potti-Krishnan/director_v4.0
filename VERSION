@@ -1,5 +1,6 @@
-v4.10.2-build-20260103-r3
-commit: pending
+v4.10.3-build-20260109-r1
+commit: 67428d4
 features: immediate_blank_presentation, edit_sync, mixed_mode_generation, session_cleanup
 deployed: pending
-prev_version: v4.10.1-build-20260103-r2
+prev_version: v4.10.2-build-20260103-r3
+bugfix: Fixed _create_content_html AttributeError in content generation fallback
