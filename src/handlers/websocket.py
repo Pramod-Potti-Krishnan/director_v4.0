@@ -2266,7 +2266,9 @@ class WebSocketHandlerV4:
             )
 
             # Fallback: use strawman transformer content
-            fallback_html = self.strawman_transformer._create_content_html(slide)
+            # v4.10.2: Fix - use correct method name _create_content_metadata_html
+            layout = slide.get('layout', 'L25')
+            fallback_html = self.strawman_transformer._create_content_metadata_html(slide, layout)
             # v4.7: Use C1-text layout (more content space than L25)
             return {
                 'idx': idx,
@@ -2534,7 +2536,9 @@ class WebSocketHandlerV4:
                 print(f"[SLIDE-ERROR] Unexpected task exception for slide {i+1}: {result}")
                 # Create fallback result
                 slide = slides[i]
-                fallback_html = self.strawman_transformer._create_content_html(slide)
+                # v4.10.2: Fix - use correct method name _create_content_metadata_html
+                layout = slide.get('layout', 'L25')
+                fallback_html = self.strawman_transformer._create_content_metadata_html(slide, layout)
                 enriched_slides.append({
                     'idx': i,
                     'slide_id': slide.get('slide_id', f'slide_{i+1}'),
