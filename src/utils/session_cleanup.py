@@ -88,7 +88,7 @@ async def cleanup_orphaned_sessions(
         query = query.eq("has_topic", False)
         query = query.lt("created_at", cutoff_iso)
 
-        response = query.execute()
+        response = await query.execute()
 
         if not response.data:
             logger.info("[Cleanup] No orphaned sessions found")
@@ -113,7 +113,7 @@ async def cleanup_orphaned_sessions(
             session_id = session["id"]
             try:
                 # Delete the session
-                delete_response = supabase.table("dr_sessions_v4").delete().eq("id", session_id).execute()
+                delete_response = await supabase.table("dr_sessions_v4").delete().eq("id", session_id).execute()
 
                 if delete_response.data:
                     deleted_count += 1
@@ -165,7 +165,7 @@ async def get_orphaned_session_stats() -> Dict[str, Any]:
         query = query.eq("has_blank_presentation", True)
         query = query.eq("has_topic", False)
 
-        response = query.execute()
+        response = await query.execute()
 
         if not response.data:
             return {"total_orphaned": 0, "by_age": {"1h": 0, "6h": 0, "24h": 0, "older": 0}}
